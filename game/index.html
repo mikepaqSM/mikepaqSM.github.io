@@ -40,8 +40,10 @@
 <div class="overlay open" id="help">
   <div class="panel">
     <h1 class="title">Watson Dog</h1>
-    <p>You're Watson, a brown dog with a big heart and a bigger bite. The townsfolk have had enough of you, and they're coming at you with newspapers, parcels, rakes and nets. Chase them off to earn experience (XP), then spend it at your doghouse in the middle of town on new levels, new fetch gear and new tricks. The farther you roam from home, the tougher the townsfolk, and the more XP they're worth.</p>
-    <p><b>This game is meant to be hard.</b> People flash and show a red circle on the ground before they swing. Roll out of the circle or get hit. When you're knocked out, all your unspent XP is left where you fell (look for the glowing bone). Get back to it to recover it. Get knocked out on the way and it's gone for good.</p>
+    <p>You're Watson, a brown dog with a big heart and a bigger bite. Pollution has crept into town. It has turned the friendly plant folk of the parks and gardens mean, and it's spreading toward your doghouse, where your owner Jackie lives.</p>
+    <p>Chase off the polluted plants to earn experience (XP), then spend it at your doghouse on new levels, new fetch gear and new tricks. The farther you roam from home, the worse the pollution, and the tougher the plants.</p>
+    <p><b>Bosses.</b> Four townspeople have been tainted by the pollution too: the Paperboy, the Mail Carrier, the Gardener and the Dog Catcher. Each one waits somewhere in their own zone, glowing purple. Beat all four to clear the pollution and keep Jackie safe. Bosses chain attacks together, so don't relax after the first swing.</p>
+    <p><b>This game is meant to be hard.</b> Enemies flash and show a red circle on the ground before they attack. Roll out of the circle or get hit. When you're knocked out, all your unspent XP is left where you fell (look for the glowing bone). Get back to it to recover it. Get knocked out on the way and it's gone for good.</p>
     <h2>Controls</h2>
     <table class="keys">
       <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows</td><td>Move</td></tr>
@@ -55,7 +57,7 @@
       <tr><td><kbd>H</kbd></td><td>Show this help</td></tr>
     </table>
     <p>Attacks, rolls, running and moves all use stamina (the green bar). Run out and you can't attack or roll. Attacking commits you: you can't roll until the chomp finishes, so mashing will get you knocked out.</p>
-    <p><b>Punish openings.</b> Right after someone swings at you, they're briefly off balance and a yellow ring appears under it. Hits landed then are critical hits for double damage.</p>
+    <p><b>Punish openings.</b> Right after an enemy finishes attacking, it's briefly off balance and a yellow ring appears under it. Hits landed then are critical hits for double damage.</p>
     <p style="margin-top:16px"><button id="play">Begin</button></p>
   </div>
 </div>
@@ -65,6 +67,14 @@
     <div class="top"><h1>Watson's Doghouse</h1><span class="xp" id="shopXp"></span></div>
     <div id="shopBody"></div>
     <p style="margin-top:14px"><button id="closeShop">Leave (B)</button></p>
+  </div>
+</div>
+
+<div class="overlay" id="win">
+  <div class="panel" style="text-align:center">
+    <h1 class="title">The pollution is lifting!</h1>
+    <p>All four tainted townspeople are back to their old selves, and Jackie is safe. Good boy, Watson.</p>
+    <p style="margin-top:16px"><button id="keepPlaying">Keep playing</button></p>
   </div>
 </div>
 
@@ -123,13 +133,23 @@ const STATS = [
 ];
 const levelCost = lvl => Math.floor(30 * 1.16 ** (lvl - 1));
 
+// Regular enemies: friendly plant folk turned mean by pollution.
 // windup = seconds of warning before the hit, reach = size of the red danger circle,
 // staggers = whether your hits interrupt their attack. s = drawing scale, look = how they're drawn.
 const ENEMY_TYPES = [
-  { name: 'Paperboy',   lvl: 1,  hp: 20,  dmg: 20, speed: 1.4, xp: 6,   r: 0.26, h: 36, s: 0.82, look: 'paperboy',   color: '#3a7bd5', minDist: 0,  windup: 0.55, reach: 0.45, recover: 0.7, staggers: true,  aggro: 5 },
-  { name: 'Mail Carrier', lvl: 3,  hp: 50,  dmg: 28, speed: 2.4, xp: 20,  r: 0.28, h: 42, s: 1,    look: 'mailman',    color: '#5a7aa8', minDist: 8,  windup: 0.4,  reach: 0.55, recover: 0.5, staggers: true,  aggro: 6 },
-  { name: 'Gardener', lvl: 6,  hp: 100, dmg: 42, speed: 2.0, xp: 60,  r: 0.32, h: 48, s: 1.12, look: 'gardener',   color: '#4f7a3a', minDist: 13, windup: 0.65, reach: 0.75, recover: 0.8, staggers: false, aggro: 6.5 },
-  { name: 'Dog Catcher', lvl: 10, hp: 220, dmg: 70, speed: 1.5, xp: 180, r: 0.44, h: 58, s: 1.4,  look: 'dogcatcher', color: '#8a7a4a', minDist: 18, windup: 1.0,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 7 },
+  { name: 'Sproutling',       lvl: 1,  hp: 20,  dmg: 20, speed: 1.6, xp: 6,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', minDist: 0,  windup: 0.55, reach: 0.45, recover: 0.7, staggers: true,  aggro: 5 },
+  { name: 'Thornbush',        lvl: 3,  hp: 50,  dmg: 28, speed: 2.1, xp: 20,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', minDist: 8,  windup: 0.45, reach: 0.6,  recover: 0.55, staggers: true, aggro: 6 },
+  { name: 'Toxic Toadstool',  lvl: 6,  hp: 100, dmg: 42, speed: 1.8, xp: 60,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', minDist: 13, windup: 0.7,  reach: 0.85, recover: 0.8, staggers: false, aggro: 6.5 },
+  { name: 'Smog Oak',         lvl: 10, hp: 220, dmg: 70, speed: 1.3, xp: 180, r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', minDist: 18, windup: 1.0,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 7 },
+];
+
+// Bosses: townspeople tainted by the pollution, one per zone. Beaten bosses stay beaten.
+// ox/oy = where they wait (tiles from the doghouse), combo = hits chained per attack.
+const BOSSES = [
+  { name: 'Tainted Paperboy',     lvl: 5,  hp: 160,  dmg: 26, speed: 2.6, xp: 150,  r: 0.32, h: 44, s: 1.1,  look: 'paperboy',   color: '#b14cff', ox: -4,  oy: -4,  combo: 2, windup: 0.5,  reach: 0.65, recover: 0.6, aggro: 6 },
+  { name: 'Tainted Mail Carrier', lvl: 9,  hp: 380,  dmg: 36, speed: 2.4, xp: 400,  r: 0.38, h: 56, s: 1.35, look: 'mailman',    color: '#b14cff', ox: 8,   oy: -8,  combo: 2, windup: 0.55, reach: 0.8,  recover: 0.7, aggro: 6 },
+  { name: 'Tainted Gardener',     lvl: 14, hp: 700,  dmg: 50, speed: 2.1, xp: 900,  r: 0.42, h: 64, s: 1.5,  look: 'gardener',   color: '#b14cff', ox: -11, oy: 11,  combo: 3, windup: 0.7,  reach: 1.0,  recover: 0.8, aggro: 6.5 },
+  { name: 'Tainted Dog Catcher',  lvl: 20, hp: 1200, dmg: 75, speed: 1.9, xp: 2000, r: 0.5,  h: 76, s: 1.8,  look: 'dogcatcher', color: '#b14cff', ox: 15,  oy: 15,  combo: 3, windup: 0.9,  reach: 1.3,  recover: 1.0, aggro: 7 },
 ];
 
 const ZONES = [
@@ -159,7 +179,9 @@ const fireballDmg = () => Math.round(35 * (1 + 0.1 * player.stats.arc));
 
 const cooldowns = { strike: 0, whirl: 0, fireball: 0 };
 let enemies = [], projectiles = [], effects = [], floaters = [];
-let target = null, bloodstain = null;
+let target = null, bloodstain = null, won = false;
+const defeated = new Set();   // names of bosses already beaten
+const JACKIE = { x: CENTER + 1.4, y: CENTER - 0.2 };
 let spawnTimer = 0, kills = 0, time = 0;
 const cam = { x: 0, y: 0 };
 let paused = true;
@@ -211,13 +233,13 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 const overlay = id => document.getElementById(id);
 function openOverlay(id) {
   if (player.dead && id !== 'death') return;
-  ['help', 'shop', 'death'].forEach(o => overlay(o).classList.toggle('open', o === id));
+  ['help', 'shop', 'death', 'win'].forEach(o => overlay(o).classList.toggle('open', o === id));
   paused = true;
-  if (id === 'shop') renderShop();
+  if (id === 'shop') { renderShop(); floatText(JACKIE.x, JACKIE.y, 'Good boy, Watson!', '#ffffff', 1.6); }
 }
 function closeOverlays() {
   if (player.dead) return;
-  ['help', 'shop'].forEach(o => overlay(o).classList.remove('open'));
+  ['help', 'shop', 'win'].forEach(o => overlay(o).classList.remove('open'));
   paused = false;
 }
 function toggleShop() {
@@ -229,6 +251,7 @@ function toggleShop() {
 overlay('play').onclick = closeOverlays;
 overlay('closeShop').onclick = closeOverlays;
 overlay('respawn').onclick = respawn;
+overlay('keepPlaying').onclick = closeOverlays;
 
 const flaskCost = () => 120 * 2 ** (player.maxFlasks - 3);
 
@@ -301,14 +324,21 @@ function spawnEnemy() {
     const d = distC(x, y);
     if (d < SAFE_R + 2.5) continue;
     if (Math.hypot(x - player.x, y - player.y) < 9) continue;
-    const t = pickType(d);
-    enemies.push({ ...t, x, y, homeX: x, homeY: y, maxHp: t.hp,
-      state: 'idle', t: 0, tx: x, ty: y, wanderT: rand(0, 3), atkCd: 0, flash: 0, kx: 0, ky: 0,
-      walk: rand(0, 6), moving: false, fx: 1, fy: 0, seed: rand(0, 6) });
+    enemies.push(makeEnemy(pickType(d), x, y));
     return;
   }
 }
-function populate() { enemies = []; for (let i = 0; i < MAX_ENEMIES; i++) spawnEnemy(); }
+function makeEnemy(t, x, y) {
+  return { ...t, x, y, homeX: x, homeY: y, maxHp: t.hp,
+    state: 'idle', t: 0, tMax: 1, comboLeft: (t.combo || 1) - 1, tx: x, ty: y, wanderT: rand(0, 3), atkCd: 0, flash: 0, kx: 0, ky: 0,
+    walk: rand(0, 6), moving: false, fx: 1, fy: 0, seed: rand(0, 6) };
+}
+const plantCount = () => enemies.filter(e => !e.boss).length;
+function populate() {
+  enemies = [];
+  for (const b of BOSSES) if (!defeated.has(b.name)) enemies.push(makeEnemy({ ...b, boss: true, staggers: false }, CENTER + b.ox, CENTER + b.oy));
+  for (let i = 0; i < MAX_ENEMIES; i++) spawnEnemy();
+}
 populate();
 
 // ---------- Player actions ----------
@@ -391,7 +421,7 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
   if (crit) dmg = Math.round(dmg * CRIT_MULT);
   e.hp -= dmg;
   e.flash = 0.12;
-  if (e.state === 'windup' && e.staggers) { e.state = 'recover'; e.t = 0.45; e.punishable = false; }
+  if (e.state === 'windup' && e.staggers) { e.state = 'recover'; e.t = 0.45; e.punishable = false; e.comboLeft = (e.combo || 1) - 1; }
   else if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
   const dx = e.x - fromX, dy = e.y - fromY, d = Math.hypot(dx, dy) || 1;
   const kb = e.staggers ? 2.5 : 0.6;
@@ -402,6 +432,12 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
     kills++;
     floatText(e.x, e.y, `+${e.xp} XP`, '#f2c94c', 1.2);
     effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2, t: 0.3, max: 0.3, color: e.color, fill: true });
+    if (e.boss) {
+      defeated.add(e.name);
+      floatText(e.x, e.y - 0.5, 'POLLUTION CLEARED', '#e3b8ff', 2.5);
+      effects.push({ type: 'ring', x: e.x, y: e.y, range: 3, t: 1, max: 1, color: '#e3b8ff', fill: true });
+      if (defeated.size === BOSSES.length && !won) { won = true; setTimeout(() => openOverlay('win'), 1200); }
+    }
   }
 }
 
@@ -443,6 +479,7 @@ function respawn() {
   projectiles = []; effects = []; floaters = []; target = null;
   overlay('death').classList.remove('open');
   paused = false;
+  floatText(JACKIE.x, JACKIE.y, 'Watson! Are you okay?', '#ffffff', 2);
 }
 
 function floatText(x, y, text, color, life = 0.8) {
@@ -549,17 +586,26 @@ function update(dt) {
 
     if ((e.state === 'idle' || e.state === 'return') && !playerSafe && d < e.aggro) e.state = 'chase';
     if (e.state === 'chase' && (playerSafe || d > e.aggro * 1.8)) e.state = 'return';
+    // Bosses won't leave their own patch of town.
+    if (e.boss && e.state === 'chase' && Math.hypot(e.x - e.homeX, e.y - e.homeY) > 9) e.state = 'return';
 
     let mx = 0, my = 0, spd = e.speed;
     if (e.state === 'chase') {
-      if (d < strikeDist * 0.85 && e.atkCd <= 0) { e.state = 'windup'; e.t = e.windup; }
+      if (d < strikeDist * 0.85 && e.atkCd <= 0) { e.state = 'windup'; e.t = e.tMax = e.windup; }
       else if (d > e.r + p.r + 0.1) { mx = dx / d; my = dy / d; }
     } else if (e.state === 'windup') {
       e.t -= dt;
       if (e.t <= 0) {
         effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r + e.reach, t: 0.25, max: 0.25, color: '#ff4040', fill: true });
         if (d < strikeDist) hurtPlayer(e.dmg, e.x, e.y);
-        e.state = 'recover'; e.t = e.recover; e.punishable = true;
+        if (e.comboLeft > 0) {
+          // Chain straight into another, faster attack. No opening between combo hits.
+          e.comboLeft--;
+          e.state = 'windup'; e.t = e.tMax = e.windup * 0.65;
+        } else {
+          e.comboLeft = (e.combo || 1) - 1;
+          e.state = 'recover'; e.t = e.recover; e.punishable = true;
+        }
       }
     } else if (e.state === 'recover') {
       e.t -= dt;
@@ -611,7 +657,7 @@ function update(dt) {
 
   // Slowly bring monsters back over time.
   spawnTimer -= dt;
-  if (spawnTimer <= 0 && enemies.length < MAX_ENEMIES) { spawnEnemy(); spawnTimer = 8; }
+  if (spawnTimer <= 0 && plantCount() < MAX_ENEMIES) { spawnEnemy(); spawnTimer = 8; }
 
   for (const f of effects) f.t -= dt;
   effects = effects.filter(f => f.t > 0);
@@ -630,7 +676,10 @@ function tileColor(i, j) {
   else if (d < 13) [r, g, b] = [96, 128, 70];     // suburban lawns
   else if (d < 18) [r, g, b] = [116, 116, 122];   // downtown pavement
   else             [r, g, b] = [70, 62, 66];      // the pound district
-  return `rgb(${r + shade},${g + shade},${b + shade})`;
+  // Pollution: tiles get a sickly purple tint the farther you are from home.
+  const smog = clamp((d - 5) / 22, 0, 0.4);
+  r = lerp(r, 92, smog); g = lerp(g, 64, smog); b = lerp(b, 110, smog);
+  return `rgb(${Math.round(r + shade)},${Math.round(g + shade)},${Math.round(b + shade)})`;
 }
 
 function drawTiles() {
@@ -662,7 +711,7 @@ function shadow(x, y, r) {
 
 function drawTelegraph(e) {
   // Red danger circle that fills up as the attack is about to land.
-  const prog = 1 - e.t / e.windup;
+  const prog = 1 - e.t / e.tMax;
   const R = e.r + e.reach;
   ctx.strokeStyle = 'rgba(255,60,60,.8)';
   ctx.lineWidth = 2;
@@ -852,7 +901,8 @@ function drawPerson(sx, sy, o) {
   if (o.back) { ctx.beginPath(); ctx.arc(hx, hy, hr, Math.PI * 0.85, Math.PI * 2.15); fill(L.hair); }
   else {
     ctx.beginPath(); ctx.arc(hx - 1, hy - 1, hr, Math.PI * 0.95, Math.PI * 1.6); fill(L.hair);
-    ctx.beginPath(); ctx.arc(hx + hr * 0.45, hy - 0.5, 0.9, 0, Math.PI * 2); fill('#1e1a18');           // eye
+    if (o.tainted) glowEye(hx + hr * 0.45, hy - 0.5, 1.3);                                             // polluted eye
+    else { ctx.beginPath(); ctx.arc(hx + hr * 0.45, hy - 0.5, 0.9, 0, Math.PI * 2); fill('#1e1a18'); }
     if (L.grumpy) { ctx.beginPath(); ctx.moveTo(hx + 1, hy - 3.4); ctx.lineTo(hx + hr, hy - 2); ctx.lineTo(hx + hr, hy - 1.2); ctx.lineTo(hx + 1, hy - 2.4); fill('#2a1e18'); }
     ctx.beginPath(); ctx.moveTo(hx + hr - 0.5, hy - 0.5); ctx.lineTo(hx + hr + 1.6, hy + 1.2); ctx.lineTo(hx + hr - 0.5, hy + 1.8); fill(darken(L.skin, 0.12)); // nose
     if (L.mustache) { ctx.beginPath(); ctx.roundRect(hx + hr * 0.3, hy + 2, hr * 0.75, 1.5, 0.7); fill(L.mustache); }
@@ -887,17 +937,179 @@ const LOOKS = {
                 shoes: '#5a3a20', hat: 'straw', hatColor: '#d8b45a', grumpy: true, mustache: '#9a9a9a', item: 'rake' },
   dogcatcher: { wide: 1.35, headR: 5.2, skin: '#d8a07a', hair: '#3a2a1a', body: '#8a7a4a', sleeve: '#8a7a4a', legs: '#5a5038',
                 shoes: '#2a2218', hat: 'uniform', hatColor: '#4a4230', grumpy: true, mustache: '#3a2a1a', belly: true, badge: true, item: 'net' },
+  jackie:     { wide: 0.9,  headR: 5.6, skin: '#f0c8a0', hair: '#4a2c1a', body: '#2bb3a3', sleeve: '#2bb3a3', legs: '#3a4a6a',
+                shoes: '#f0f0f0', item: 'none' },
 };
+
+// Jackie waits by the doghouse and waves when Watson comes home.
+function drawJackie() {
+  const p = player, s = toScreen(JACKIE.x, JACKIE.y);
+  shadow(JACKIE.x, JACKIE.y, 0.25);
+  const near = Math.hypot(p.x - JACKIE.x, p.y - JACKIE.y) < 3.5;
+  const { flip } = screenFacing(p.x - JACKIE.x, p.y - JACKIE.y);
+  drawPerson(s.x, s.y, { s: 1.1, flip, back: false, walk: 0, moving: false, seed: 2,
+    armA: near ? -2.9 + Math.sin(time * 8) * 0.35 : -0.3, look: 'jackie' });
+}
+// ----- Polluted plant monsters -----
+// pose: prog = how far into an attack wind-up (0..1), slump = off balance after attacking.
+const TOXIC = '#b14cff';
+function glowEye(x, y, r) {
+  ctx.shadowColor = TOXIC; ctx.shadowBlur = 6;
+  ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); fill('#e3b8ff');
+  ctx.shadowBlur = 0;
+}
+function angryEyes(x, y, gap, r) {
+  for (const dx of [0, gap]) {
+    ctx.beginPath(); ctx.arc(x + dx, y, r, 0, Math.PI * 2); fill('#ffffff');
+    ctx.beginPath(); ctx.arc(x + dx + r * 0.3, y + r * 0.2, r * 0.55, 0, Math.PI * 2); fill('#2a1030');
+  }
+  ctx.beginPath(); ctx.moveTo(x - r, y - r * 1.6); ctx.lineTo(x + r, y - r * 0.9); ctx.lineTo(x + r, y - r * 0.4); ctx.lineTo(x - r, y - r * 1.1); fill('#2a1030');
+  ctx.beginPath(); ctx.moveTo(x + gap - r, y - r * 0.9); ctx.lineTo(x + gap + r, y - r * 1.6); ctx.lineTo(x + gap + r, y - r * 1.1); ctx.lineTo(x + gap - r, y - r * 0.4); fill('#2a1030');
+}
+function stubFeet(sw, w, c) {
+  for (const k of [-1, 1]) {
+    ctx.beginPath(); ctx.ellipse(k * w + sw * k * 2, -1.5 + (sw * k > 0 ? -1.5 * Math.abs(sw) : 0), 3.2, 2, 0, 0, Math.PI * 2); fill(c);
+  }
+}
+
+function drawPlant(sx, sy, e, pose) {
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(pose.flip ? -e.s : e.s, e.s);
+  const sw = e.moving ? Math.sin(e.walk) : 0;
+  const bob = e.moving ? Math.abs(Math.cos(e.walk)) * 1.5 : Math.sin(time * 2.4 + e.seed) * 0.6;
+  const wig = Math.sin(time * 4 + e.seed);
+
+  if (e.look === 'sprout') {
+    stubFeet(sw, 4, '#5d8a2e');
+    ctx.rotate(pose.slump ? 0.45 : -0.35 * pose.prog);
+    ctx.translate(0, -bob);
+    ctx.beginPath(); ctx.ellipse(0, -10, 8.5, 9, 0, 0, Math.PI * 2); fill('#8fbf4f');
+    for (const [x, y, r] of [[-4, -6, 1.6], [-1, -15, 1.2], [5, -4, 1.1]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); fill('#8e44ad'); }
+    ctx.beginPath(); ctx.roundRect(-0.8, -25, 1.6, 8, 0.8); fill('#5d8a2e');
+    for (const k of [-1, 1]) {
+      ctx.save(); ctx.translate(0, -24); ctx.rotate(k * (0.7 + wig * 0.15));
+      ctx.beginPath(); ctx.ellipse(0, -4, 2.8, 5, 0, 0, Math.PI * 2); fill(k < 0 ? '#6fa83a' : '#7fb84a');
+      ctx.beginPath(); ctx.rect(-0.3, -8, 0.6, 7); fill('#8e44ad');
+      ctx.restore();
+    }
+    angryEyes(1.5, -12, 4.2, 1.7);
+    ctx.beginPath(); ctx.arc(4, -5.5, 2, Math.PI * 1.1, Math.PI * 1.9); ctx.strokeStyle = P('#2a1030'); ctx.lineWidth = 1; ctx.stroke();
+  } else if (e.look === 'thorn') {
+    stubFeet(sw, 5, '#3a5a24');
+    ctx.translate(0, -bob);
+    const puff = pose.slump ? 0.85 : 1 + pose.prog * 0.2;
+    ctx.translate(0, -12); ctx.scale(puff, pose.slump ? 0.8 : puff);
+    const spikes = 12, tl = 3 + pose.prog * 5;
+    for (let i = 0; i < spikes; i++) {
+      const a = (i / spikes) * Math.PI * 2 + wig * 0.05, r = 10.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a - 0.15) * r, Math.sin(a - 0.15) * r);
+      ctx.lineTo(Math.cos(a) * (r + tl), Math.sin(a) * (r + tl));
+      ctx.lineTo(Math.cos(a + 0.15) * r, Math.sin(a + 0.15) * r);
+      fill('#c9a0dc');
+    }
+    for (const [x, y, r, c] of [[-5, 2, 7, '#335a26'], [5, 2, 7, '#335a26'], [0, -4, 8, '#3f6e2e'], [-4, -2, 6, '#4a7a34'], [5, -5, 5, '#4a7a34']]) {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); fill(c);
+    }
+    for (const [x, y] of [[-6, 4], [2, 5], [-1, -9]]) { ctx.beginPath(); ctx.arc(x, y, 1.3, 0, Math.PI * 2); fill('#8e44ad'); }
+    glowEye(2, -3, 1.8); glowEye(7, -3, 1.8);
+    ctx.beginPath(); ctx.moveTo(0, -6); ctx.lineTo(4, -4.6); ctx.moveTo(9, -6); ctx.lineTo(5, -4.6); ctx.strokeStyle = P('#14200e'); ctx.lineWidth = 1.2; ctx.stroke();
+  } else if (e.look === 'toadstool') {
+    for (const k of [-1, 1]) { ctx.beginPath(); ctx.roundRect(k * 3 - 2 + sw * k * 2, -6, 4, 6, 2); fill('#cfc2a2'); }
+    ctx.translate(0, -bob);
+    ctx.beginPath(); ctx.roundRect(-6.5, -26, 13, 22, 5); fill('#e8dcc0');
+    angryEyes(0, -18, 4.5, 1.8);
+    ctx.beginPath(); ctx.rect(1, -12, 4, 1); fill('#2a1030');
+    // Arms
+    let armA = e.moving ? -0.4 + sw * 0.3 : -0.4;
+    if (pose.prog > 0) armA = lerp(-0.4, -3.1, pose.prog); else if (pose.slump) armA = -0.1;
+    for (const [x, a, c] of [[-4, -armA * 0.6 + 0.2, '#cfc2a2'], [4, armA, '#e8dcc0']]) {
+      ctx.save(); ctx.translate(x, -20); ctx.rotate(a);
+      ctx.beginPath(); ctx.roundRect(-1.8, -1, 3.6, 11, 1.8); fill(c); ctx.restore();
+    }
+    // Cap: lifts during the wind-up, flops down when off balance.
+    const capY = -25 - pose.prog * 4 + (pose.slump ? 3 : 0);
+    ctx.beginPath(); ctx.ellipse(0, capY, 16, 11, 0, Math.PI, 0); ctx.closePath(); fill('#8e3b9e');
+    ctx.beginPath(); ctx.ellipse(0, capY, 16, 2.5, 0, 0, Math.PI); fill('#6a2a78');
+    for (const [x, y, r] of [[-8, -4, 2.4], [0, -8, 2.8], [8, -4, 2.2], [-3, -3, 1.5], [5, -9, 1.4]]) { ctx.beginPath(); ctx.arc(x, capY + y, r, 0, Math.PI * 2); fill('#b6f55a'); }
+    if (pose.prog > 0) {   // toxic spores puffing out
+      for (let i = 0; i < 6; i++) {
+        const a = i + time * 2, rr = 12 + ((time * 10 + i * 5) % 10);
+        ctx.globalAlpha = 0.6; ctx.beginPath(); ctx.arc(Math.cos(a) * rr, capY - 4 + Math.sin(a) * rr * 0.4, 1.4, 0, Math.PI * 2); fill('#b6f55a'); ctx.globalAlpha = 1;
+      }
+    }
+  } else if (e.look === 'oak') {
+    for (const k of [-1, 1]) {   // root legs
+      ctx.save(); ctx.translate(k * 4, -14); ctx.rotate(sw * k * 0.4);
+      ctx.beginPath(); ctx.moveTo(-3, 0); ctx.lineTo(3, 0); ctx.lineTo(4.5, 14); ctx.lineTo(-4.5, 14); ctx.closePath(); fill(k < 0 ? '#4e3420' : '#5e4028');
+      ctx.restore();
+    }
+    ctx.translate(0, -bob);
+    let armA = e.moving ? -0.3 + sw * 0.25 : -0.3;
+    if (pose.prog > 0) armA = lerp(-0.3, -3.3, pose.prog); else if (pose.slump) armA = 0.1;
+    const branch = (x, a, c) => {
+      ctx.save(); ctx.translate(x, -36); ctx.rotate(a);
+      ctx.beginPath(); ctx.moveTo(-2.5, 0); ctx.lineTo(2.5, 0); ctx.lineTo(1, 20); ctx.lineTo(-1, 20); ctx.closePath(); fill(c);
+      ctx.beginPath(); ctx.moveTo(0, 10); ctx.lineTo(5, 15); ctx.lineTo(4, 16); ctx.lineTo(-0.5, 12); fill(c);
+      for (const [lx, ly] of [[0, 21], [5, 16], [-2, 17]]) { ctx.beginPath(); ctx.arc(lx, ly, 3, 0, Math.PI * 2); fill('#5a4a6a'); }
+      ctx.restore();
+    };
+    branch(-6, -armA * 0.5 + 0.3, '#4e3420');
+    ctx.beginPath(); ctx.roundRect(-9.5, -44, 19, 32, 4); fill('#6b4a2e');
+    for (const x of [-5, 0, 5]) { ctx.beginPath(); ctx.rect(x - 0.5, -42, 1, 26); fill('#553a22'); }
+    // Withered canopy with smog drifting off it
+    for (const [x, y, r, c] of [[-8, -48, 8, '#4a5a32'], [7, -49, 8, '#4a5a32'], [0, -55, 10, '#56663a'], [-3, -50, 6, '#6a5a7a']]) {
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); fill(c);
+    }
+    for (let i = 0; i < 3; i++) {
+      const t = (time * 0.5 + i / 3) % 1;
+      ctx.globalAlpha = 0.45 * (1 - t);
+      ctx.beginPath(); ctx.arc(-4 + i * 4 + Math.sin(t * 6 + i) * 3, -62 - t * 18, 3 + t * 5, 0, Math.PI * 2); fill('#7a6e86');
+      ctx.globalAlpha = 1;
+    }
+    // Carved face
+    ctx.beginPath(); ctx.ellipse(-1, -32, 2.6, 3.2, 0, 0, Math.PI * 2); fill('#24160c');
+    ctx.beginPath(); ctx.ellipse(6, -32, 2.6, 3.2, 0, 0, Math.PI * 2); fill('#24160c');
+    glowEye(-0.5, -31.5, 1.2); glowEye(6.5, -31.5, 1.2);
+    ctx.beginPath(); ctx.moveTo(-3, -24); for (let i = 0; i <= 6; i++) ctx.lineTo(-3 + i * 1.8, i % 2 ? -21.5 : -24); ctx.lineTo(8, -20); ctx.lineTo(-3, -20); fill('#24160c');
+    branch(6, armA, '#5e4028');
+  }
+  ctx.restore();
+}
+
+// Purple pollution glow under bosses.
+function drawTaintAura(e) {
+  const pulse = 0.5 + Math.sin(time * 3 + e.seed) * 0.2;
+  ctx.fillStyle = `rgba(177,76,255,${0.25 * pulse + 0.1})`;
+  groundEllipse(e.x, e.y, e.r + 0.45); ctx.fill();
+  const s = toScreen(e.x, e.y);
+  for (let i = 0; i < 4; i++) {
+    const t = (time * 0.6 + i / 4 + e.seed) % 1;
+    ctx.globalAlpha = 0.7 * (1 - t);
+    ctx.fillStyle = TOXIC;
+    ctx.beginPath(); ctx.arc(s.x + Math.sin(i * 2.3 + time) * 14 * e.s, s.y - t * e.h, 2 + i % 2, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
 
 function drawEnemy(e) {
   shadow(e.x, e.y, e.r);
+  if (e.boss) drawTaintAura(e);
   const s = toScreen(e.x, e.y);
   paintMode = e.flash > 0 ? 'flash' : e.state === 'windup' && Math.floor(time * 12) % 2 ? 'tint' : null;
   const { flip, back } = screenFacing(e.fx, e.fy);
-  let armA = e.moving ? -0.45 + Math.sin(e.walk) * 0.3 : -0.5;
-  if (e.state === 'windup') armA = lerp(-0.5, -3.5, Math.min(1, (1 - e.t / e.windup) * 1.6));   // item raised overhead
-  else if (e.state === 'recover' && e.punishable) armA = -0.2;                                   // swung down, off balance
-  drawPerson(s.x, s.y, { s: e.s, flip, back, walk: e.walk, moving: e.moving, seed: e.seed, armA, look: e.look });
+  const prog = e.state === 'windup' ? Math.min(1, (1 - e.t / e.tMax) * 1.6) : 0;
+  const slump = e.state === 'recover' && e.punishable;
+  if (e.boss) {
+    let armA = e.moving ? -0.45 + Math.sin(e.walk) * 0.3 : -0.5;
+    if (prog > 0) armA = lerp(-0.5, -3.5, prog);   // item raised overhead
+    else if (slump) armA = -0.2;                   // swung down, off balance
+    drawPerson(s.x, s.y, { s: e.s, flip, back, walk: e.walk, moving: e.moving, seed: e.seed, armA, look: e.look, tainted: true });
+  } else {
+    drawPlant(s.x, s.y, e, { flip, prog, slump });
+  }
   paintMode = null;
   const top = s.y - e.h - 8;
   if (e === target) {
@@ -1012,8 +1224,9 @@ function drawHUD() {
   ctx.fillStyle = '#f2c94c'; ctx.fillText(`${p.xp} XP`, 80, 72);
   ctx.fillStyle = '#c4b8b6';
   ctx.fillText(`${WEAPONS[p.weapon].name} (${weaponDmg()} dmg)`, 16, 92);
-  ctx.fillText(`${zoneAt(p.x, p.y).name}  ·  ${kills} kills`, 16, 112);
-  if (bloodstain) { ctx.fillStyle = '#ff6b6b'; ctx.fillText(`${bloodstain.xp} XP waiting where you were knocked out`, 16, 132); }
+  ctx.fillText(`${zoneAt(p.x, p.y).name}  ·  ${kills} chased off`, 16, 112);
+  ctx.fillStyle = '#d6a8ff'; ctx.fillText(`Bosses beaten: ${defeated.size} / ${BOSSES.length}`, 16, 132);
+  if (bloodstain) { ctx.fillStyle = '#ff6b6b'; ctx.fillText(`${bloodstain.xp} XP waiting where you were knocked out`, 16, 152); }
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#a89c9c';
@@ -1025,9 +1238,10 @@ function drawHUD() {
 
   // Locked-on target, top centre.
   if (target) {
-    ctx.textAlign = 'center'; ctx.fillStyle = '#e8e4e0'; ctx.font = '14px Georgia, serif';
+    const bw = target.boss ? 460 : 300;
+    ctx.textAlign = 'center'; ctx.fillStyle = target.boss ? '#e3b8ff' : '#e8e4e0'; ctx.font = (target.boss ? '18px' : '14px') + ' Georgia, serif';
     ctx.fillText(`${target.name}  ·  Lv ${target.lvl}`, W / 2, 26);
-    bar(W / 2 - 150, 34, 300, 8, target.hp / target.maxHp, '#b3191c');
+    bar(W / 2 - bw / 2, 34, bw, target.boss ? 10 : 8, target.hp / target.maxHp, target.boss ? '#8e44ad' : '#b3191c');
   }
 
   // Action bar
@@ -1076,6 +1290,7 @@ function draw() {
   // Depth-sort everything standing on the ground.
   const things = [
     { d: CENTER * 2, f: drawDoghouse },
+    { d: JACKIE.x + JACKIE.y, f: drawJackie },
     ...enemies.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
       // Mega Bark: a flying bundle of sound waves.
