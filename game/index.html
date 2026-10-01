@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>The Indomitable Fires of the Bloodwars</title>
+<title>Watson Dog</title>
 <style>
   html, body { margin: 0; height: 100%; background: #0b0a0c; overflow: hidden;
     font-family: system-ui, -apple-system, Segoe UI, sans-serif; color: #e8e4e0; }
@@ -39,28 +39,30 @@
 
 <div class="overlay open" id="help">
   <div class="panel">
-    <h1 class="title">The Indomitable Fires of the Bloodwars</h1>
-    <p>Kill monsters to earn experience (XP). Spend it at the fire in the middle of the map to level up your stats, or on new weapons and moves. The farther you go from the fire, the deadlier the monsters, and the more XP they're worth.</p>
-    <p><b>This game is meant to be hard.</b> Enemies flash and show a red circle on the ground before they strike. Roll out of the circle or get hit. When you die, all your unspent XP is left where you fell. Get back to it to recover it. Die on the way and it's gone for good.</p>
+    <h1 class="title">Watson Dog</h1>
+    <p>You're Watson, a brown dog with a big heart and a bigger bite. The townsfolk have had enough of you, and they're coming at you with newspapers, parcels, rakes and nets. Chase them off to earn experience (XP), then spend it at your doghouse in the middle of town on new levels, new fetch gear and new tricks. The farther you roam from home, the tougher the townsfolk, and the more XP they're worth.</p>
+    <p><b>This game is meant to be hard.</b> People flash and show a red circle on the ground before they swing. Roll out of the circle or get hit. When you're knocked out, all your unspent XP is left where you fell (look for the glowing bone). Get back to it to recover it. Get knocked out on the way and it's gone for good.</p>
     <h2>Controls</h2>
     <table class="keys">
       <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows</td><td>Move</td></tr>
-      <tr><td>Left click / <kbd>1</kbd> / <kbd>J</kbd></td><td>Strike (locks on to the nearest enemy)</td></tr>
-      <tr><td><kbd>Space</kbd> or <kbd>Shift</kbd></td><td>Dodge roll (you can't be hit mid-roll)</td></tr>
-      <tr><td><kbd>Q</kbd></td><td>Drink an Ember Flask to heal (refills at the fire)</td></tr>
-      <tr><td><kbd>2</kbd> <kbd>3</kbd></td><td>Special moves (buy them first)</td></tr>
-      <tr><td><kbd>B</kbd></td><td>Rest at the fire: level up and shop (only at the fire)</td></tr>
+      <tr><td>Hold <kbd>Shift</kbd></td><td>Run (drains stamina)</td></tr>
+      <tr><td>Left click</td><td>Chomp toward the mouse cursor (any direction)</td></tr>
+      <tr><td><kbd>1</kbd> / <kbd>J</kbd></td><td>Chomp the locked-on enemy (the nearest one)</td></tr>
+      <tr><td><kbd>Space</kbd></td><td>Dodge roll (you can't be hit mid-roll)</td></tr>
+      <tr><td><kbd>Q</kbd></td><td>Eat a Golden Biscuit to heal (refills at the doghouse)</td></tr>
+      <tr><td><kbd>2</kbd> <kbd>3</kbd></td><td>Tricks: Zoomies and Mega Bark (learn them first)</td></tr>
+      <tr><td><kbd>B</kbd></td><td>Rest at the doghouse: level up and shop (only at the doghouse)</td></tr>
       <tr><td><kbd>H</kbd></td><td>Show this help</td></tr>
     </table>
-    <p>Attacks, rolls and moves all use stamina (the green bar). Run out and you can't attack or roll. Swinging commits you: you can't roll until the swing finishes, so mashing will get you killed.</p>
-    <p><b>Punish openings.</b> Right after an enemy attacks, it's briefly helpless and a yellow ring appears under it. Hits landed then are critical hits for double damage.</p>
+    <p>Attacks, rolls, running and moves all use stamina (the green bar). Run out and you can't attack or roll. Attacking commits you: you can't roll until the chomp finishes, so mashing will get you knocked out.</p>
+    <p><b>Punish openings.</b> Right after someone swings at you, they're briefly off balance and a yellow ring appears under it. Hits landed then are critical hits for double damage.</p>
     <p style="margin-top:16px"><button id="play">Begin</button></p>
   </div>
 </div>
 
 <div class="overlay" id="shop">
   <div class="panel">
-    <div class="top"><h1>The Fire</h1><span class="xp" id="shopXp"></span></div>
+    <div class="top"><h1>Watson's Doghouse</h1><span class="xp" id="shopXp"></span></div>
     <div id="shopBody"></div>
     <p style="margin-top:14px"><button id="closeShop">Leave (B)</button></p>
   </div>
@@ -68,9 +70,9 @@
 
 <div class="overlay" id="death">
   <div class="panel">
-    <div class="died">YOU DIED</div>
+    <div class="died">KNOCKED OUT</div>
     <p id="deathMsg"></p>
-    <p style="margin-top:18px"><button id="respawn">Return to the fire (R)</button></p>
+    <p style="margin-top:18px"><button id="respawn">Back to the doghouse (R)</button></p>
   </div>
 </div>
 
@@ -79,7 +81,7 @@
 const TW = 64, TH = 32;        // isometric tile size in pixels
 const MAP = 40;                // map is MAP x MAP tiles
 const CENTER = MAP / 2;
-const SAFE_R = 2.5;            // radius of the safe area around the fire (tiles)
+const SAFE_R = 2.5;            // radius of the safe area around the doghouse (tiles)
 const MAX_ENEMIES = 30;
 const LOCK_RANGE = 7;          // how far away auto lock-on reaches (tiles)
 
@@ -96,56 +98,58 @@ const distC = (x, y) => Math.hypot(x - CENTER, y - CENTER);
 
 // ---------- Game data (tweak these to balance the game) ----------
 const WEAPONS = [
-  { name: 'Fists',        dmg: 10, cost: 0,    color: '#d9c7a3' },
-  { name: 'Wooden Sword', dmg: 18, cost: 40,   color: '#a87a45' },
-  { name: 'Iron Sword',   dmg: 28, cost: 150,  color: '#c8ccd4' },
-  { name: 'Battle Axe',   dmg: 44, cost: 450,  color: '#8fa0bd' },
-  { name: 'Flame Blade',  dmg: 68, cost: 1200, color: '#ff7a3a' },
+  { name: 'Puppy Teeth',   dmg: 10, cost: 0,    color: '#ffffff', type: 'bite',      desc: 'Just your own chompers' },
+  { name: 'Fetch Stick',   dmg: 18, cost: 40,   color: '#8a5a2e', type: 'stick',     desc: 'A really good stick' },
+  { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#c8ccd4', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
+  { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', type: 'frisbee',   desc: 'A frisbee with a serrated edge' },
+  { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', type: 'flamebone', desc: 'A legendary bone that never stops burning' },
 ];
 
 const SKILLS = [
-  { id: 'strike',   key: '1', name: 'Strike',    cost: 0,   cd: 0.75, sta: 20, lock: 0.35, desc: 'Swing your weapon at the locked-on enemy.' },
-  { id: 'whirl',    key: '2', name: 'Whirlwind', cost: 80,  cd: 4,    sta: 35, lock: 0.5,  desc: 'Spin and hit everything around you for 1.3x weapon damage.' },
-  { id: 'fireball', key: '3', name: 'Fireball',  cost: 200, cd: 1.6,  sta: 25, lock: 0.4,  desc: 'Throw a fireball at the locked-on enemy. Explodes for 35 damage (scales with Arcana).' },
+  { id: 'strike',   key: '1', name: 'Chomp',     cost: 0,   cd: 0.75, sta: 20, lock: 0.35, desc: 'Chomp or swing your fetch gear toward the mouse (click) or at the locked-on enemy (1 / J).' },
+  { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
+  { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, cd: 1.6,  sta: 25, lock: 0.4,  desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
 const CRIT_MULT = 2;   // damage bonus for hitting an enemy right after it attacks
 const ROLL_STA = 22;
+const RUN_MULT = 1.75, RUN_STA = 22;   // run speed multiplier, stamina per second while running
 
 // Stats you raise when you level up.
 const STATS = [
   { id: 'vig', name: 'Vigor',     desc: '+12 max HP' },
   { id: 'end', name: 'Endurance', desc: '+10 max stamina' },
-  { id: 'str', name: 'Strength',  desc: '+7% weapon damage' },
-  { id: 'arc', name: 'Arcana',    desc: '+10% fireball damage' },
+  { id: 'str', name: 'Jaw Strength', desc: '+7% chomp and gear damage' },
+  { id: 'arc', name: 'Bark Power',   desc: '+10% Mega Bark damage' },
 ];
 const levelCost = lvl => Math.floor(30 * 1.16 ** (lvl - 1));
 
 // windup = seconds of warning before the hit, reach = size of the red danger circle,
-// staggers = whether your hits interrupt their attack.
+// staggers = whether your hits interrupt their attack. s = drawing scale, look = how they're drawn.
 const ENEMY_TYPES = [
-  { name: 'Slime',  lvl: 1,  hp: 20,  dmg: 20, speed: 1.4, xp: 6,   r: 0.28, h: 14, color: '#6fd36f', minDist: 0,  shape: 'blob', windup: 0.55, reach: 0.45, recover: 0.7, staggers: true,  aggro: 5 },
-  { name: 'Goblin', lvl: 3,  hp: 50,  dmg: 28, speed: 2.4, xp: 20,  r: 0.26, h: 26, color: '#c9b44a', minDist: 8,  shape: 'body', windup: 0.4,  reach: 0.55, recover: 0.5, staggers: true,  aggro: 6 },
-  { name: 'Orc',    lvl: 6,  hp: 100, dmg: 42, speed: 2.0, xp: 60,  r: 0.34, h: 36, color: '#c0703a', minDist: 13, shape: 'body', windup: 0.65, reach: 0.75, recover: 0.8, staggers: false, aggro: 6.5 },
-  { name: 'Ogre',   lvl: 10, hp: 220, dmg: 70, speed: 1.5, xp: 180, r: 0.46, h: 50, color: '#b04848', minDist: 18, shape: 'body', windup: 1.0,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 7 },
+  { name: 'Paperboy',   lvl: 1,  hp: 20,  dmg: 20, speed: 1.4, xp: 6,   r: 0.26, h: 36, s: 0.82, look: 'paperboy',   color: '#3a7bd5', minDist: 0,  windup: 0.55, reach: 0.45, recover: 0.7, staggers: true,  aggro: 5 },
+  { name: 'Mail Carrier', lvl: 3,  hp: 50,  dmg: 28, speed: 2.4, xp: 20,  r: 0.28, h: 42, s: 1,    look: 'mailman',    color: '#5a7aa8', minDist: 8,  windup: 0.4,  reach: 0.55, recover: 0.5, staggers: true,  aggro: 6 },
+  { name: 'Gardener', lvl: 6,  hp: 100, dmg: 42, speed: 2.0, xp: 60,  r: 0.32, h: 48, s: 1.12, look: 'gardener',   color: '#4f7a3a', minDist: 13, windup: 0.65, reach: 0.75, recover: 0.8, staggers: false, aggro: 6.5 },
+  { name: 'Dog Catcher', lvl: 10, hp: 220, dmg: 70, speed: 1.5, xp: 180, r: 0.44, h: 58, s: 1.4,  look: 'dogcatcher', color: '#8a7a4a', minDist: 18, windup: 1.0,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 7 },
 ];
 
 const ZONES = [
-  { name: 'The Fire',         maxD: SAFE_R },
-  { name: 'Meadow',           maxD: 8 },
-  { name: 'Goblin Scrubland', maxD: 13 },
-  { name: 'Orc Badlands',     maxD: 18 },
-  { name: 'Ogre Wastes',      maxD: Infinity },
+  { name: "Watson's Doghouse", maxD: SAFE_R },
+  { name: 'The Park',          maxD: 8 },
+  { name: 'The Suburbs',       maxD: 13 },
+  { name: 'Downtown',          maxD: 18 },
+  { name: 'The Pound District', maxD: Infinity },
 ];
 const zoneAt = (x, y) => ZONES.find(z => distC(x, y) < z.maxD);
 
 // ---------- State ----------
 const player = {
-  x: CENTER, y: CENTER + 1.2, r: 0.28, h: 30, speed: 3.4,
+  x: CENTER, y: CENTER + 1.6, r: 0.3, h: 42, speed: 3.4,
   level: 1, stats: { vig: 0, end: 0, str: 0, arc: 0 },
   hp: 80, sta: 80, staDelay: 0,
   xp: 0, weapon: 0, skills: new Set(['strike']),
   flasks: 3, maxFlasks: 3, drink: 0,
-  face: { x: 1, y: 0 }, flash: 0, swing: 0, dead: false,
+  face: { x: 1, y: 0 }, flash: 0, swing: 0, swingMax: 0.28, dead: false,
+  aimT: 0, walk: 0, moving: false, running: false, whirl: 0,
   roll: null, hitstun: 0, grace: 0, attackLock: 0,
 };
 const maxHp = () => 80 + 12 * player.stats.vig;
@@ -166,6 +170,11 @@ function toScreen(x, y) {
   return { x: (x - y) * TW / 2 - cam.x + W / 2, y: (x + y) * TH / 2 - cam.y + H / 2 };
 }
 
+function toWorld(sx, sy) {
+  const rx = sx - W / 2 + cam.x, ry = sy - H / 2 + cam.y;
+  return { x: (rx / (TW / 2) + ry / (TH / 2)) / 2, y: (ry / (TH / 2) - rx / (TW / 2)) / 2 };
+}
+
 // ---------- Input ----------
 const keys = {};
 addEventListener('keydown', e => {
@@ -181,10 +190,20 @@ addEventListener('keydown', e => {
   if (k === '2') useSkill('whirl');
   if (k === '3') useSkill('fireball');
   if (k === 'q') drinkFlask();
-  if (k === ' ' || k === 'shift') startRoll();
+  if (k === ' ') startRoll();
 });
 addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-canvas.addEventListener('mousedown', e => { if (e.button === 0 && !paused) useSkill('strike'); });
+const mouse = { x: 0, y: 0 };
+canvas.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+canvas.addEventListener('mousedown', e => {
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  if (e.button === 0 && !paused) useSkill('strike', mouseDir());
+});
+// Direction from the player to the mouse cursor, in world space.
+function mouseDir() {
+  const m = toWorld(mouse.x, mouse.y), dx = m.x - player.x, dy = m.y - player.y, d = Math.hypot(dx, dy);
+  return d > 0.01 ? { x: dx / d, y: dy / d } : player.face;
+}
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
@@ -204,7 +223,7 @@ function closeOverlays() {
 function toggleShop() {
   if (overlay('shop').classList.contains('open')) { closeOverlays(); return; }
   if (paused) return;
-  if (distC(player.x, player.y) >= SAFE_R) { floatText(player.x, player.y, 'Return to the fire to rest', '#c4b8b6', 1.4); return; }
+  if (distC(player.x, player.y) >= SAFE_R) { floatText(player.x, player.y, 'Head back to the doghouse to rest', '#c4b8b6', 1.4); return; }
   openOverlay('shop');
 }
 overlay('play').onclick = closeOverlays;
@@ -242,17 +261,17 @@ function renderShop() {
     }, p.stats[s.id]));
   });
 
-  section('Weapons');
+  section('Fetch gear (held in your mouth)');
   WEAPONS.forEach((w, i) => {
     if (i === 0) return;
     const owned = p.weapon >= i;
-    body.appendChild(row(w.name, `${w.dmg} base damage per hit`,
+    body.appendChild(row(w.name, `${w.desc}. ${w.dmg} base damage per hit`,
       owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : `${w.cost} XP`,
       !owned && p.xp >= w.cost,
       () => { p.xp -= w.cost; p.weapon = i; }));
   });
 
-  section('Moves');
+  section('Tricks');
   SKILLS.forEach(s => {
     if (s.cost === 0) return;
     const owned = p.skills.has(s.id);
@@ -262,10 +281,10 @@ function renderShop() {
       () => { p.xp -= s.cost; p.skills.add(s.id); }));
   });
 
-  section('Items');
+  section('Treats');
   const fc = flaskCost();
   const maxed = p.maxFlasks >= 8;
-  body.appendChild(row('Ember Flask', `Carry one more healing flask (you have ${p.maxFlasks})`,
+  body.appendChild(row('Golden Biscuit', `Carry one more healing biscuit (you have ${p.maxFlasks})`,
     maxed ? 'Max' : `${fc} XP`, !maxed && p.xp >= fc,
     () => { p.xp -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; }));
 }
@@ -284,7 +303,8 @@ function spawnEnemy() {
     if (Math.hypot(x - player.x, y - player.y) < 9) continue;
     const t = pickType(d);
     enemies.push({ ...t, x, y, homeX: x, homeY: y, maxHp: t.hp,
-      state: 'idle', t: 0, tx: x, ty: y, wanderT: rand(0, 3), atkCd: 0, flash: 0, kx: 0, ky: 0 });
+      state: 'idle', t: 0, tx: x, ty: y, wanderT: rand(0, 3), atkCd: 0, flash: 0, kx: 0, ky: 0,
+      walk: rand(0, 6), moving: false, fx: 1, fy: 0, seed: rand(0, 6) });
     return;
   }
 }
@@ -326,17 +346,18 @@ function drinkFlask() {
   player.drink = 0.8;   // you're stuck drinking for a moment, so pick your timing
 }
 
-function useSkill(id) {
+// aim: a world direction (mouse attacks), or omitted to aim at the locked-on enemy.
+function useSkill(id, aim) {
   if (!canAct() || !player.skills.has(id) || cooldowns[id] > 0) return;
   const s = SKILLS.find(s => s.id === id);
   if (!spendSta(s.sta)) return;
-  faceTarget();
-  cooldowns[id] = s.cd;
   const p = player;
+  if (aim) { p.face = aim; p.aimT = 0.5; } else { p.aimT = 0; faceTarget(); }
+  cooldowns[id] = s.cd;
   p.attackLock = s.lock;   // you're committed until the swing finishes
   if (id === 'strike') {
     const range = 1.3, ang = Math.atan2(p.face.y, p.face.x);
-    p.swing = 0.15;
+    p.swing = p.swingMax;
     effects.push({ type: 'arc', x: p.x, y: p.y, ang, range, t: 0.15, max: 0.15, color: WEAPONS[p.weapon].color });
     for (const e of enemies) {
       const dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy);
@@ -347,6 +368,7 @@ function useSkill(id) {
     }
   } else if (id === 'whirl') {
     const range = 1.9;
+    p.whirl = 0.4;
     effects.push({ type: 'ring', x: p.x, y: p.y, range, t: 0.3, max: 0.3, color: '#9fd4ff' });
     for (const e of enemies)
       if (Math.hypot(e.x - p.x, e.y - p.y) < range + e.r) hurtEnemy(e, Math.round(weaponDmg() * 1.3));
@@ -358,7 +380,8 @@ function useSkill(id) {
 // ---------- Combat ----------
 function explode(x, y) {
   const range = 1.2;
-  effects.push({ type: 'ring', x, y, range, t: 0.35, max: 0.35, color: '#ff8a3a', fill: true });
+  effects.push({ type: 'ring', x, y, range, t: 0.35, max: 0.35, color: '#9fd4ff', fill: true });
+  floatText(x, y, 'WOOF!', '#cfe8ff', 0.7);
   for (const e of enemies) if (Math.hypot(e.x - x, e.y - y) < range + e.r) hurtEnemy(e, fireballDmg(), x, y);
 }
 
@@ -389,7 +412,7 @@ function hurtPlayer(dmg, fromX, fromY) {
   p.flash = 0.15;
   p.hitstun = 0.3;
   p.grace = 0.35;
-  p.drink = 0;   // getting hit interrupts drinking (the flask is wasted)
+  p.drink = 0;   // getting hit interrupts eating (the biscuit is wasted)
   const dx = p.x - fromX, dy = p.y - fromY, d = Math.hypot(dx, dy) || 1;
   p.x = clamp(p.x + dx / d * 0.35, 0.3, MAP - 0.3);
   p.y = clamp(p.y + dy / d * 0.35, 0.3, MAP - 0.3);
@@ -405,17 +428,17 @@ function die() {
   bloodstain = p.xp > 0 ? { x: p.x, y: p.y, xp: p.xp } : null;
   p.xp = 0;
   let msg = bloodstain
-    ? `Your ${bloodstain.xp} XP lies where you fell. Reach it before you die again.`
+    ? `Your ${bloodstain.xp} XP lies where you fell, marked by a glowing bone. Reach it before you're knocked out again.`
     : 'You had no XP to lose.';
-  if (lostOld) msg += ` The ${lostOld} XP from your last death is lost forever.`;
+  if (lostOld) msg += ` The ${lostOld} XP you dropped last time is lost forever.`;
   overlay('deathMsg').textContent = msg;
   openOverlay('death');
 }
 
 function respawn() {
   if (!player.dead) return;
-  Object.assign(player, { dead: false, x: CENTER, y: CENTER + 1.2, hp: maxHp(), sta: maxSta(),
-    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0 });
+  Object.assign(player, { dead: false, x: CENTER, y: CENTER + 1.6, hp: maxHp(), sta: maxSta(),
+    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0, aimT: 0, swing: 0, whirl: 0 });
   populate();   // every monster comes back when you die
   projectiles = []; effects = []; floaters = []; target = null;
   overlay('death').classList.remove('open');
@@ -455,20 +478,35 @@ function update(dt) {
   const p = player;
   time += dt;
 
-  faceTarget();
+  // Face the locked-on enemy, unless you just attacked toward the mouse.
   const md = moveDir();
-  if (!target && md && !p.roll) p.face = md;
+  p.aimT = Math.max(0, p.aimT - dt);
+  if (p.aimT > 0) updateTarget(); else faceTarget();
+  if (!target && md && !p.roll && p.aimT <= 0) p.face = md;
 
   // Movement
+  const ox = p.x, oy = p.y;
+  p.running = false;
   if (p.roll) {
     p.roll.t -= dt;
     p.x += p.roll.x * 7 * dt; p.y += p.roll.y * 7 * dt;
     if (p.roll.t <= 0) p.roll = null;
   } else if (md && p.hitstun <= 0) {
-    const spd = p.speed * (p.drink > 0 ? 0.35 : p.attackLock > 0 ? 0.3 : 1);
+    let spd = p.speed * (p.drink > 0 ? 0.35 : p.attackLock > 0 ? 0.3 : 1);
+    if (keys.shift && p.sta > 0 && p.drink <= 0 && p.attackLock <= 0) {
+      p.running = true;
+      spd *= RUN_MULT;
+      p.sta = Math.max(0, p.sta - RUN_STA * dt);
+      p.staDelay = 0.5;
+      if (!target && p.aimT <= 0) p.face = md;
+    }
     p.x += md.x * spd * dt; p.y += md.y * spd * dt;
   }
   p.x = clamp(p.x, 0.3, MAP - 0.3); p.y = clamp(p.y, 0.3, MAP - 0.3);
+  const moved = Math.hypot(p.x - ox, p.y - oy);
+  p.moving = moved > 0.0005 && !p.roll;
+  p.walk += moved * 9;
+  p.whirl = Math.max(0, p.whirl - dt);
 
   for (const k in cooldowns) cooldowns[k] = Math.max(0, cooldowns[k] - dt);
   p.flash = Math.max(0, p.flash - dt);
@@ -482,7 +520,7 @@ function update(dt) {
       const amt = Math.round(maxHp() * 0.5);
       p.hp = Math.min(maxHp(), p.hp + amt);
       floatText(p.x, p.y, `+${amt}`, '#7dff9a');
-      effects.push({ type: 'ring', x: p.x, y: p.y, range: 0.8, t: 0.4, max: 0.4, color: '#ffb347' });
+      effects.push({ type: 'ring', x: p.x, y: p.y, range: 0.8, t: 0.4, max: 0.4, color: '#f2c94c' });
     }
   }
 
@@ -490,9 +528,9 @@ function update(dt) {
   p.staDelay -= dt;
   if (p.staDelay <= 0 && !p.roll) p.sta = Math.min(maxSta(), p.sta + 40 * dt);
 
-  // The fire heals you and refills your flasks. No other natural healing.
-  const atFire = distC(p.x, p.y) < SAFE_R;
-  if (atFire) { p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.25 * dt); p.flasks = p.maxFlasks; }
+  // The doghouse heals you and refills your biscuits. No other natural healing.
+  const atHome = distC(p.x, p.y) < SAFE_R;
+  if (atHome) { p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.25 * dt); p.flasks = p.maxFlasks; }
 
   // Recover your lost XP.
   if (bloodstain && Math.hypot(bloodstain.x - p.x, bloodstain.y - p.y) < 0.6) {
@@ -538,8 +576,13 @@ function update(dt) {
     e.x += (mx * spd + e.kx) * dt;
     e.y += (my * spd + e.ky) * dt;
     e.kx *= 0.85; e.ky *= 0.85;
+    // Animation: walk cycle and which way they're facing.
+    e.moving = mx || my;
+    e.walk += Math.hypot(mx, my) * spd * dt * 9;
+    if (e.state === 'chase' || e.state === 'windup' || e.state === 'recover') { e.fx = dx / d; e.fy = dy / d; }
+    else if (e.moving) { e.fx = mx; e.fy = my; }
 
-    // Keep enemies on the map and away from the fire.
+    // Keep enemies on the map and away from the doghouse.
     e.x = clamp(e.x, 0.3, MAP - 0.3); e.y = clamp(e.y, 0.3, MAP - 0.3);
     const cd = distC(e.x, e.y), minD = SAFE_R + e.r;
     if (cd < minD) { e.x = CENTER + (e.x - CENTER) / cd * minD; e.y = CENTER + (e.y - CENTER) / cd * minD; }
@@ -582,11 +625,11 @@ function tileColor(i, j) {
   const n = ((i * 73856093) ^ (j * 19349663)) & 7;   // cheap per-tile variation
   const shade = (n - 3.5) * 2 - ((i + j) % 2) * 4;
   let r, g, b;
-  if (d < SAFE_R)  [r, g, b] = [110, 100, 96];
-  else if (d < 8)  [r, g, b] = [52, 92, 50];
-  else if (d < 13) [r, g, b] = [86, 94, 48];
-  else if (d < 18) [r, g, b] = [98, 78, 54];
-  else             [r, g, b] = [84, 44, 44];
+  if (d < SAFE_R)  [r, g, b] = [128, 104, 72];    // Watson's yard
+  else if (d < 8)  [r, g, b] = [56, 112, 52];     // the park
+  else if (d < 13) [r, g, b] = [96, 128, 70];     // suburban lawns
+  else if (d < 18) [r, g, b] = [116, 116, 122];   // downtown pavement
+  else             [r, g, b] = [70, 62, 66];      // the pound district
   return `rgb(${r + shade},${g + shade},${b + shade})`;
 }
 
@@ -617,24 +660,6 @@ function shadow(x, y, r) {
   ctx.fill();
 }
 
-function drawCharacter(x, y, r, h, color, shape) {
-  shadow(x, y, r);
-  const s = toScreen(x, y);
-  const w = r * TW * 0.9;
-  ctx.fillStyle = color;
-  if (shape === 'blob') {
-    ctx.beginPath();
-    ctx.ellipse(s.x, s.y - h / 2, w * 0.7, h / 2 + 2, 0, 0, Math.PI * 2);
-    ctx.fill();
-  } else {
-    ctx.fillRect(s.x - w / 2, s.y - h, w, h);
-    ctx.beginPath();
-    ctx.arc(s.x, s.y - h - w * 0.35, w * 0.45, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  return s;
-}
-
 function drawTelegraph(e) {
   // Red danger circle that fills up as the attack is about to land.
   const prog = 1 - e.t / e.windup;
@@ -647,12 +672,234 @@ function drawTelegraph(e) {
   ctx.lineWidth = 1;
 }
 
+// ---------- Character art ----------
+// Characters are drawn from simple shapes in a local space: origin between the feet,
+// facing right, about 40 units tall at scale 1. They're mirrored when facing left.
+const hexRgb = h => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+function mix(a, b, t) {
+  const A = hexRgb(a), B = hexRgb(b);
+  return '#' + A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const lighten = (c, t) => mix(c, '#ffffff', t), darken = (c, t) => mix(c, '#000000', t);
+
+// While drawing a character, P() turns its colours white (hit flash) or red (winding up).
+let paintMode = null;
+const P = c => paintMode === 'flash' ? '#ffffff' : paintMode === 'tint' ? mix(c, '#ff3a2a', 0.55) : c;
+function fill(c) { ctx.fillStyle = P(c); ctx.fill(); }
+const lerp = (a, b, t) => a + (b - a) * t;
+
+// Which way a world-space facing vector points on screen.
+function screenFacing(fx, fy) { return { flip: fx - fy < 0, back: fx + fy < -0.35 }; }
+
+// ----- Watson -----
+// Things Watson carries in his mouth. Drawn with the mouth at the origin, pointing forward (+x).
+function drawBone(x0, x1, c) {
+  ctx.beginPath(); ctx.roundRect(x0, -1.6, x1 - x0, 3.2, 1.2); fill(c);
+  for (const x of [x0, x1]) for (const y of [-1.8, 1.8]) { ctx.beginPath(); ctx.arc(x, y, 2.3, 0, Math.PI * 2); fill(c); }
+}
+function drawDogItem(type, color, biting) {
+  if (type === 'bite') {
+    if (!biting) return;
+    ctx.beginPath();   // a big flash of teeth
+    for (let i = 0; i < 4; i++) { ctx.moveTo(-2 + i * 2.5, -2); ctx.lineTo(-0.8 + i * 2.5, 1.5); ctx.lineTo(0.4 + i * 2.5, -2); }
+    fill('#ffffff');
+  } else if (type === 'stick') {
+    ctx.beginPath(); ctx.roundRect(-11, -1.4, 26, 2.8, 1.4); fill(color);
+    ctx.save(); ctx.translate(8, -1); ctx.rotate(-0.7); ctx.beginPath(); ctx.roundRect(0, -0.8, 6, 1.6, 0.8); fill(color); ctx.restore();
+  } else if (type === 'bone') {
+    drawBone(-9, 13, color);
+  } else if (type === 'frisbee') {
+    ctx.beginPath(); ctx.ellipse(8, 0, 9, 3.2, 0, 0, Math.PI * 2); fill(color);
+    ctx.beginPath(); ctx.ellipse(8, -0.6, 6, 1.8, 0, 0, Math.PI * 2); fill(lighten(color, 0.35));
+    for (const x of [-1, 3, 8, 13, 17]) { ctx.beginPath(); ctx.moveTo(x - 1.3, 2.4); ctx.lineTo(x, 5); ctx.lineTo(x + 1.3, 2.4); fill('#d9dde2'); }
+  } else if (type === 'flamebone') {
+    ctx.shadowColor = '#ff7a1a'; ctx.shadowBlur = 12;
+    drawBone(-9, 13, color);
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < 4; i++) {
+      const x = -8 + i * 6.5, f = Math.sin(time * 14 + i * 2) * 1.5;
+      ctx.beginPath(); ctx.moveTo(x - 2, -2); ctx.quadraticCurveTo(x, -9 + f, x + 2, -2); fill('#ffd25a');
+    }
+  }
+}
+
+// o: { flip, walk, moving, running, attack (0..1 while attacking, else -1), item, color, eating }
+const DOG_SCALE = 1.3;
+function drawDog(sx, sy, o) {
+  const fur = '#8b5a2b', light = '#c99a62', dark = '#5e3b1c';
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(o.flip ? -DOG_SCALE : DOG_SCALE, DOG_SCALE);
+  const sw = o.moving ? Math.sin(o.walk) * (o.running ? 0.9 : 0.6) : 0;
+  const bob = o.moving ? Math.abs(Math.cos(o.walk)) * (o.running ? 2.2 : 1.3) : Math.sin(time * 2.5) * 0.4;
+  const by = -15 - bob;
+  const leg = (x, a, c) => {
+    ctx.save(); ctx.translate(x, by + 3); ctx.rotate(a);
+    ctx.beginPath(); ctx.roundRect(-1.9, -1, 3.8, 13 + bob, 1.9); fill(c);
+    ctx.beginPath(); ctx.ellipse(0.8, 12 + bob, 2.6, 1.6, 0, 0, Math.PI * 2); fill(darken(c, 0.15));
+    ctx.restore();
+  };
+
+  // Tail wags faster when moving.
+  const wag = Math.sin(time * (o.moving ? 16 : 9)) * 0.45;
+  ctx.save(); ctx.translate(-11.5, by - 3); ctx.rotate(-0.9 + wag);
+  ctx.beginPath(); ctx.roundRect(-1.7, -11, 3.4, 12, 1.7); fill(fur);
+  ctx.beginPath(); ctx.arc(0, -10.5, 1.8, 0, Math.PI * 2); fill(light);
+  ctx.restore();
+
+  leg(-8, sw, dark); leg(9, -sw, dark);                     // far legs
+  ctx.beginPath(); ctx.ellipse(0, by, 13.5, 7, 0, 0, Math.PI * 2); fill(fur);
+  ctx.beginPath(); ctx.ellipse(1, by + 3.2, 9.5, 3.4, 0, 0, Math.PI * 2); fill(light);
+  ctx.beginPath(); ctx.ellipse(-3, by - 3, 5, 2.5, 0.2, 0, Math.PI * 2); fill(darken(fur, 0.12));   // saddle patch
+  leg(-5.5, -sw, fur); leg(11, sw, fur);                    // near legs
+
+  // Head lunges and tosses during an attack.
+  let tilt = 0, lunge = 0;
+  if (o.attack >= 0) {
+    const t = o.attack;
+    tilt = t < 0.3 ? lerp(0, -0.55, t / 0.3) : lerp(-0.55, 0.4, Math.min(1, (t - 0.3) / 0.5));
+    lunge = Math.sin(t * Math.PI) * 5;
+  }
+  if (o.eating) tilt = 0.25 + Math.sin(time * 18) * 0.12;
+  ctx.save();
+  ctx.translate(10 + lunge, by - 5);
+  ctx.rotate(tilt);
+  ctx.beginPath(); ctx.ellipse(0, 0, 5, 6, 0.3, 0, Math.PI * 2); fill(fur);                   // neck
+  ctx.beginPath(); ctx.roundRect(-3.5, 1, 7, 2.6, 1.2); fill('#c0392b');                       // collar
+  ctx.beginPath(); ctx.arc(1.5, 4.6, 1.4, 0, Math.PI * 2); fill('#f2c94c');                    // tag
+  ctx.beginPath(); ctx.arc(3, -5.5, 6.2, 0, Math.PI * 2); fill(fur);                           // head
+  ctx.beginPath(); ctx.ellipse(8.8, -3.2, 5.2, 3.3, 0.1, 0, Math.PI * 2); fill(light);       // snout
+  ctx.beginPath(); ctx.ellipse(13.4, -4.3, 1.9, 1.5, 0, 0, Math.PI * 2); fill('#1a1210');     // nose
+  ctx.beginPath(); ctx.arc(4.8, -7.4, 1.3, 0, Math.PI * 2); fill('#1a1210');                  // eye
+  ctx.beginPath(); ctx.arc(5.2, -7.9, 0.45, 0, Math.PI * 2); fill('#ffffff');
+  ctx.beginPath(); ctx.ellipse(3.6, -9.3, 2, 0.7, -0.2, 0, Math.PI * 2); fill(dark);         // eyebrow
+  const flop = Math.sin(time * 6 + o.walk) * (o.moving ? 0.25 : 0.08);
+  ctx.save(); ctx.translate(0.5, -9.5); ctx.rotate(0.35 + flop);                               // floppy ear
+  ctx.beginPath(); ctx.moveTo(-1.5, 0); ctx.quadraticCurveTo(-5, 4, -3.5, 10); ctx.quadraticCurveTo(0, 9, 2.2, 1); ctx.closePath(); fill(dark);
+  ctx.restore();
+  ctx.save(); ctx.translate(10, -1);
+  if (o.eating) {
+    ctx.beginPath(); ctx.roundRect(-1, -2, 6, 4, 1.2); fill('#e8b04a');
+  } else {
+    let ia = 0;
+    if (o.attack >= 0) ia = o.attack < 0.3 ? -0.5 : lerp(-0.5, 0.45, Math.min(1, (o.attack - 0.3) / 0.5));
+    ctx.rotate(ia);
+    drawDogItem(o.item, o.color, o.attack >= 0);
+  }
+  ctx.restore();
+  ctx.restore();
+  ctx.restore();
+}
+
+// ----- Townspeople -----
+function drawPersonItem(type) {
+  if (type === 'newspaper') {
+    ctx.beginPath(); ctx.roundRect(-2.2, -2, 4.4, 15, 2); fill('#e8e4d8');
+    ctx.beginPath(); ctx.rect(-2.2, 4, 4.4, 1); fill('#9a968a');
+    ctx.beginPath(); ctx.rect(-2.2, 8, 4.4, 1); fill('#9a968a');
+  } else if (type === 'parcel') {
+    ctx.beginPath(); ctx.rect(-5, 0, 10, 8); fill('#b07a45');
+    ctx.beginPath(); ctx.rect(-0.8, 0, 1.6, 8); fill('#e0c890');
+  } else if (type === 'rake') {
+    ctx.beginPath(); ctx.roundRect(-1, -4, 2, 30, 1); fill('#8a6a3a');
+    ctx.beginPath(); ctx.rect(-6, 25, 12, 2); fill('#8a8f96');
+    for (let x = -5.5; x <= 5.5; x += 2.75) { ctx.beginPath(); ctx.rect(x - 0.4, 27, 0.8, 4); fill('#8a8f96'); }
+  } else if (type === 'net') {
+    ctx.beginPath(); ctx.roundRect(-1, -4, 2, 30, 1); fill('#5a5e66');
+    ctx.beginPath(); ctx.ellipse(0, 32, 7, 6, 0, 0, Math.PI * 2);
+    ctx.globalAlpha *= 0.35; fill('#d0d0d0'); ctx.globalAlpha /= 0.35;
+    ctx.strokeStyle = P('#3a3e46'); ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1;
+  }
+}
+
+// o: { s, flip, back, walk, moving, armA (item-arm angle), look, seed }
+function drawPerson(sx, sy, o) {
+  const L = LOOKS[o.look];
+  ctx.save();
+  ctx.translate(sx, sy);
+  ctx.scale(o.flip ? -o.s : o.s, o.s);
+  const sw = o.moving ? Math.sin(o.walk) : 0;
+  const bob = o.moving ? Math.abs(Math.cos(o.walk)) * 1.3 : Math.sin(time * 2.2 + (o.seed || 0)) * 0.5;
+  const tw = 7 * L.wide, hipY = -14, shY = -26 - bob * 0.5;
+  const limb = (x, y, a, len, w, c, end) => {
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+    ctx.beginPath(); ctx.roundRect(-w, -w, w * 2, len + w, w); fill(c);
+    if (end) { ctx.translate(0, len); end(); }
+    ctx.restore();
+  };
+  const shoe = () => { ctx.beginPath(); ctx.ellipse(1.2, 0.5, 3.2 * L.wide, 1.8, 0, 0, Math.PI * 2); fill(L.shoes); };
+  const hand = () => { ctx.beginPath(); ctx.arc(0, 0.5, 2.1 * L.wide, 0, Math.PI * 2); fill(L.skin); };
+
+  limb(-2, shY + 2, 0.35 - sw * 0.5, 10, 2 * L.wide, darken(L.sleeve, 0.2), hand);              // far arm
+  limb(-1.5, hipY - bob, -sw * 0.55, 13 + bob, 2.4 * L.wide, darken(L.legs, 0.2), shoe);        // far leg
+  limb(1.5, hipY - bob, sw * 0.55, 13 + bob, 2.4 * L.wide, L.legs, shoe);                        // near leg
+
+  // Torso
+  ctx.beginPath(); ctx.roundRect(-tw, shY, tw * 2, hipY - shY + 2 - bob, 3 * L.wide); fill(L.body);
+  if (L.belly) { ctx.beginPath(); ctx.ellipse(tw * 0.35, hipY - 5 - bob, tw * 0.85, 6.5, 0, 0, Math.PI * 2); fill(lighten(L.body, 0.08)); }
+  if (L.stripe) { ctx.beginPath(); ctx.rect(-tw, shY + 6, tw * 2, 2.2); fill(L.stripe); }
+  if (L.overalls) { ctx.beginPath(); ctx.roundRect(-tw + 1.5, shY + 3, tw * 2 - 3, hipY - shY - 1 - bob, 2); fill(L.overalls); }
+  if (L.badge && !o.back) { ctx.beginPath(); ctx.arc(tw * 0.45, shY + 5, 1.6, 0, Math.PI * 2); fill('#f2c94c'); }
+  if (L.bag) {
+    ctx.save(); ctx.translate(0, shY + 1); ctx.rotate(0.6);
+    ctx.beginPath(); ctx.rect(-1, 0, 2, 16); fill(darken(L.bag, 0.2)); ctx.restore();
+    ctx.beginPath(); ctx.roundRect(-tw - 3, hipY - 8 - bob, 8, 7, 1.5); fill(L.bag);
+  }
+
+  // Head
+  const hr = L.headR, hx = 1, hy = shY - hr + 1.5;
+  ctx.beginPath(); ctx.arc(hx, hy, hr, 0, Math.PI * 2); fill(L.skin);
+  if (o.back) { ctx.beginPath(); ctx.arc(hx, hy, hr, Math.PI * 0.85, Math.PI * 2.15); fill(L.hair); }
+  else {
+    ctx.beginPath(); ctx.arc(hx - 1, hy - 1, hr, Math.PI * 0.95, Math.PI * 1.6); fill(L.hair);
+    ctx.beginPath(); ctx.arc(hx + hr * 0.45, hy - 0.5, 0.9, 0, Math.PI * 2); fill('#1e1a18');           // eye
+    if (L.grumpy) { ctx.beginPath(); ctx.moveTo(hx + 1, hy - 3.4); ctx.lineTo(hx + hr, hy - 2); ctx.lineTo(hx + hr, hy - 1.2); ctx.lineTo(hx + 1, hy - 2.4); fill('#2a1e18'); }
+    ctx.beginPath(); ctx.moveTo(hx + hr - 0.5, hy - 0.5); ctx.lineTo(hx + hr + 1.6, hy + 1.2); ctx.lineTo(hx + hr - 0.5, hy + 1.8); fill(darken(L.skin, 0.12)); // nose
+    if (L.mustache) { ctx.beginPath(); ctx.roundRect(hx + hr * 0.3, hy + 2, hr * 0.75, 1.5, 0.7); fill(L.mustache); }
+    else { ctx.beginPath(); ctx.rect(hx + hr * 0.45, hy + 2.6, 2, 0.6); fill('#6a3a2a'); }
+  }
+  if (L.hat === 'cap') {
+    ctx.beginPath(); ctx.arc(hx, hy - 1, hr + 0.4, Math.PI, 0); fill(L.hatColor);
+    ctx.beginPath(); ctx.roundRect(hx + (o.back ? -hr - 3 : 0), hy - 1.8, hr + 3, 1.8, 0.9); fill(darken(L.hatColor, 0.15));
+  } else if (L.hat === 'uniform') {
+    ctx.beginPath(); ctx.roundRect(hx - hr - 0.5, hy - hr - 2.5, hr * 2 + 1, 4.5, 1); fill(L.hatColor);
+    ctx.beginPath(); ctx.roundRect(hx + (o.back ? -hr - 2.5 : 1), hy - hr + 1.5, hr + 1.5, 1.6, 0.8); fill('#1e1e22');
+  } else if (L.hat === 'straw') {
+    ctx.beginPath(); ctx.ellipse(hx, hy - hr + 2, hr + 5, 1.8, 0, 0, Math.PI * 2); fill(L.hatColor);
+    ctx.beginPath(); ctx.roundRect(hx - hr + 1, hy - hr - 3, hr * 2 - 2, 5, 2); fill(L.hatColor);
+    ctx.beginPath(); ctx.rect(hx - hr + 1, hy - hr + 0.2, hr * 2 - 2, 1.2); fill('#b3191c');
+  }
+
+  // Near arm holding their item.
+  limb(3, shY + 2, o.armA, 10, 2 * L.wide, L.sleeve, () => {
+    ctx.rotate(-0.25); drawPersonItem(L.item); ctx.rotate(0.25); hand();
+  });
+  ctx.restore();
+}
+
+// What each townsperson looks like. wide = body width, headR = head size.
+const LOOKS = {
+  paperboy:   { wide: 0.85, headR: 5.6, skin: '#f1c27d', hair: '#6b4a2b', body: '#3a7bd5', stripe: '#f2f2f2', sleeve: '#3a7bd5', legs: '#34495e',
+                shoes: '#eeeeee', hat: 'cap', hatColor: '#c0392b', item: 'newspaper' },
+  mailman:    { wide: 1,    headR: 5.4, skin: '#c68642', hair: '#2a1e18', body: '#5a7aa8', sleeve: '#5a7aa8', legs: '#2f3e5a',
+                shoes: '#1e1e22', hat: 'uniform', hatColor: '#2c3e66', bag: '#7a5230', badge: true, item: 'parcel' },
+  gardener:   { wide: 1.12, headR: 5.4, skin: '#e0ac69', hair: '#9a9a9a', body: '#d9d0b8', sleeve: '#d9d0b8', legs: '#4f7a3a', overalls: '#4f7a3a',
+                shoes: '#5a3a20', hat: 'straw', hatColor: '#d8b45a', grumpy: true, mustache: '#9a9a9a', item: 'rake' },
+  dogcatcher: { wide: 1.35, headR: 5.2, skin: '#d8a07a', hair: '#3a2a1a', body: '#8a7a4a', sleeve: '#8a7a4a', legs: '#5a5038',
+                shoes: '#2a2218', hat: 'uniform', hatColor: '#4a4230', grumpy: true, mustache: '#3a2a1a', belly: true, badge: true, item: 'net' },
+};
+
 function drawEnemy(e) {
-  let color = e.color;
-  if (e.flash > 0) color = '#fff';
-  else if (e.state === 'windup' && Math.floor(time * 16) % 2) color = '#ff5a3a';
-  const s = drawCharacter(e.x, e.y, e.r, e.h, color, e.shape);
-  const top = s.y - e.h - (e.shape === 'blob' ? 8 : e.r * TW * 0.8) - 6;
+  shadow(e.x, e.y, e.r);
+  const s = toScreen(e.x, e.y);
+  paintMode = e.flash > 0 ? 'flash' : e.state === 'windup' && Math.floor(time * 12) % 2 ? 'tint' : null;
+  const { flip, back } = screenFacing(e.fx, e.fy);
+  let armA = e.moving ? -0.45 + Math.sin(e.walk) * 0.3 : -0.5;
+  if (e.state === 'windup') armA = lerp(-0.5, -3.5, Math.min(1, (1 - e.t / e.windup) * 1.6));   // item raised overhead
+  else if (e.state === 'recover' && e.punishable) armA = -0.2;                                   // swung down, off balance
+  drawPerson(s.x, s.y, { s: e.s, flip, back, walk: e.walk, moving: e.moving, seed: e.seed, armA, look: e.look });
+  paintMode = null;
+  const top = s.y - e.h - 8;
   if (e === target) {
     ctx.font = '11px system-ui, sans-serif';
     ctx.textAlign = 'center';
@@ -667,55 +914,62 @@ function drawEnemy(e) {
 
 function drawPlayer() {
   const p = player;
+  shadow(p.x, p.y, p.r + 0.08);
+  const s = toScreen(p.x, p.y);
   if (p.grace > 0 && Math.floor(time * 20) % 2) ctx.globalAlpha = 0.5;
-  const rolling = !!p.roll;
-  const h = rolling ? 16 : p.h;
-  const s = drawCharacter(p.x, p.y, p.r, h, p.flash > 0 ? '#fff' : rolling ? '#7fb2ff' : '#4a90ff', rolling ? 'blob' : 'body');
-  ctx.globalAlpha = 1;
-  if (rolling) return;
-  if (p.drink > 0) {
-    ctx.fillStyle = '#ffb347';
-    ctx.beginPath(); ctx.arc(s.x + 8, s.y - h - 4, 5, 0, Math.PI * 2); ctx.fill();
-    return;
+  paintMode = p.flash > 0 ? 'flash' : null;
+  if (p.roll) {
+    // Tucked into a roll: a spinning ball of brown fur.
+    const a = (0.4 - p.roll.t) * 18 * (screenFacing(p.roll.x, p.roll.y).flip ? -1 : 1);
+    ctx.save(); ctx.translate(s.x, s.y - 13); ctx.scale(DOG_SCALE, DOG_SCALE); ctx.rotate(a);
+    ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); fill('#8b5a2b');
+    ctx.beginPath(); ctx.arc(2, 2, 6, 0, Math.PI * 2); fill('#c99a62');
+    ctx.beginPath(); ctx.ellipse(-5, -6, 2.5, 5, 0.6, 0, Math.PI * 2); fill('#5e3b1c');
+    ctx.beginPath(); ctx.rect(-8, 3, 6, 2.2); fill('#c0392b');
+    ctx.restore();
+  } else {
+    let { flip } = screenFacing(p.face.x, p.face.y);
+    if (p.whirl > 0) flip = Math.floor(p.whirl * 20) % 2 === 0;   // zoomies: spinning in circles
+    const wpn = WEAPONS[p.weapon];
+    drawDog(s.x, s.y, { flip, walk: p.walk, moving: p.moving || p.whirl > 0, running: p.running || p.whirl > 0,
+      attack: p.swing > 0 ? 1 - p.swing / p.swingMax : -1, item: wpn.type, color: wpn.color, eating: p.drink > 0 });
   }
-  // Weapon pointing toward the locked-on target (or where you're heading).
-  const reach = p.weapon === 0 ? 0.35 : 0.6 + (p.swing > 0 ? 0.2 : 0);
-  const t = toScreen(p.x + p.face.x * reach, p.y + p.face.y * reach);
-  ctx.strokeStyle = WEAPONS[p.weapon].color;
-  ctx.lineWidth = p.weapon === 0 ? 5 : 4;
-  ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(s.x, s.y - h * 0.55);
-  ctx.lineTo(t.x, t.y - h * 0.55);
-  ctx.stroke();
-  ctx.lineWidth = 1;
+  paintMode = null;
+  ctx.globalAlpha = 1;
 }
 
-function drawFire() {
+// Watson's doghouse: the safe spot in the middle of town.
+function drawDoghouse() {
   const s = toScreen(CENTER, CENTER);
-  shadow(CENTER, CENTER, 0.5);
-  ctx.fillStyle = '#3a2a22';
-  ctx.fillRect(s.x - 16, s.y - 6, 32, 6);
-  const layers = [['#b3191c', 26, 14], ['#ff6a1a', 20, 10], ['#ffd25a', 12, 6]];
-  layers.forEach(([c, hgt, wid], i) => {
-    const f = Math.sin(time * 9 + i * 2) * 3;
-    ctx.fillStyle = c;
-    ctx.beginPath();
-    ctx.moveTo(s.x - wid, s.y - 4);
-    ctx.quadraticCurveTo(s.x - wid, s.y - hgt * 0.6, s.x + f * 0.5, s.y - hgt - 6 + f);
-    ctx.quadraticCurveTo(s.x + wid, s.y - hgt * 0.6, s.x + wid, s.y - 4);
-    ctx.closePath();
-    ctx.fill();
-  });
+  shadow(CENTER, CENTER, 0.75);
+  const x = s.x, y = s.y;
+  ctx.fillStyle = '#b5703a';                                                                  // walls
+  ctx.beginPath(); ctx.moveTo(x - 24, y - 6); ctx.lineTo(x, y + 6); ctx.lineTo(x + 24, y - 6); ctx.lineTo(x + 24, y - 30); ctx.lineTo(x, y - 18); ctx.lineTo(x - 24, y - 30); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#9a5c2e';
+  ctx.beginPath(); ctx.moveTo(x, y + 6); ctx.lineTo(x + 24, y - 6); ctx.lineTo(x + 24, y - 30); ctx.lineTo(x, y - 18); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#2a1a12';                                                                  // door
+  ctx.beginPath(); ctx.moveTo(x - 16, y - 2); ctx.lineTo(x - 6, y + 3); ctx.lineTo(x - 6, y - 10); ctx.quadraticCurveTo(x - 11, y - 20, x - 16, y - 14); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#b3191c';                                                                  // roof
+  ctx.beginPath(); ctx.moveTo(x - 28, y - 28); ctx.lineTo(x - 2, y - 52); ctx.lineTo(x + 4, y - 15); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#8e1416';
+  ctx.beginPath(); ctx.moveTo(x - 2, y - 52); ctx.lineTo(x + 28, y - 28); ctx.lineTo(x + 4, y - 15); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#f2e6c8'; ctx.font = 'bold 8px system-ui, sans-serif'; ctx.textAlign = 'center';
+  ctx.save(); ctx.translate(x - 12, y - 23); ctx.transform(1, 0.45, 0, 1, 0, 0); ctx.fillText('WATSON', 0, 0); ctx.restore();
+  // Food bowl
+  const b = toScreen(CENTER + 0.9, CENTER + 0.3);
+  ctx.fillStyle = '#3a6fd8'; ctx.beginPath(); ctx.ellipse(b.x, b.y, 7, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#a0622d'; ctx.beginPath(); ctx.ellipse(b.x, b.y - 1, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
 }
 
 function drawBloodstain() {
   const b = bloodstain, pulse = 0.6 + Math.sin(time * 4) * 0.25;
-  ctx.fillStyle = `rgba(200,20,30,${pulse * 0.5})`;
+  ctx.fillStyle = `rgba(242,201,76,${pulse * 0.4})`;
   groundEllipse(b.x, b.y, 0.5); ctx.fill();
   const s = toScreen(b.x, b.y);
-  ctx.fillStyle = `rgba(255,70,70,${pulse})`;
-  ctx.beginPath(); ctx.arc(s.x, s.y - 10, 5, 0, Math.PI * 2); ctx.fill();
+  ctx.save(); ctx.translate(s.x, s.y - 10 - Math.sin(time * 3) * 2); ctx.rotate(-0.4);
+  ctx.globalAlpha = 0.6 + pulse * 0.4; ctx.shadowColor = '#f2c94c'; ctx.shadowBlur = 12;
+  drawBone(-6, 6, '#fff3c4');
+  ctx.restore(); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
 
 function drawEffect(f) {
@@ -759,14 +1013,14 @@ function drawHUD() {
   ctx.fillStyle = '#c4b8b6';
   ctx.fillText(`${WEAPONS[p.weapon].name} (${weaponDmg()} dmg)`, 16, 92);
   ctx.fillText(`${zoneAt(p.x, p.y).name}  ·  ${kills} kills`, 16, 112);
-  if (bloodstain) { ctx.fillStyle = '#ff6b6b'; ctx.fillText(`${bloodstain.xp} XP waiting where you died`, 16, 132); }
+  if (bloodstain) { ctx.fillStyle = '#ff6b6b'; ctx.fillText(`${bloodstain.xp} XP waiting where you were knocked out`, 16, 132); }
 
   ctx.textAlign = 'right';
   ctx.fillStyle = '#a89c9c';
   ctx.fillText('H: Help', W - 16, 30);
   if (distC(p.x, p.y) < SAFE_R) {
     ctx.textAlign = 'center'; ctx.fillStyle = '#ffd25a'; ctx.font = '16px Georgia, serif';
-    ctx.fillText('Press B to rest at the fire', W / 2, H - 110);
+    ctx.fillText('Press B to rest at the doghouse', W / 2, H - 110);
   }
 
   // Locked-on target, top centre.
@@ -780,8 +1034,9 @@ function drawHUD() {
   const slots = [
     ...SKILLS.map(s => ({ key: s.key === '1' ? 'Click' : s.key, label: p.skills.has(s.id) ? s.name : `${s.cost} XP`,
       owned: p.skills.has(s.id), cd: cooldowns[s.id] / s.cd })),
-    { key: 'Q', label: `Flask ${p.flasks}/${p.maxFlasks}`, owned: p.flasks > 0, cd: 0 },
+    { key: 'Q', label: `Biscuit ${p.flasks}/${p.maxFlasks}`, owned: p.flasks > 0, cd: 0 },
     { key: 'Space', label: 'Roll', owned: true, cd: 0 },
+    { key: 'Shift', label: 'Run', owned: true, cd: 0 },
   ];
   const size = 62, gap = 8, total = slots.length * size + (slots.length - 1) * gap;
   const x0 = (W - total) / 2, y0 = H - size - 16;
@@ -820,15 +1075,21 @@ function draw() {
 
   // Depth-sort everything standing on the ground.
   const things = [
-    { d: CENTER * 2, f: drawFire },
+    { d: CENTER * 2, f: drawDoghouse },
     ...enemies.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
+      // Mega Bark: a flying bundle of sound waves.
       shadow(pr.x, pr.y, 0.12);
-      const s = toScreen(pr.x, pr.y);
-      ctx.fillStyle = '#ffb347';
-      ctx.beginPath(); ctx.arc(s.x, s.y - 16, 7, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#fff3c4';
-      ctx.beginPath(); ctx.arc(s.x, s.y - 16, 3, 0, Math.PI * 2); ctx.fill();
+      const s = toScreen(pr.x, pr.y), a = Math.atan2(pr.vy * 0.5 + pr.vx * 0.5, pr.vx - pr.vy);
+      ctx.save(); ctx.translate(s.x, s.y - 16); ctx.rotate(a);
+      ctx.strokeStyle = '#cfe8ff'; ctx.lineCap = 'round';
+      ctx.shadowColor = '#9fd4ff'; ctx.shadowBlur = 10;
+      for (let i = 0; i < 3; i++) {
+        ctx.globalAlpha = 1 - i * 0.25; ctx.lineWidth = 4 - i;
+        ctx.beginPath(); ctx.arc(-i * 7, 0, 9 + i * 5, -1, 1); ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+      ctx.restore(); ctx.globalAlpha = 1; ctx.lineWidth = 1;
     } })),
   ];
   if (!player.dead) things.push({ d: player.x + player.y, f: drawPlayer });
