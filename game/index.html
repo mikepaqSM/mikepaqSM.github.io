@@ -105,7 +105,7 @@
 <div class="overlay" id="win">
   <div class="panel" style="text-align:center">
     <h1 class="title">The pollution is lifting!</h1>
-    <p>All four tainted townspeople are back to their old selves, and Jackie is safe. Good boy, Watson.</p>
+    <p>All four tainted townspeople are back to their old selves, and Jackie is safe. Good boy, Lovebug.</p>
     <p style="margin-top:16px"><button id="keepPlaying">Keep playing</button></p>
   </div>
 </div>
@@ -150,6 +150,7 @@ const WEAPONS = [
   { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#c8ccd4', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
   { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', type: 'frisbee',   desc: 'A frisbee with a serrated edge' },
   { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', type: 'flamebone', desc: 'A legendary bone that never stops burning' },
+  { name: 'Moon Bone',     dmg: 95, cost: 0,    color: '#cfe8ff', type: 'moonbone',  desc: 'A glowing bone from Fred\'s secret stash', rare: true },
 ];
 
 const SKILLS = [
@@ -181,12 +182,21 @@ const ENEMY_TYPES = [
 ];
 
 // Bosses: townspeople tainted by the pollution, one per zone. Beaten bosses stay beaten.
-// ox/oy = where they wait (tiles from the doghouse), combo = hits chained per attack.
+// ox/oy = where they wait (tiles from the doghouse), combo = hits chained per attack,
+// trophy = what they drop for Fred.
 const BOSSES = [
-  { name: 'Tainted Paperboy',     lvl: 5,  hp: 160,  dmg: 26, speed: 2.6, xp: 150,  r: 0.32, h: 44, s: 1.1,  look: 'paperboy',   color: '#b14cff', ox: -5,  oy: -5,  combo: 2, windup: 0.5,  reach: 0.65, recover: 0.6, aggro: 6 },
-  { name: 'Tainted Mail Carrier', lvl: 9,  hp: 380,  dmg: 36, speed: 2.4, xp: 400,  r: 0.38, h: 56, s: 1.35, look: 'mailman',    color: '#b14cff', ox: 8,   oy: -8,  combo: 2, windup: 0.55, reach: 0.8,  recover: 0.7, aggro: 6 },
-  { name: 'Tainted Gardener',     lvl: 14, hp: 700,  dmg: 50, speed: 2.1, xp: 900,  r: 0.42, h: 64, s: 1.5,  look: 'gardener',   color: '#b14cff', ox: -11, oy: 11,  combo: 3, windup: 0.7,  reach: 1.0,  recover: 0.8, aggro: 6.5 },
-  { name: 'Tainted Dog Catcher',  lvl: 20, hp: 1200, dmg: 75, speed: 1.9, xp: 2000, r: 0.5,  h: 76, s: 1.8,  look: 'dogcatcher', color: '#b14cff', ox: 15,  oy: 15,  combo: 3, windup: 0.9,  reach: 1.3,  recover: 1.0, aggro: 7 },
+  { name: 'Tainted Paperboy',     lvl: 5,  hp: 160,  dmg: 26, speed: 2.6, xp: 150,  r: 0.32, h: 44, s: 1.1,  look: 'paperboy',   color: '#b14cff', ox: -5,  oy: -5,  combo: 2, windup: 0.5,  reach: 0.65, recover: 0.6, aggro: 6, trophy: "Golden Newspaper" },
+  { name: 'Tainted Mail Carrier', lvl: 9,  hp: 380,  dmg: 36, speed: 2.4, xp: 400,  r: 0.38, h: 56, s: 1.35, look: 'mailman',    color: '#b14cff', ox: 8,   oy: -8,  combo: 2, windup: 0.55, reach: 0.8,  recover: 0.7, aggro: 6, trophy: "Express Stamp" },
+  { name: 'Tainted Gardener',     lvl: 14, hp: 700,  dmg: 50, speed: 2.1, xp: 900,  r: 0.42, h: 64, s: 1.5,  look: 'gardener',   color: '#b14cff', ox: -11, oy: 11,  combo: 3, windup: 0.7,  reach: 1.0,  recover: 0.8, aggro: 6.5, trophy: "Prize Trowel" },
+  { name: 'Tainted Dog Catcher',  lvl: 20, hp: 1200, dmg: 75, speed: 1.9, xp: 2000, r: 0.5,  h: 76, s: 1.8,  look: 'dogcatcher', color: '#b14cff', ox: 15,  oy: 15,  combo: 3, windup: 0.9,  reach: 1.3,  recover: 1.0, aggro: 7, trophy: "Catcher's Badge" },
+];
+
+// Rare items Fred trades for boss trophies.
+const RARES = [
+  { id: 'sneaker',  trophy: 'Golden Newspaper', boss: 'Tainted Paperboy',     name: 'Squeaky Sneaker', desc: 'Move 15% faster.' },
+  { id: 'collar',   trophy: 'Express Stamp',    boss: 'Tainted Mail Carrier', name: 'Express Collar',  desc: 'Rolling costs 30% less stamina.' },
+  { id: 'coat',     trophy: 'Prize Trowel',     boss: 'Tainted Gardener',     name: 'Thornproof Coat', desc: 'Take 20% less damage.' },
+  { id: 'moonbone', trophy: "Catcher's Badge",  boss: 'Tainted Dog Catcher',  name: 'Moon Bone',       desc: 'A glowing legendary bone. 95 base damage.' },
 ];
 
 const ZONES = [
@@ -203,7 +213,7 @@ const player = {
   x: CENTER, y: CENTER + 1.6, r: 0.3, h: 42, speed: 3.4,
   level: 1, stats: { vig: 0, end: 0, str: 0, arc: 0 },
   hp: 80, sta: 80, staDelay: 0,
-  xp: 0, weapon: 0, skills: new Set(['strike']),
+  xp: 0, weapon: 0, skills: new Set(['strike']), trophies: new Set(), relics: new Set(),
   flasks: 3, maxFlasks: 3, drink: 0,
   face: { x: 1, y: 0 }, flash: 0, swing: 0, swingMax: 0.28, dead: false,
   aimT: 0, walk: 0, moving: false, running: false, whirl: 0,
@@ -334,8 +344,8 @@ function openOverlay(id) {
   if (id === 'title') titleOpenedAt = performance.now();
   if (id === 'shop') {
     renderShop();
-    if (shopMode === 'rest') { tut.shop++; floatText(JACKIE.x, JACKIE.y, 'Good boy, Watson!', '#ffffff', 1.6); }
-    else { tut.fred++; floatText(FRED.x, FRED.y, FRED_LINES[Math.floor(Math.random() * FRED_LINES.length)], '#ffd7a8', 1.8); }
+    if (shopMode === 'rest') { tut.shop++; speak('jackie', pick(JACKIE_REST)); }
+    else { tut.fred++; speak('fred', pick(FRED_LINES)); }
   }
 }
 function closeOverlays() {
@@ -353,7 +363,38 @@ function toggleShop(mode) {
   shopMode = mode;
   openOverlay('shop');
 }
-const FRED_LINES = ['Meow. Let\'s trade.', 'Fresh sticks! Barely chewed.', 'Mrrp. XP only, no IOUs.', 'Bones? I\'ve got bones.', 'Purr... what\'ll it be, pup?'];
+// Fred is aloof, can't be bothered, and is always a little cold.
+const FRED_LINES = ["...Oh. It's you. Whatever.", "Buy something or don't. I'm not your mom.", "Mrrp. XP. Sure. Fine.",
+  "I was napping. Make it quick.", "Is it cold, or is it just me? ...It's me. I'm cold.", "Your doghouse looks warm. Not that I care."];
+const FRED_IDLE = ['*shivers*', 'Brr.', 'Got a blanket? No? Figures.', "Don't look at me.", 'Block the wind if you\'re going to stand there.',
+  '*yawns*', 'Mrrp.', "I'm not cold. I'm just... vibrating.", 'Sun went behind a cloud. Rude.'];
+const FRED_WARM = ['...Is that bone on fire? Stand there. Closer.', 'Ooh. Warm bone. Don\'t move.', "Finally, a dog who's useful."];
+const FRED_TRADE = ['Huh. Shiny. ...Fine. Take this.', 'I suppose that will do. Here.', "I'd say thanks, but I'm cold."];
+// Jackie's nicknames for Watson are Lovebug and Lovie.
+const JACKIE_REST = ['Good boy, Watson!', 'Good work, Lovebug!', "That's my Lovie!", "Who's my brave boy? You are, Lovebug!", 'Rest up, Lovie.', 'Lovebug! Look at you go!'];
+const JACKIE_HOME = ['Welcome home, Lovebug!', 'Lovie! You made it back!', 'There you are, Lovebug!', 'Hi, Lovie!'];
+const JACKIE_HURT = ['Watson! Are you okay?', 'Oh, Lovebug, come here.', 'Lovie! You poor thing.', 'Easy, Lovebug. Rest a minute.'];
+const pick = a => a[Math.floor(Math.random() * a.length)];
+let fredChatT = 3, awayFromHome = false;
+// Speech bubbles over Jackie and Fred. A new line replaces the old one.
+const speech = {};
+function speak(who, text) { speech[who] = { text, t: 2.6 + text.length * 0.03 }; }
+function drawSpeech() {
+  for (const [who, sp] of Object.entries(speech)) {
+    if (sp.t <= 0) continue;
+    const n = who === 'jackie' ? JACKIE : FRED, s = toScreen(n.x, n.y);
+    const y = s.y - (who === 'jackie' ? 70 : 44);
+    ctx.font = '12px system-ui, sans-serif';
+    const w = ctx.measureText(sp.text).width + 16;
+    ctx.globalAlpha = Math.min(1, sp.t * 3);
+    ctx.fillStyle = who === 'jackie' ? '#ffffff' : '#ffe9d2';
+    ctx.beginPath(); ctx.roundRect(s.x - w / 2, y - 18, w, 22, 10); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(s.x - 5, y + 3); ctx.lineTo(s.x + 3, y + 3); ctx.lineTo(s.x - 2, y + 10); ctx.fill();
+    ctx.fillStyle = '#2a1e18'; ctx.textAlign = 'center';
+    ctx.fillText(sp.text, s.x, y - 3);
+    ctx.globalAlpha = 1;
+  }
+}
 let titleOpenedAt = 0;
 // Ignore the tap that opened the pause screen so it doesn't immediately close it again.
 overlay('title').onclick = () => { if (performance.now() - titleOpenedAt > 350) closeOverlays(); };
@@ -385,7 +426,7 @@ function renderShop() {
   const fred = shopMode === 'fred';
   overlay('shopTitle').textContent = fred ? "Fred's Wares" : "Watson's Doghouse";
   overlay('shopSub').textContent = fred
-    ? 'An orange cat on a crate full of treasures. Fred takes XP, and only XP.'
+    ? "Fred barely looks up from his crate. He looks cold. He takes XP, and boss trophies if they're interesting."
     : 'Rest up and spend XP to grow stronger. Jackie gives you a scratch behind the ears.';
   if (fred) { renderFredWares(section, row); return; }
 
@@ -404,7 +445,7 @@ function renderFredWares(section, row) {
   const p = player, body = overlay('shopBody');
   section('Fetch gear (held in your mouth)');
   WEAPONS.forEach((w, i) => {
-    if (i === 0) return;
+    if (i === 0 || w.rare) return;
     const owned = p.weapon >= i;
     body.appendChild(row(w.name, `${w.desc}. ${w.dmg} base damage per hit`,
       owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : `${w.cost} XP`,
@@ -428,6 +469,18 @@ function renderFredWares(section, row) {
   body.appendChild(row('Golden Biscuit', `Carry one more healing biscuit (you have ${p.maxFlasks})`,
     maxed ? 'Max' : `${fc} XP`, !maxed && p.xp >= fc,
     () => { p.xp -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; }));
+
+  section('Rare trades (boss trophies)');
+  RARES.forEach(rr => {
+    const owned = p.relics.has(rr.id), has = p.trophies.has(rr.trophy);
+    body.appendChild(row(rr.name, owned ? rr.desc : `${rr.desc} Fred wants the ${rr.trophy}${has ? '.' : ` (beat the ${rr.boss}).`}`,
+      owned ? 'Yours' : has ? `Trade ${rr.trophy}` : 'Need trophy', !owned && has,
+      () => {
+        p.trophies.delete(rr.trophy); p.relics.add(rr.id); tut.traded++;
+        if (rr.id === 'moonbone') p.weapon = WEAPONS.findIndex(w => w.type === 'moonbone');
+        speak('fred', pick(FRED_TRADE));
+      }));
+  });
 }
 
 // ---------- Spawning ----------
@@ -483,7 +536,7 @@ function moveDir() {
 }
 
 function startRoll() {
-  if (!canAct() || !spendSta(ROLL_STA)) return;
+  if (!canAct() || !spendSta(ROLL_STA * (player.relics.has('collar') ? 0.7 : 1))) return;
   const d = moveDir() || player.face;
   player.roll = { t: 0.4, x: d.x, y: d.y };
   tut.rolls++;
@@ -556,7 +609,9 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
     effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2, t: 0.3, max: 0.3, color: e.color, fill: true });
     if (e.boss) {
       defeated.add(e.name);
+      player.trophies.add(e.trophy);
       floatText(e.x, e.y - 0.5, 'POLLUTION CLEARED', '#e3b8ff', 2.5);
+      floatText(e.x, e.y + 0.6, `Got the ${e.trophy}!`, '#ffd25a', 3);
       effects.push({ type: 'ring', x: e.x, y: e.y, range: 3, t: 1, max: 1, color: '#e3b8ff', fill: true });
       if (defeated.size === BOSSES.length && !won) { won = true; setTimeout(() => openOverlay('win'), 1200); }
     }
@@ -566,6 +621,7 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
 function hurtPlayer(dmg, fromX, fromY) {
   const p = player;
   if (invulnerable()) { floatText(p.x, p.y, 'dodged', '#9fd4ff', 0.6); return; }
+  if (p.relics.has('coat')) dmg = Math.round(dmg * 0.8);
   p.hp -= dmg;
   p.flash = 0.15;
   p.hitstun = 0.3;
@@ -601,7 +657,7 @@ function respawn() {
   projectiles = []; effects = []; floaters = []; target = null;
   overlay('death').classList.remove('open');
   paused = false;
-  floatText(JACKIE.x, JACKIE.y, 'Watson! Are you okay?', '#ffffff', 2);
+  speak('jackie', pick(JACKIE_HURT));
 }
 
 function floatText(x, y, text, color, life = 0.8) {
@@ -650,7 +706,7 @@ function update(dt) {
     p.x += p.roll.x * 7 * dt; p.y += p.roll.y * 7 * dt;
     if (p.roll.t <= 0) p.roll = null;
   } else if (md && p.hitstun <= 0) {
-    let spd = p.speed * (p.drink > 0 ? 0.35 : p.attackLock > 0 ? 0.3 : 1);
+    let spd = p.speed * (p.relics.has('sneaker') ? 1.15 : 1) * (p.drink > 0 ? 0.35 : p.attackLock > 0 ? 0.3 : 1);
     if ((keys.shift || joy.mag > 0.92) && p.sta > 0 && p.drink <= 0 && p.attackLock <= 0) {   // phones: push the stick all the way
       p.running = true;
       tut.ran += dt;
@@ -692,6 +748,15 @@ function update(dt) {
   // The doghouse heals you and refills your biscuits. No other natural healing.
   const atHome = distC(p.x, p.y) < SAFE_R;
   if (atHome) { p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.25 * dt); p.flasks = p.maxFlasks; }
+  // Jackie greets Watson when he gets back from an outing.
+  if (distC(p.x, p.y) > SAFE_R + 4) awayFromHome = true;
+  if (atHome && awayFromHome) { awayFromHome = false; speak('jackie', pick(JACKIE_HOME)); }
+  // Fred mutters to himself when Watson is nearby. He perks up for anything warm.
+  fredChatT -= dt;
+  if (fredChatT <= 0 && Math.hypot(p.x - FRED.x, p.y - FRED.y) < 2.8) {
+    speak('fred', pick(WEAPONS[p.weapon].type === 'flamebone' ? FRED_WARM : FRED_IDLE));
+    fredChatT = rand(8, 13);
+  }
 
   // Recover your lost XP.
   if (bloodstain && Math.hypot(bloodstain.x - p.x, bloodstain.y - p.y) < 0.6) {
@@ -786,6 +851,7 @@ function update(dt) {
   for (const f of effects) f.t -= dt;
   effects = effects.filter(f => f.t > 0);
   for (const f of floaters) { f.t -= dt; f.z += 40 * dt; }
+  for (const k in speech) speech[k].t -= dt;
   floaters = floaters.filter(f => f.t > 0);
 }
 
@@ -885,6 +951,14 @@ function drawDogItem(type, color, biting) {
     ctx.beginPath(); ctx.ellipse(8, 0, 9, 3.2, 0, 0, Math.PI * 2); fill(color);
     ctx.beginPath(); ctx.ellipse(8, -0.6, 6, 1.8, 0, 0, Math.PI * 2); fill(lighten(color, 0.35));
     for (const x of [-1, 3, 8, 13, 17]) { ctx.beginPath(); ctx.moveTo(x - 1.3, 2.4); ctx.lineTo(x, 5); ctx.lineTo(x + 1.3, 2.4); fill('#d9dde2'); }
+  } else if (type === 'moonbone') {
+    ctx.shadowColor = '#9fd4ff'; ctx.shadowBlur = 14;
+    drawBone(-9, 13, color);
+    ctx.shadowBlur = 0;
+    for (let i = 0; i < 3; i++) {   // sparkles
+      const a = time * 3 + i * 2.1, x = 2 + Math.cos(a) * 11, y = Math.sin(a) * 5;
+      ctx.beginPath(); ctx.arc(x, y, 0.9 + (i % 2) * 0.5, 0, Math.PI * 2); fill('#ffffff');
+    }
   } else if (type === 'flamebone') {
     ctx.shadowColor = '#ff7a1a'; ctx.shadowBlur = 12;
     drawBone(-9, 13, color);
@@ -1024,11 +1098,11 @@ function drawPerson(sx, sy, o) {
   if (L.longHair) {   // long hair falling past the shoulders, behind the head
     const sway = Math.sin(time * 1.8 + (o.seed || 0)) * 0.6;
     ctx.beginPath();
-    if (o.back) ctx.roundRect(hx - hr - 1, hy - hr, hr * 2 + 2, hr * 2 + 9, 4);
-    else { ctx.moveTo(hx + 1, hy - hr - 0.5); ctx.quadraticCurveTo(hx - hr - 3, hy - hr, hx - hr - 2 + sway, hy + hr + 8);
-           ctx.lineTo(hx - 1 + sway, hy + hr + 6); ctx.quadraticCurveTo(hx - 1, hy + 2, hx + 1, hy - hr - 0.5); }
+    if (o.back) ctx.roundRect(hx - hr - 1, hy - hr, hr * 2 + 2, hr * 2 + 3, 4);
+    else { ctx.moveTo(hx + 1, hy - hr - 0.5); ctx.quadraticCurveTo(hx - hr - 3, hy - hr, hx - hr - 1.5 + sway, hy + hr + 2.5);
+           ctx.lineTo(hx - 0.5 + sway, hy + hr + 1); ctx.quadraticCurveTo(hx - 1, hy + 2, hx + 1, hy - hr - 0.5); }
     fill(L.hair);
-    ctx.beginPath(); ctx.moveTo(hx - hr + 1, hy); ctx.quadraticCurveTo(hx - hr - 1 + sway, hy + hr + 2, hx - hr + sway, hy + hr + 7);
+    ctx.beginPath(); ctx.moveTo(hx - hr + 1, hy); ctx.quadraticCurveTo(hx - hr - 1 + sway, hy + hr, hx - hr + 0.5 + sway, hy + hr + 2);
     ctx.strokeStyle = P(darken(L.hair, 0.15)); ctx.lineWidth = 0.8; ctx.stroke(); ctx.lineWidth = 1;
   }
   ctx.beginPath(); ctx.arc(hx, hy, hr, 0, Math.PI * 2); fill(L.skin);
@@ -1081,7 +1155,7 @@ function drawJackie() {
   shadow(JACKIE.x, JACKIE.y, 0.25);
   const near = Math.hypot(p.x - JACKIE.x, p.y - JACKIE.y) < 3.5;
   const { flip } = screenFacing(p.x - JACKIE.x, p.y - JACKIE.y);
-  drawPerson(s.x, s.y, { s: 1.1, flip, back: false, walk: 0, moving: false, seed: 2,
+  drawPerson(s.x, s.y, { s: 1.4, flip, back: false, walk: 0, moving: false, seed: 2,
     armA: near ? -2.9 + Math.sin(time * 8) * 0.35 : -0.3, look: 'jackie' });
 }
 // Fred: an orange tabby who sits on a crate of goodies beside the doghouse.
@@ -1089,7 +1163,7 @@ function drawFred() {
   const p = player, s = toScreen(FRED.x, FRED.y);
   shadow(FRED.x, FRED.y, 0.45);
   // The crate of wares (not mirrored)
-  ctx.save(); ctx.translate(s.x - 18, s.y);
+  ctx.save(); ctx.translate(s.x - 14, s.y); ctx.scale(0.8, 0.8);
   ctx.fillStyle = '#9a6a3a'; ctx.fillRect(-11, -14, 18, 14);
   ctx.fillStyle = '#7a5028'; for (const y of [-10, -5]) ctx.fillRect(-11, y, 18, 1.2);
   ctx.fillStyle = '#b07a45'; ctx.fillRect(-11, -15.5, 18, 2.2);
@@ -1102,7 +1176,8 @@ function drawFred() {
   // The cat
   const { flip } = screenFacing(p.x - FRED.x, p.y - FRED.y);
   const orange = '#f08a24', stripe = '#c4621a', white = '#fbf3e6';
-  ctx.save(); ctx.translate(s.x, s.y); ctx.scale(flip ? -1.25 : 1.25, 1.25);
+  const shiver = (time % 7) < 1.3 ? Math.sin(time * 70) * 0.5 : 0;   // he gets the shivers now and then
+  ctx.save(); ctx.translate(s.x + shiver, s.y); ctx.scale(flip ? -0.85 : 0.85, 0.85);
   const swish = Math.sin(time * 2.2) * 0.35;
   ctx.save(); ctx.translate(-7, -3); ctx.rotate(-1.1 + swish);                                                  // tail
   ctx.beginPath(); ctx.moveTo(-1.6, 0); ctx.quadraticCurveTo(-3, -9, 1, -15); ctx.lineTo(3.4, -14); ctx.quadraticCurveTo(0, -9, 1.6, 0); ctx.closePath();
@@ -1113,6 +1188,10 @@ function drawFred() {
   ctx.fillStyle = stripe; for (const a of [-0.9, -0.5, -0.1]) { ctx.beginPath(); ctx.ellipse(-4, -11 + a * 8, 4, 1.1, 0.5, 0, Math.PI * 2); ctx.fill(); }
   ctx.fillStyle = white; ctx.beginPath(); ctx.ellipse(4, -9, 4.2, 7, 0, 0, Math.PI * 2); ctx.fill();            // chest
   for (const x of [2.5, 6.5]) { ctx.beginPath(); ctx.ellipse(x, -1.2, 2.4, 1.6, 0, 0, Math.PI * 2); ctx.fill(); } // paws
+  // A little knitted scarf (he's always cold)
+  ctx.fillStyle = '#c0392b'; ctx.beginPath(); ctx.roundRect(-2, -18.5, 13, 4, 2); ctx.fill();
+  ctx.save(); ctx.translate(7, -16); ctx.rotate(0.25 + Math.sin(time * 2) * 0.08); ctx.beginPath(); ctx.roundRect(-1.6, 0, 3.4, 9, 1.2); ctx.fill(); ctx.restore();
+  ctx.fillStyle = '#f2e6c8'; for (const x of [1, 5]) ctx.fillRect(x, -18.5, 1.3, 4);
   // Head
   const hx = 4, hy = -23;
   ctx.fillStyle = orange;
@@ -1512,6 +1591,7 @@ function draw() {
   things.sort((a, b) => a.d - b.d).forEach(t => t.f());
 
   effects.forEach(drawEffect);
+  drawSpeech();
 
   ctx.textAlign = 'center';
   ctx.font = 'bold 14px system-ui, sans-serif';
@@ -1529,7 +1609,7 @@ function draw() {
 // ---------- Learn-as-you-play hints ----------
 // No instruction screen: each hint pops up the first time it's useful and goes away
 // once you've done it (or after a few seconds for the ones that are just warnings).
-const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0, fred: 0 };
+const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0, fred: 0, traded: 0 };
 const near = (e, d) => Math.hypot(e.x - player.x, e.y - player.y) < d;
 const HINTS = [   // earlier hints win when several apply at once
   { id: 'roll',   text: 'SPACE  to roll out of the red circle', touch: 'Tap ROLL to get out of the red circle',            when: () => enemies.some(e => e.state === 'windup' && near(e, 3)),   done: () => tut.rolls > 0 },
@@ -1539,6 +1619,8 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'boss',   text: 'A tainted boss! Bosses chain attacks together, so wait for the yellow ring', when: () => enemies.some(e => e.boss && near(e, 5.5)), limit: 7 },
   { id: 'attack', text: 'CLICK  to chomp toward the mouse', touch: 'Tap CHOMP, or tap where you want to bite',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
   { id: 'bone',   text: 'Your dropped XP glows like a bone. Go get it back!', when: () => !!bloodstain,                                       done: () => !bloodstain, limit: 8 },
+  { id: 'trophy', text: 'You got a boss trophy! Fred might trade something rare for it', touch: 'You got a boss trophy! Fred might trade something rare for it',
+    when: () => player.trophies.size > 0, done: () => tut.traded > 0, limit: 10 },
   { id: 'fred',   text: 'Fred the cat sells gear and tricks. Press E next to Fred', touch: 'Fred the cat sells gear and tricks. Tap SHOP next to Fred',
     when: () => player.xp >= WEAPONS[1].cost && distC(player.x, player.y) < 5, done: () => tut.fred > 0, limit: 12 },
   { id: 'spend',  text: 'You have enough XP to level up. Head home and rest at the doghouse', when: () => player.xp >= levelCost(player.level) && distC(player.x, player.y) >= SAFE_R, done: () => tut.shop > 0, limit: 10 },
