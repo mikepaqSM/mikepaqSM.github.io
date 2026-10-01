@@ -45,14 +45,15 @@
     <h2>Controls</h2>
     <table class="keys">
       <tr><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or arrows</td><td>Move</td></tr>
-      <tr><td><kbd>Space</kbd> / <kbd>1</kbd> / left click</td><td>Strike (locks on to the nearest enemy)</td></tr>
-      <tr><td><kbd>Shift</kbd></td><td>Dodge roll (you can't be hit mid-roll)</td></tr>
+      <tr><td>Left click / <kbd>1</kbd> / <kbd>J</kbd></td><td>Strike (locks on to the nearest enemy)</td></tr>
+      <tr><td><kbd>Space</kbd> or <kbd>Shift</kbd></td><td>Dodge roll (you can't be hit mid-roll)</td></tr>
       <tr><td><kbd>Q</kbd></td><td>Drink an Ember Flask to heal (refills at the fire)</td></tr>
       <tr><td><kbd>2</kbd> <kbd>3</kbd></td><td>Special moves (buy them first)</td></tr>
       <tr><td><kbd>B</kbd></td><td>Rest at the fire: level up and shop (only at the fire)</td></tr>
       <tr><td><kbd>H</kbd></td><td>Show this help</td></tr>
     </table>
-    <p>Attacks, rolls and moves all use stamina (the green bar). Run out and you can't attack or roll.</p>
+    <p>Attacks, rolls and moves all use stamina (the green bar). Run out and you can't attack or roll. Swinging commits you: you can't roll until the swing finishes, so mashing will get you killed.</p>
+    <p><b>Punish openings.</b> Right after an enemy attacks, it's briefly helpless and a yellow ring appears under it. Hits landed then are critical hits for double damage.</p>
     <p style="margin-top:16px"><button id="play">Begin</button></p>
   </div>
 </div>
@@ -95,18 +96,19 @@ const distC = (x, y) => Math.hypot(x - CENTER, y - CENTER);
 
 // ---------- Game data (tweak these to balance the game) ----------
 const WEAPONS = [
-  { name: 'Fists',        dmg: 6,  cost: 0,    color: '#d9c7a3' },
-  { name: 'Wooden Sword', dmg: 12, cost: 40,   color: '#a87a45' },
-  { name: 'Iron Sword',   dmg: 20, cost: 150,  color: '#c8ccd4' },
-  { name: 'Battle Axe',   dmg: 34, cost: 450,  color: '#8fa0bd' },
-  { name: 'Flame Blade',  dmg: 55, cost: 1200, color: '#ff7a3a' },
+  { name: 'Fists',        dmg: 10, cost: 0,    color: '#d9c7a3' },
+  { name: 'Wooden Sword', dmg: 18, cost: 40,   color: '#a87a45' },
+  { name: 'Iron Sword',   dmg: 28, cost: 150,  color: '#c8ccd4' },
+  { name: 'Battle Axe',   dmg: 44, cost: 450,  color: '#8fa0bd' },
+  { name: 'Flame Blade',  dmg: 68, cost: 1200, color: '#ff7a3a' },
 ];
 
 const SKILLS = [
-  { id: 'strike',   key: '1', name: 'Strike',    cost: 0,   cd: 0.4, sta: 14, desc: 'Swing your weapon at the locked-on enemy.' },
-  { id: 'whirl',    key: '2', name: 'Whirlwind', cost: 80,  cd: 3,   sta: 30, desc: 'Spin and hit everything around you for 1.5x weapon damage.' },
-  { id: 'fireball', key: '3', name: 'Fireball',  cost: 200, cd: 1.4, sta: 20, desc: 'Throw a fireball at the locked-on enemy. Explodes for 40 damage (scales with Arcana).' },
+  { id: 'strike',   key: '1', name: 'Strike',    cost: 0,   cd: 0.75, sta: 20, lock: 0.35, desc: 'Swing your weapon at the locked-on enemy.' },
+  { id: 'whirl',    key: '2', name: 'Whirlwind', cost: 80,  cd: 4,    sta: 35, lock: 0.5,  desc: 'Spin and hit everything around you for 1.3x weapon damage.' },
+  { id: 'fireball', key: '3', name: 'Fireball',  cost: 200, cd: 1.6,  sta: 25, lock: 0.4,  desc: 'Throw a fireball at the locked-on enemy. Explodes for 35 damage (scales with Arcana).' },
 ];
+const CRIT_MULT = 2;   // damage bonus for hitting an enemy right after it attacks
 const ROLL_STA = 22;
 
 // Stats you raise when you level up.
@@ -121,10 +123,10 @@ const levelCost = lvl => Math.floor(30 * 1.16 ** (lvl - 1));
 // windup = seconds of warning before the hit, reach = size of the red danger circle,
 // staggers = whether your hits interrupt their attack.
 const ENEMY_TYPES = [
-  { name: 'Slime',  lvl: 1,  hp: 30,  dmg: 12, speed: 1.4, xp: 6,   r: 0.28, h: 14, color: '#6fd36f', minDist: 0,  shape: 'blob', windup: 0.55, reach: 0.45, recover: 0.7, staggers: true,  aggro: 5 },
-  { name: 'Goblin', lvl: 3,  hp: 70,  dmg: 22, speed: 2.4, xp: 20,  r: 0.26, h: 26, color: '#c9b44a', minDist: 8,  shape: 'body', windup: 0.4,  reach: 0.55, recover: 0.5, staggers: true,  aggro: 6 },
-  { name: 'Orc',    lvl: 6,  hp: 180, dmg: 38, speed: 2.0, xp: 60,  r: 0.34, h: 36, color: '#c0703a', minDist: 13, shape: 'body', windup: 0.65, reach: 0.75, recover: 0.8, staggers: false, aggro: 6.5 },
-  { name: 'Ogre',   lvl: 10, hp: 480, dmg: 70, speed: 1.5, xp: 180, r: 0.46, h: 50, color: '#b04848', minDist: 18, shape: 'body', windup: 1.0,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 7 },
+  { name: 'Slime',  lvl: 1,  hp: 20,  dmg: 20, speed: 1.4, xp: 6,   r: 0.28, h: 14, color: '#6fd36f', minDist: 0,  shape: 'blob', windup: 0.55, reach: 0.45, recover: 0.7, staggers: true,  aggro: 5 },
+  { name: 'Goblin', lvl: 3,  hp: 50,  dmg: 28, speed: 2.4, xp: 20,  r: 0.26, h: 26, color: '#c9b44a', minDist: 8,  shape: 'body', windup: 0.4,  reach: 0.55, recover: 0.5, staggers: true,  aggro: 6 },
+  { name: 'Orc',    lvl: 6,  hp: 100, dmg: 42, speed: 2.0, xp: 60,  r: 0.34, h: 36, color: '#c0703a', minDist: 13, shape: 'body', windup: 0.65, reach: 0.75, recover: 0.8, staggers: false, aggro: 6.5 },
+  { name: 'Ogre',   lvl: 10, hp: 220, dmg: 70, speed: 1.5, xp: 180, r: 0.46, h: 50, color: '#b04848', minDist: 18, shape: 'body', windup: 1.0,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 7 },
 ];
 
 const ZONES = [
@@ -144,12 +146,12 @@ const player = {
   xp: 0, weapon: 0, skills: new Set(['strike']),
   flasks: 3, maxFlasks: 3, drink: 0,
   face: { x: 1, y: 0 }, flash: 0, swing: 0, dead: false,
-  roll: null, hitstun: 0, grace: 0,
+  roll: null, hitstun: 0, grace: 0, attackLock: 0,
 };
 const maxHp = () => 80 + 12 * player.stats.vig;
 const maxSta = () => 80 + 10 * player.stats.end;
 const weaponDmg = () => Math.round(WEAPONS[player.weapon].dmg * (1 + 0.07 * player.stats.str));
-const fireballDmg = () => Math.round(40 * (1 + 0.1 * player.stats.arc));
+const fireballDmg = () => Math.round(35 * (1 + 0.1 * player.stats.arc));
 
 const cooldowns = { strike: 0, whirl: 0, fireball: 0 };
 let enemies = [], projectiles = [], effects = [], floaters = [];
@@ -166,7 +168,6 @@ function toScreen(x, y) {
 
 // ---------- Input ----------
 const keys = {};
-let mouseDown = false;
 addEventListener('keydown', e => {
   const k = e.key.toLowerCase();
   keys[k] = true;
@@ -176,16 +177,15 @@ addEventListener('keydown', e => {
   if (k === 'h') { openOverlay('help'); return; }
   if (k === 'r' && player.dead) { respawn(); return; }
   if (paused || e.repeat) return;
-  if (k === ' ' || k === '1') useSkill('strike');
+  if (k === '1' || k === 'j') useSkill('strike');
   if (k === '2') useSkill('whirl');
   if (k === '3') useSkill('fireball');
   if (k === 'q') drinkFlask();
-  if (k === 'shift') startRoll();
+  if (k === ' ' || k === 'shift') startRoll();
 });
 addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-canvas.addEventListener('mousedown', e => { if (e.button === 0) mouseDown = true; });
-addEventListener('mouseup', () => mouseDown = false);
-addEventListener('blur', () => { for (const k in keys) keys[k] = false; mouseDown = false; });
+canvas.addEventListener('mousedown', e => { if (e.button === 0 && !paused) useSkill('strike'); });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 // ---------- Overlays ----------
@@ -200,7 +200,6 @@ function closeOverlays() {
   if (player.dead) return;
   ['help', 'shop'].forEach(o => overlay(o).classList.remove('open'));
   paused = false;
-  mouseDown = false;
 }
 function toggleShop() {
   if (overlay('shop').classList.contains('open')) { closeOverlays(); return; }
@@ -293,7 +292,7 @@ function populate() { enemies = []; for (let i = 0; i < MAX_ENEMIES; i++) spawnE
 populate();
 
 // ---------- Player actions ----------
-const canAct = () => !player.dead && !player.roll && player.hitstun <= 0 && player.drink <= 0;
+const canAct = () => !player.dead && !player.roll && player.hitstun <= 0 && player.drink <= 0 && player.attackLock <= 0;
 
 function spendSta(n) {
   if (player.sta <= 0) return false;   // like Souls: any stamina left lets you act
@@ -331,8 +330,10 @@ function useSkill(id) {
   if (!canAct() || !player.skills.has(id) || cooldowns[id] > 0) return;
   const s = SKILLS.find(s => s.id === id);
   if (!spendSta(s.sta)) return;
+  faceTarget();
   cooldowns[id] = s.cd;
   const p = player;
+  p.attackLock = s.lock;   // you're committed until the swing finishes
   if (id === 'strike') {
     const range = 1.3, ang = Math.atan2(p.face.y, p.face.x);
     p.swing = 0.15;
@@ -348,7 +349,7 @@ function useSkill(id) {
     const range = 1.9;
     effects.push({ type: 'ring', x: p.x, y: p.y, range, t: 0.3, max: 0.3, color: '#9fd4ff' });
     for (const e of enemies)
-      if (Math.hypot(e.x - p.x, e.y - p.y) < range + e.r) hurtEnemy(e, Math.round(weaponDmg() * 1.5));
+      if (Math.hypot(e.x - p.x, e.y - p.y) < range + e.r) hurtEnemy(e, Math.round(weaponDmg() * 1.3));
   } else if (id === 'fireball') {
     projectiles.push({ x: p.x + p.face.x * 0.4, y: p.y + p.face.y * 0.4, vx: p.face.x * 8, vy: p.face.y * 8, life: 1.3 });
   }
@@ -363,14 +364,16 @@ function explode(x, y) {
 
 function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
   if (e.hp <= 0) return;
+  const crit = e.state === 'recover' && e.punishable;
+  if (crit) dmg = Math.round(dmg * CRIT_MULT);
   e.hp -= dmg;
   e.flash = 0.12;
-  if (e.state === 'windup' && e.staggers) { e.state = 'recover'; e.t = 0.45; }
+  if (e.state === 'windup' && e.staggers) { e.state = 'recover'; e.t = 0.45; e.punishable = false; }
   else if (e.state === 'idle' || e.state === 'return') e.state = 'chase';
   const dx = e.x - fromX, dy = e.y - fromY, d = Math.hypot(dx, dy) || 1;
   const kb = e.staggers ? 2.5 : 0.6;
   e.kx += dx / d * kb; e.ky += dy / d * kb;
-  floatText(e.x, e.y, dmg, '#fff');
+  floatText(e.x, e.y, crit ? `${dmg} CRITICAL` : dmg, crit ? '#ffd25a' : '#fff', crit ? 1.1 : 0.8);
   if (e.hp <= 0) {
     player.xp += e.xp;
     kills++;
@@ -412,7 +415,7 @@ function die() {
 function respawn() {
   if (!player.dead) return;
   Object.assign(player, { dead: false, x: CENTER, y: CENTER + 1.2, hp: maxHp(), sta: maxSta(),
-    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0 });
+    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0 });
   populate();   // every monster comes back when you die
   projectiles = []; effects = []; floaters = []; target = null;
   overlay('death').classList.remove('open');
@@ -431,11 +434,20 @@ function updateTarget() {
     const d = Math.hypot(e.x - p.x, e.y - p.y);
     if (d < bestD) { best = e; bestD = d; }
   }
-  if (target && target.hp > 0) {
+  if (target && target.hp > 0 && enemies.includes(target)) {
     const cur = Math.hypot(target.x - p.x, target.y - p.y);
     if (cur < LOCK_RANGE + 1 && (!best || cur < bestD + 0.6)) return;
   }
   target = best;
+}
+
+function faceTarget() {
+  const p = player;
+  updateTarget();
+  if (target) {
+    const dx = target.x - p.x, dy = target.y - p.y, d = Math.hypot(dx, dy) || 1;
+    p.face = { x: dx / d, y: dy / d };
+  }
 }
 
 // ---------- Update ----------
@@ -443,14 +455,9 @@ function update(dt) {
   const p = player;
   time += dt;
 
-  updateTarget();
+  faceTarget();
   const md = moveDir();
-  if (target) {
-    const dx = target.x - p.x, dy = target.y - p.y, d = Math.hypot(dx, dy) || 1;
-    p.face = { x: dx / d, y: dy / d };
-  } else if (md && !p.roll) {
-    p.face = md;
-  }
+  if (!target && md && !p.roll) p.face = md;
 
   // Movement
   if (p.roll) {
@@ -458,16 +465,16 @@ function update(dt) {
     p.x += p.roll.x * 7 * dt; p.y += p.roll.y * 7 * dt;
     if (p.roll.t <= 0) p.roll = null;
   } else if (md && p.hitstun <= 0) {
-    const spd = p.speed * (p.drink > 0 ? 0.35 : 1);
+    const spd = p.speed * (p.drink > 0 ? 0.35 : p.attackLock > 0 ? 0.3 : 1);
     p.x += md.x * spd * dt; p.y += md.y * spd * dt;
   }
   p.x = clamp(p.x, 0.3, MAP - 0.3); p.y = clamp(p.y, 0.3, MAP - 0.3);
 
-  if (mouseDown) useSkill('strike');
   for (const k in cooldowns) cooldowns[k] = Math.max(0, cooldowns[k] - dt);
   p.flash = Math.max(0, p.flash - dt);
   p.swing = Math.max(0, p.swing - dt);
   p.hitstun = Math.max(0, p.hitstun - dt);
+  p.attackLock = Math.max(0, p.attackLock - dt);
   p.grace = Math.max(0, p.grace - dt);
   if (p.drink > 0) {
     p.drink -= dt;
@@ -514,7 +521,7 @@ function update(dt) {
       if (e.t <= 0) {
         effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r + e.reach, t: 0.25, max: 0.25, color: '#ff4040', fill: true });
         if (d < strikeDist) hurtPlayer(e.dmg, e.x, e.y);
-        e.state = 'recover'; e.t = e.recover;
+        e.state = 'recover'; e.t = e.recover; e.punishable = true;
       }
     } else if (e.state === 'recover') {
       e.t -= dt;
@@ -771,10 +778,10 @@ function drawHUD() {
 
   // Action bar
   const slots = [
-    ...SKILLS.map(s => ({ key: s.key === '1' ? 'Space' : s.key, label: p.skills.has(s.id) ? s.name : `${s.cost} XP`,
+    ...SKILLS.map(s => ({ key: s.key === '1' ? 'Click' : s.key, label: p.skills.has(s.id) ? s.name : `${s.cost} XP`,
       owned: p.skills.has(s.id), cd: cooldowns[s.id] / s.cd })),
     { key: 'Q', label: `Flask ${p.flasks}/${p.maxFlasks}`, owned: p.flasks > 0, cd: 0 },
-    { key: 'Shift', label: 'Roll', owned: true, cd: 0 },
+    { key: 'Space', label: 'Roll', owned: true, cd: 0 },
   ];
   const size = 62, gap = 8, total = slots.length * size + (slots.length - 1) * gap;
   const x0 = (W - total) / 2, y0 = H - size - 16;
@@ -799,7 +806,13 @@ function draw() {
   ctx.fillRect(0, 0, W, H);
   drawTiles();
   if (bloodstain) drawBloodstain();
-  for (const e of enemies) if (e.state === 'windup') drawTelegraph(e);
+  for (const e of enemies) {
+    if (e.state === 'windup') drawTelegraph(e);
+    if (e.state === 'recover' && e.punishable) {   // yellow ring = open to a critical hit
+      ctx.strokeStyle = 'rgba(255,210,90,.9)'; ctx.lineWidth = 3;
+      groundEllipse(e.x, e.y, e.r + 0.3); ctx.stroke(); ctx.lineWidth = 1;
+    }
+  }
   if (target) {
     ctx.strokeStyle = 'rgba(255,255,255,.7)'; ctx.lineWidth = 2;
     groundEllipse(target.x, target.y, target.r + 0.18); ctx.stroke(); ctx.lineWidth = 1;
