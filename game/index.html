@@ -32,7 +32,9 @@
   #tTreat { width: 54px; height: 54px; right: calc(4px + env(safe-area-inset-right)); bottom: calc(124px + env(safe-area-inset-bottom)); }
   #tRest  { display: none; width: auto; height: 44px; border-radius: 22px; padding: 0 20px; left: calc(16px + env(safe-area-inset-left));
     bottom: calc(190px + env(safe-area-inset-bottom)); font-size: 14px; background: rgba(158,42,43,.85); }
-  #tRest.show { display: flex; }
+  #tRest.show, #tFred.show { display: flex; }
+  #tFred  { display: none; width: auto; height: 44px; border-radius: 22px; padding: 0 20px; left: calc(16px + env(safe-area-inset-left));
+    bottom: calc(244px + env(safe-area-inset-bottom)); font-size: 14px; background: rgba(224,120,30,.85); }
   #tPause { width: 40px; height: 40px; right: calc(10px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top)); font-size: 14px; }
   .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: rgba(0, 0, 0, .7); }
@@ -79,6 +81,7 @@
   <button class="tbtn" id="tBark">BARK<small></small></button>
   <button class="tbtn" id="tTreat">TREAT<small></small></button>
   <button class="tbtn" id="tRest">Rest at the doghouse</button>
+  <button class="tbtn" id="tFred">Shop with Fred</button>
   <button class="tbtn" id="tPause">II</button>
 </div>
 
@@ -92,9 +95,10 @@
 
 <div class="overlay" id="shop">
   <div class="panel">
-    <div class="top"><h1>Watson's Doghouse</h1><span class="xp" id="shopXp"></span></div>
+    <div class="top"><h1 id="shopTitle">Watson's Doghouse</h1><span class="xp" id="shopXp"></span></div>
+    <p id="shopSub"></p>
     <div id="shopBody"></div>
-    <p style="margin-top:14px"><button id="closeShop">Leave (B)</button></p>
+    <p style="margin-top:14px"><button id="closeShop">Leave</button></p>
   </div>
 </div>
 
@@ -215,6 +219,9 @@ let enemies = [], projectiles = [], effects = [], floaters = [];
 let target = null, bloodstain = null, won = false;
 const defeated = new Set();   // names of bosses already beaten
 const JACKIE = { x: CENTER + 1.4, y: CENTER - 0.2 };
+const FRED = { x: CENTER - 1.9, y: CENTER + 0.7 };   // Fred the cat's shop, beside the doghouse
+const nearFred = () => Math.hypot(player.x - FRED.x, player.y - FRED.y) < 1.7;
+let shopMode = 'rest';
 let spawnTimer = 0, kills = 0, time = 0;
 const cam = { x: 0, y: 0 };
 let paused = true;
@@ -237,7 +244,8 @@ addEventListener('keydown', e => {
   keys[k] = true;
   if (k === ' ' || k === 'tab' || k.startsWith('arrow')) e.preventDefault();
   if (overlay('title').classList.contains('open')) { if (!e.repeat) closeOverlays(); return; }
-  if (k === 'b') { toggleShop(); return; }
+  if (k === 'b') { toggleShop('rest'); return; }
+  if (k === 'e') { toggleShop('fred'); return; }
   if (k === 'escape') { if (paused) closeOverlays(); else openOverlay('title'); return; }
   if (k === 'r' && player.dead) { respawn(); return; }
   if (paused || e.repeat) return;
@@ -292,7 +300,8 @@ touchButton('tRoll', () => startRoll());
 touchButton('tZoom', () => useSkill('whirl'));
 touchButton('tBark', () => useSkill('fireball'));
 touchButton('tTreat', () => drinkFlask());
-touchButton('tRest', () => toggleShop());
+touchButton('tRest', () => toggleShop('rest'));
+touchButton('tFred', () => toggleShop('fred'));
 touchButton('tPause', () => openOverlay('title'));
 function updateTouchButtons() {
   if (!isTouch) return;
@@ -306,6 +315,7 @@ function updateTouchButtons() {
   set('tBark', !p.skills.has('fireball'), cooldowns.fireball > 0, p.skills.has('fireball') ? '' : '200 XP');
   set('tTreat', p.flasks <= 0, p.drink > 0, `${p.flasks}/${p.maxFlasks}`);
   tb('tRest').classList.toggle('show', !paused && !p.dead && distC(p.x, p.y) < SAFE_R);
+  tb('tFred').classList.toggle('show', !paused && !p.dead && nearFred());
 }
 // Direction from the player to the mouse cursor, in world space.
 function mouseDir() {
@@ -322,7 +332,11 @@ function openOverlay(id) {
   ['title', 'shop', 'death', 'win'].forEach(o => overlay(o).classList.toggle('open', o === id));
   paused = true;
   if (id === 'title') titleOpenedAt = performance.now();
-  if (id === 'shop') { tut.shop++; renderShop(); floatText(JACKIE.x, JACKIE.y, 'Good boy, Watson!', '#ffffff', 1.6); }
+  if (id === 'shop') {
+    renderShop();
+    if (shopMode === 'rest') { tut.shop++; floatText(JACKIE.x, JACKIE.y, 'Good boy, Watson!', '#ffffff', 1.6); }
+    else { tut.fred++; floatText(FRED.x, FRED.y, FRED_LINES[Math.floor(Math.random() * FRED_LINES.length)], '#ffd7a8', 1.8); }
+  }
 }
 function closeOverlays() {
   if (player.dead) return;
@@ -330,12 +344,16 @@ function closeOverlays() {
   paused = false;
   for (const k in keys) keys[k] = false;
 }
-function toggleShop() {
+// mode 'rest': level up at the doghouse. mode 'fred': buy gear, tricks and treats from Fred.
+function toggleShop(mode) {
   if (overlay('shop').classList.contains('open')) { closeOverlays(); return; }
   if (paused) return;
-  if (distC(player.x, player.y) >= SAFE_R) { floatText(player.x, player.y, 'Head back to the doghouse to rest', '#c4b8b6', 1.4); return; }
+  if (mode === 'rest' && distC(player.x, player.y) >= SAFE_R) { floatText(player.x, player.y, 'Head back to the doghouse to rest', '#c4b8b6', 1.4); return; }
+  if (mode === 'fred' && !nearFred()) { floatText(player.x, player.y, 'Fred the cat trades by the doghouse', '#c4b8b6', 1.4); return; }
+  shopMode = mode;
   openOverlay('shop');
 }
+const FRED_LINES = ['Meow. Let\'s trade.', 'Fresh sticks! Barely chewed.', 'Mrrp. XP only, no IOUs.', 'Bones? I\'ve got bones.', 'Purr... what\'ll it be, pup?'];
 let titleOpenedAt = 0;
 // Ignore the tap that opened the pause screen so it doesn't immediately close it again.
 overlay('title').onclick = () => { if (performance.now() - titleOpenedAt > 350) closeOverlays(); };
@@ -364,6 +382,13 @@ function renderShop() {
     return div;
   };
 
+  const fred = shopMode === 'fred';
+  overlay('shopTitle').textContent = fred ? "Fred's Wares" : "Watson's Doghouse";
+  overlay('shopSub').textContent = fred
+    ? 'An orange cat on a crate full of treasures. Fred takes XP, and only XP.'
+    : 'Rest up and spend XP to grow stronger. Jackie gives you a scratch behind the ears.';
+  if (fred) { renderFredWares(section, row); return; }
+
   const cost = levelCost(p.level);
   section(`Level up: Level ${p.level} → ${p.level + 1} costs ${cost} XP`);
   STATS.forEach(s => {
@@ -373,7 +398,10 @@ function renderShop() {
       if (s.id === 'end') p.sta += 10;
     }, p.stats[s.id]));
   });
+}
 
+function renderFredWares(section, row) {
+  const p = player, body = overlay('shopBody');
   section('Fetch gear (held in your mouth)');
   WEAPONS.forEach((w, i) => {
     if (i === 0) return;
@@ -993,6 +1021,16 @@ function drawPerson(sx, sy, o) {
 
   // Head
   const hr = L.headR, hx = 1, hy = shY - hr + 1.5;
+  if (L.longHair) {   // long hair falling past the shoulders, behind the head
+    const sway = Math.sin(time * 1.8 + (o.seed || 0)) * 0.6;
+    ctx.beginPath();
+    if (o.back) ctx.roundRect(hx - hr - 1, hy - hr, hr * 2 + 2, hr * 2 + 9, 4);
+    else { ctx.moveTo(hx + 1, hy - hr - 0.5); ctx.quadraticCurveTo(hx - hr - 3, hy - hr, hx - hr - 2 + sway, hy + hr + 8);
+           ctx.lineTo(hx - 1 + sway, hy + hr + 6); ctx.quadraticCurveTo(hx - 1, hy + 2, hx + 1, hy - hr - 0.5); }
+    fill(L.hair);
+    ctx.beginPath(); ctx.moveTo(hx - hr + 1, hy); ctx.quadraticCurveTo(hx - hr - 1 + sway, hy + hr + 2, hx - hr + sway, hy + hr + 7);
+    ctx.strokeStyle = P(darken(L.hair, 0.15)); ctx.lineWidth = 0.8; ctx.stroke(); ctx.lineWidth = 1;
+  }
   ctx.beginPath(); ctx.arc(hx, hy, hr, 0, Math.PI * 2); fill(L.skin);
   if (o.back) { ctx.beginPath(); ctx.arc(hx, hy, hr, Math.PI * 0.85, Math.PI * 2.15); fill(L.hair); }
   else {
@@ -1002,7 +1040,7 @@ function drawPerson(sx, sy, o) {
     if (L.grumpy) { ctx.beginPath(); ctx.moveTo(hx + 1, hy - 3.4); ctx.lineTo(hx + hr, hy - 2); ctx.lineTo(hx + hr, hy - 1.2); ctx.lineTo(hx + 1, hy - 2.4); fill('#2a1e18'); }
     ctx.beginPath(); ctx.moveTo(hx + hr - 0.5, hy - 0.5); ctx.lineTo(hx + hr + 1.6, hy + 1.2); ctx.lineTo(hx + hr - 0.5, hy + 1.8); fill(darken(L.skin, 0.12)); // nose
     if (L.mustache) { ctx.beginPath(); ctx.roundRect(hx + hr * 0.3, hy + 2, hr * 0.75, 1.5, 0.7); fill(L.mustache); }
-    else { ctx.beginPath(); ctx.rect(hx + hr * 0.45, hy + 2.6, 2, 0.6); fill('#6a3a2a'); }
+    else { ctx.beginPath(); ctx.rect(hx + hr * 0.45, hy + 2.6, 2, 0.6); fill(L.lips || '#6a3a2a'); }
   }
   if (L.hat === 'cap') {
     ctx.beginPath(); ctx.arc(hx, hy - 1, hr + 0.4, Math.PI, 0); fill(L.hatColor);
@@ -1033,7 +1071,7 @@ const LOOKS = {
                 shoes: '#5a3a20', hat: 'straw', hatColor: '#d8b45a', grumpy: true, mustache: '#9a9a9a', item: 'rake' },
   dogcatcher: { wide: 1.35, headR: 5.2, skin: '#d8a07a', hair: '#3a2a1a', body: '#8a7a4a', sleeve: '#8a7a4a', legs: '#5a5038',
                 shoes: '#2a2218', hat: 'uniform', hatColor: '#4a4230', grumpy: true, mustache: '#3a2a1a', belly: true, badge: true, item: 'net' },
-  jackie:     { wide: 0.9,  headR: 5.6, skin: '#f0c8a0', hair: '#4a2c1a', body: '#2bb3a3', sleeve: '#2bb3a3', legs: '#3a4a6a',
+  jackie:     { wide: 0.88, headR: 5.6, skin: '#f3cfae', hair: '#f2d06b', longHair: true, lips: '#c4566a', body: '#2bb3a3', sleeve: '#2bb3a3', legs: '#3a4a6a',
                 shoes: '#f0f0f0', item: 'none' },
 };
 
@@ -1046,6 +1084,60 @@ function drawJackie() {
   drawPerson(s.x, s.y, { s: 1.1, flip, back: false, walk: 0, moving: false, seed: 2,
     armA: near ? -2.9 + Math.sin(time * 8) * 0.35 : -0.3, look: 'jackie' });
 }
+// Fred: an orange tabby who sits on a crate of goodies beside the doghouse.
+function drawFred() {
+  const p = player, s = toScreen(FRED.x, FRED.y);
+  shadow(FRED.x, FRED.y, 0.45);
+  // The crate of wares (not mirrored)
+  ctx.save(); ctx.translate(s.x - 18, s.y);
+  ctx.fillStyle = '#9a6a3a'; ctx.fillRect(-11, -14, 18, 14);
+  ctx.fillStyle = '#7a5028'; for (const y of [-10, -5]) ctx.fillRect(-11, y, 18, 1.2);
+  ctx.fillStyle = '#b07a45'; ctx.fillRect(-11, -15.5, 18, 2.2);
+  ctx.save(); ctx.translate(-6, -15); ctx.rotate(-0.5); ctx.fillStyle = '#8a5a2e'; ctx.fillRect(0, -1, 13, 2.2); ctx.restore();   // a stick
+  ctx.save(); ctx.translate(1, -17); ctx.rotate(0.35); paintMode = null; drawBone(-3, 4, '#f2e6c8'); ctx.restore();                 // a bone
+  ctx.fillStyle = '#2ec4b6'; ctx.beginPath(); ctx.ellipse(-8, -16, 4, 1.4, 0, 0, Math.PI * 2); ctx.fill();                      // a frisbee
+  ctx.fillStyle = '#f2e6c8'; ctx.font = 'bold 5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText("FRED'S", -2, -6.5);
+  ctx.restore();
+
+  // The cat
+  const { flip } = screenFacing(p.x - FRED.x, p.y - FRED.y);
+  const orange = '#f08a24', stripe = '#c4621a', white = '#fbf3e6';
+  ctx.save(); ctx.translate(s.x, s.y); ctx.scale(flip ? -1.25 : 1.25, 1.25);
+  const swish = Math.sin(time * 2.2) * 0.35;
+  ctx.save(); ctx.translate(-7, -3); ctx.rotate(-1.1 + swish);                                                  // tail
+  ctx.beginPath(); ctx.moveTo(-1.6, 0); ctx.quadraticCurveTo(-3, -9, 1, -15); ctx.lineTo(3.4, -14); ctx.quadraticCurveTo(0, -9, 1.6, 0); ctx.closePath();
+  ctx.fillStyle = orange; ctx.fill();
+  ctx.fillStyle = stripe; for (const y of [-5, -10]) { ctx.beginPath(); ctx.rect(-2.5, y, 4.5, 1.3); ctx.fill(); }
+  ctx.restore();
+  ctx.fillStyle = orange; ctx.beginPath(); ctx.ellipse(0, -10, 8.5, 10, 0, 0, Math.PI * 2); ctx.fill();         // body
+  ctx.fillStyle = stripe; for (const a of [-0.9, -0.5, -0.1]) { ctx.beginPath(); ctx.ellipse(-4, -11 + a * 8, 4, 1.1, 0.5, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = white; ctx.beginPath(); ctx.ellipse(4, -9, 4.2, 7, 0, 0, Math.PI * 2); ctx.fill();            // chest
+  for (const x of [2.5, 6.5]) { ctx.beginPath(); ctx.ellipse(x, -1.2, 2.4, 1.6, 0, 0, Math.PI * 2); ctx.fill(); } // paws
+  // Head
+  const hx = 4, hy = -23;
+  ctx.fillStyle = orange;
+  for (const [a, b, c] of [[[-2, -4], [-1, -13], [4, -6]], [[4, -6], [9, -13], [10, -3]]]) {                    // ears
+    ctx.beginPath(); ctx.moveTo(hx + a[0], hy + a[1]); ctx.lineTo(hx + b[0], hy + b[1]); ctx.lineTo(hx + c[0], hy + c[1]); ctx.closePath(); ctx.fill();
+  }
+  ctx.fillStyle = '#f2a0a8';
+  ctx.beginPath(); ctx.moveTo(hx - 0.5, hy - 5); ctx.lineTo(hx - 0.2, hy - 10.5); ctx.lineTo(hx + 2.5, hy - 6); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(hx + 5.5, hy - 6); ctx.lineTo(hx + 8.2, hy - 10.5); ctx.lineTo(hx + 8.5, hy - 4); ctx.fill();
+  ctx.fillStyle = orange; ctx.beginPath(); ctx.arc(hx + 1, hy, 7, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = stripe; for (const x of [-1, 1.5, 4]) { ctx.beginPath(); ctx.rect(hx + x - 0.6, hy - 7, 1.2, 3); ctx.fill(); }
+  ctx.fillStyle = white; ctx.beginPath(); ctx.ellipse(hx + 4, hy + 2.5, 4, 2.8, 0, 0, Math.PI * 2); ctx.fill();   // muzzle
+  ctx.fillStyle = '#e07080'; ctx.beginPath(); ctx.moveTo(hx + 5, hy + 0.5); ctx.lineTo(hx + 7.4, hy + 0.5); ctx.lineTo(hx + 6.2, hy + 2); ctx.fill();
+  const blink = (time % 4.3) < 0.15;
+  for (const ex of [1, 5.5]) {
+    if (blink) { ctx.fillStyle = '#3a2410'; ctx.fillRect(hx + ex - 1.5, hy - 1.5, 3, 0.7); continue; }
+    ctx.fillStyle = '#8ad04a'; ctx.beginPath(); ctx.ellipse(hx + ex, hy - 1.3, 1.6, 1.9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#1a1a10'; ctx.beginPath(); ctx.ellipse(hx + ex + 0.2, hy - 1.3, 0.45, 1.6, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(255,255,255,.8)'; ctx.lineWidth = 0.5;                                                // whiskers
+  for (const dy of [-0.6, 0.8]) { ctx.beginPath(); ctx.moveTo(hx + 6, hy + 2); ctx.lineTo(hx + 13, hy + 2 + dy * 2); ctx.stroke(); }
+  ctx.lineWidth = 1;
+  ctx.restore();
+}
+
 // ----- Polluted plant monsters -----
 // pose: prog = how far into an attack wind-up (0..1), slump = off balance after attacking.
 const TOXIC = '#b14cff';
@@ -1328,6 +1420,7 @@ function drawHUD() {
   if (distC(p.x, p.y) < SAFE_R && !isTouch) {
     ctx.textAlign = 'center'; ctx.fillStyle = '#ffd25a'; ctx.font = '16px Georgia, serif';
     ctx.fillText('Press B to rest at the doghouse', W / 2, H - 110);
+    if (nearFred()) { ctx.fillStyle = '#ffb36b'; ctx.fillText('Press E to trade with Fred', W / 2, H - 132); }
   }
 
   // Locked-on target, top centre.
@@ -1398,6 +1491,7 @@ function draw() {
   const things = [
     { d: CENTER * 2, f: drawDoghouse },
     { d: JACKIE.x + JACKIE.y, f: drawJackie },
+    { d: FRED.x + FRED.y, f: drawFred },
     ...enemies.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
       // Mega Bark: a flying bundle of sound waves.
@@ -1435,7 +1529,7 @@ function draw() {
 // ---------- Learn-as-you-play hints ----------
 // No instruction screen: each hint pops up the first time it's useful and goes away
 // once you've done it (or after a few seconds for the ones that are just warnings).
-const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0 };
+const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0, fred: 0 };
 const near = (e, d) => Math.hypot(e.x - player.x, e.y - player.y) < d;
 const HINTS = [   // earlier hints win when several apply at once
   { id: 'roll',   text: 'SPACE  to roll out of the red circle', touch: 'Tap ROLL to get out of the red circle',            when: () => enemies.some(e => e.state === 'windup' && near(e, 3)),   done: () => tut.rolls > 0 },
@@ -1445,7 +1539,9 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'boss',   text: 'A tainted boss! Bosses chain attacks together, so wait for the yellow ring', when: () => enemies.some(e => e.boss && near(e, 5.5)), limit: 7 },
   { id: 'attack', text: 'CLICK  to chomp toward the mouse', touch: 'Tap CHOMP, or tap where you want to bite',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
   { id: 'bone',   text: 'Your dropped XP glows like a bone. Go get it back!', when: () => !!bloodstain,                                       done: () => !bloodstain, limit: 8 },
-  { id: 'spend',  text: 'You have enough XP to level up. Head home to the doghouse', when: () => player.xp >= levelCost(player.level) && distC(player.x, player.y) >= SAFE_R, done: () => tut.shop > 0, limit: 10 },
+  { id: 'fred',   text: 'Fred the cat sells gear and tricks. Press E next to Fred', touch: 'Fred the cat sells gear and tricks. Tap SHOP next to Fred',
+    when: () => player.xp >= WEAPONS[1].cost && distC(player.x, player.y) < 5, done: () => tut.fred > 0, limit: 12 },
+  { id: 'spend',  text: 'You have enough XP to level up. Head home and rest at the doghouse', when: () => player.xp >= levelCost(player.level) && distC(player.x, player.y) >= SAFE_R, done: () => tut.shop > 0, limit: 10 },
   { id: 'whirl',  text: '2  for Zoomies', touch: 'Tap ZOOM for Zoomies',                                  when: () => player.skills.has('whirl') && !paused,                  done: () => tut.whirl > 0 },
   { id: 'bark',   text: '3  for Mega Bark', touch: 'Tap BARK for Mega Bark',                                when: () => player.skills.has('fireball') && !paused,               done: () => tut.fireball > 0 },
   { id: 'run',    text: 'Hold SHIFT to run', touch: 'Push the stick all the way to run',                               when: () => tut.moved > 4 && tut.playT > 15,                         done: () => tut.ran > 0.4 },
@@ -1466,7 +1562,7 @@ function updateHints(dt) {
 }
 function drawHint() {
   if (!hint || paused) return;
-  const y = isTouch ? (W < 760 ? 240 : 90) : H - (distC(player.x, player.y) < SAFE_R ? 140 : 112);
+  const y = isTouch ? (W < 760 ? 240 : 90) : H - (distC(player.x, player.y) < SAFE_R ? 162 : 112);
   const text = isTouch && hint.touch ? hint.touch : hint.text;
   ctx.font = 'bold 16px system-ui, sans-serif';
   const w = ctx.measureText(text).width + 36;
