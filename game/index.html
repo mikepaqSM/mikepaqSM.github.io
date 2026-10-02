@@ -162,7 +162,7 @@ const WEAPONS = [
 ];
 
 const SKILLS = [
-  { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.75, sta: 20, lock: 0.35, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
+  { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.7,  sta: 16, lock: 0.32, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
   { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
   { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, cd: 1.6,  sta: 25, lock: 0.4,  desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
@@ -183,20 +183,20 @@ const levelCost = lvl => Math.floor(30 * 1.16 ** (lvl - 1));
 // windup = seconds of warning before the hit, reach = size of the red danger circle,
 // staggers = whether your hits interrupt their attack. s = drawing scale, look = how they're drawn.
 const ENEMY_TYPES = [
-  { name: 'Sproutling',       lvl: 1,  hp: 10,  dmg: 20, speed: 1.6, xp: 6,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', minDist: 0,  windup: 0.55, reach: 0.45, recover: 0.7, staggers: true,  aggro: 5 },
-  { name: 'Thornbush',        lvl: 3,  hp: 30,  dmg: 28, speed: 2.1, xp: 20,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', minDist: 8,  windup: 0.45, reach: 0.6,  recover: 0.55, staggers: true, aggro: 6 },
-  { name: 'Toxic Toadstool',  lvl: 6,  hp: 55,  dmg: 42, speed: 1.8, xp: 60,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', minDist: 13, windup: 0.7,  reach: 0.85, recover: 0.8, staggers: false, aggro: 6.5 },
-  { name: 'Smog Oak',         lvl: 10, hp: 110, dmg: 70, speed: 1.3, xp: 180, r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', minDist: 18, windup: 1.0,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 7 },
+  { name: 'Sproutling',       lvl: 1,  hp: 10,  dmg: 14, speed: 1.6, xp: 6,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', minDist: 0,  windup: 0.66, reach: 0.45, recover: 0.7, staggers: true,  aggro: 4.0 },
+  { name: 'Thornbush',        lvl: 3,  hp: 30,  dmg: 20, speed: 2.1, xp: 20,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', minDist: 8,  windup: 0.54, reach: 0.6,  recover: 0.55, staggers: true, aggro: 5.0 },
+  { name: 'Toxic Toadstool',  lvl: 6,  hp: 55,  dmg: 30, speed: 1.8, xp: 60,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', minDist: 13, windup: 0.84,  reach: 0.85, recover: 0.8, staggers: false, aggro: 5.5 },
+  { name: 'Smog Oak',         lvl: 10, hp: 110, dmg: 50, speed: 1.3, xp: 180, r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', minDist: 18, windup: 1.2,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 6.0 },
 ];
 
 // Bosses: townspeople tainted by the pollution, one per zone. Beaten bosses stay beaten.
 // ox/oy = where they wait (tiles from the doghouse), combo = hits chained per attack,
 // trophy = what they drop for Fred.
 const BOSSES = [
-  { name: 'Tainted Paperboy',     lvl: 5,  hp: 90,   dmg: 26, speed: 2.6, xp: 150,  r: 0.32, h: 44, s: 1.1,  look: 'paperboy',   color: '#b14cff', ox: -5,  oy: -5,  combo: 2, windup: 0.5,  reach: 0.65, recover: 0.6, aggro: 6, trophy: "Golden Newspaper" },
-  { name: 'Tainted Mail Carrier', lvl: 9,  hp: 200,  dmg: 36, speed: 2.4, xp: 400,  r: 0.38, h: 56, s: 1.35, look: 'mailman',    color: '#b14cff', ox: 8,   oy: -8,  combo: 2, windup: 0.55, reach: 0.8,  recover: 0.7, aggro: 6, trophy: "Express Stamp" },
-  { name: 'Tainted Gardener',     lvl: 14, hp: 350,  dmg: 50, speed: 2.1, xp: 900,  r: 0.42, h: 64, s: 1.5,  look: 'gardener',   color: '#b14cff', ox: -11, oy: 11,  combo: 3, windup: 0.7,  reach: 1.0,  recover: 0.8, aggro: 6.5, trophy: "Prize Trowel" },
-  { name: 'Tainted Dog Catcher',  lvl: 20, hp: 600,  dmg: 75, speed: 1.9, xp: 2000, r: 0.5,  h: 76, s: 1.8,  look: 'dogcatcher', color: '#b14cff', ox: 15,  oy: 15,  combo: 3, windup: 0.9,  reach: 1.3,  recover: 1.0, aggro: 7, trophy: "Catcher's Badge" },
+  { name: 'Tainted Paperboy',     lvl: 5,  hp: 90,   dmg: 20, speed: 2.6, xp: 150,  r: 0.32, h: 44, s: 1.1,  look: 'paperboy',   color: '#b14cff', ox: -5,  oy: -5,  combo: 2, windup: 0.6,  reach: 0.65, recover: 0.6, aggro: 5.0, trophy: "Golden Newspaper" },
+  { name: 'Tainted Mail Carrier', lvl: 9,  hp: 200,  dmg: 28, speed: 2.4, xp: 400,  r: 0.38, h: 56, s: 1.35, look: 'mailman',    color: '#b14cff', ox: 8,   oy: -8,  combo: 2, windup: 0.66, reach: 0.8,  recover: 0.7, aggro: 5.0, trophy: "Express Stamp" },
+  { name: 'Tainted Gardener',     lvl: 14, hp: 350,  dmg: 38, speed: 2.1, xp: 900,  r: 0.42, h: 64, s: 1.5,  look: 'gardener',   color: '#b14cff', ox: -11, oy: 11,  combo: 3, windup: 0.84,  reach: 1.0,  recover: 0.8, aggro: 5.5, trophy: "Prize Trowel" },
+  { name: 'Tainted Dog Catcher',  lvl: 20, hp: 600,  dmg: 55, speed: 1.9, xp: 2000, r: 0.5,  h: 76, s: 1.8,  look: 'dogcatcher', color: '#b14cff', ox: 15,  oy: 15,  combo: 3, windup: 1.08,  reach: 1.3,  recover: 1.0, aggro: 6.0, trophy: "Catcher's Badge" },
 ];
 
 // Rare items Fred trades for boss trophies.
@@ -220,14 +220,14 @@ const zoneAt = (x, y) => ZONES.find(z => distC(x, y) < z.maxD);
 const player = {
   x: CENTER, y: CENTER + 1.6, r: 0.3, h: 42, speed: 3.4,
   level: 1, stats: { vig: 0, end: 0, str: 0, arc: 0 },
-  hp: 80, sta: 80, staDelay: 0,
+  hp: 100, sta: 80, staDelay: 0,
   xp: 0, weapon: 0, skills: new Set(['strike']), trophies: new Set(), relics: new Set(),
-  flasks: 3, maxFlasks: 3, drink: 0,
+  flasks: 4, maxFlasks: 4, drink: 0,
   face: { x: 1, y: 0 }, flash: 0, swing: 0, swingMax: 0.28, dead: false,
   aimT: 0, walk: 0, moving: false, running: false, whirl: 0,
   roll: null, hitstun: 0, grace: 0, attackLock: 0,
 };
-const maxHp = () => 80 + 12 * player.stats.vig;
+const maxHp = () => 100 + 12 * player.stats.vig;
 const maxSta = () => 80 + 10 * player.stats.end;
 const weaponDmg = () => Math.round(WEAPONS[player.weapon].dmg * (1 + 0.07 * player.stats.str));
 const fireballDmg = () => Math.round(35 * (1 + 0.1 * player.stats.arc));
@@ -429,7 +429,7 @@ overlay('closeShop').onclick = () => { if (performance.now() - shopOpenedAt > 40
 overlay('respawn').onclick = respawn;
 overlay('keepPlaying').onclick = closeOverlays;
 
-const flaskCost = () => 120 * 2 ** (player.maxFlasks - 3);
+const flaskCost = () => 120 * 2 ** (player.maxFlasks - 4);
 
 function renderShop() {
   const p = player;
@@ -569,7 +569,7 @@ function startRoll() {
   player.roll = { t: 0.4, x: d.x, y: d.y };
   tut.rolls++;
 }
-const invulnerable = () => (player.roll && player.roll.t > 0.08 && player.roll.t < 0.36) || player.grace > 0;
+const invulnerable = () => (player.roll && player.roll.t > 0.05 && player.roll.t < 0.38) || player.grace > 0;
 
 function drinkFlask() {
   if (!canAct() || player.flasks <= 0) return;
@@ -762,7 +762,7 @@ function update(dt) {
   if (p.drink > 0) {
     p.drink -= dt;
     if (p.drink <= 0) {
-      const amt = Math.round(maxHp() * 0.5);
+      const amt = Math.round(maxHp() * 0.6);
       p.hp = Math.min(maxHp(), p.hp + amt);
       floatText(p.x, p.y, `+${amt}`, '#7dff9a');
       effects.push({ type: 'ring', x: p.x, y: p.y, range: 0.8, t: 0.4, max: 0.4, color: '#f2c94c' });
@@ -771,7 +771,7 @@ function update(dt) {
 
   // Stamina regenerates after a short pause.
   p.staDelay -= dt;
-  if (p.staDelay <= 0 && !p.roll) p.sta = Math.min(maxSta(), p.sta + 40 * dt);
+  if (p.staDelay <= 0 && !p.roll) p.sta = Math.min(maxSta(), p.sta + 50 * dt);
 
   // The doghouse heals you and refills your biscuits. No other natural healing.
   const atHome = distC(p.x, p.y) < SAFE_R;
