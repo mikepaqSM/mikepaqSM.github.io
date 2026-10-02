@@ -199,10 +199,10 @@ let VIEW = 1;   // < 1 zooms out on small (phone) screens
 const safeProbe = document.createElement('div');
 safeProbe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
 document.body.appendChild(safeProbe);
-const SAFE = { l: 0, t: 0 };
+const SAFE = { l: 0, t: 0, r: 0 };
 function resize() {
   const cs = getComputedStyle(safeProbe);
-  SAFE.l = parseFloat(cs.paddingLeft) || 0; SAFE.t = parseFloat(cs.paddingTop) || 0;
+  SAFE.l = parseFloat(cs.paddingLeft) || 0; SAFE.t = parseFloat(cs.paddingTop) || 0; SAFE.r = parseFloat(cs.paddingRight) || 0;
   VIEW = clamp(Math.min(innerWidth, innerHeight * 1.6) / 950, 0.62, 1);
   W = canvas.width = Math.round(innerWidth / VIEW); H = canvas.height = Math.round(innerHeight / VIEW);
   canvas.style.width = innerWidth + 'px'; canvas.style.height = innerHeight + 'px';
@@ -2649,7 +2649,8 @@ function drawMinimap() {
     g.fillStyle = '#ffe066';
     for (let c = 0; c < N * N; c++) if (turf[c]) g.fillRect((c % N) / G, Math.floor(c / N) / G, 1 / G + 0.05, 1 / G + 0.05);
   }
-  const x0 = W - MINI_W - (isTouch ? 64 / VIEW : 16), y0 = 12;
+  // Right edge of the safe area (the HUD is already shifted by the left inset), then clear of the pause button.
+  const x0 = W - (SAFE.l + SAFE.r) / VIEW - MINI_W - (isTouch ? 64 / VIEW : 16), y0 = 12;
   ctx.drawImage(mini, x0, y0);
   const dot = (x, y, r, c) => { const m = miniPt(x, y); ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0 + m.x, y0 + m.y, r, 0, Math.PI * 2); ctx.fill(); };
   dot(CENTER, CENTER, canLevelUp() || canBuildUpgrade() ? 2.5 + Math.sin(time * 4) + 1 : 2.5, canLevelUp() || canBuildUpgrade() ? '#ffd25a' : '#c0392b');
