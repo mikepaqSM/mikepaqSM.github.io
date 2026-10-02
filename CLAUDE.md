@@ -58,9 +58,11 @@ in `game/`.
 - **Leveling**: XP fills a level bar (`gainXp`), but Watson **only levels up when he rests** at the
   doghouse (`levelUpAtRest`, end of the rest scene); unbanked XP is what drops on knock-out. Each level
   gives one pick (`freePicks()` = level - 1 - stat points) spent at the doghouse Level up tab on a stat.
-- **Fred trades only for shiny trinkets** (`TRINKETS`, ~44 small glinting pickups spread over the
-  islands, fixed positions from a seeded RNG; `trinkets` count, `gotTrinket` ids). Item prices are `tk`.
-  Never XP. The HUD shows a blue gem with the count.
+- **Fred trades only for shiny trinkets**, which are very rare: a handful hidden on the map
+  (`TRINKETS`, ~1 per island near the shore, seeded positions, `gotTrinket` ids) plus rare plant drops
+  (`DROP_CHANCE` by tier, 2-10%; `drops`, saved). Prices (`tk`) are 2-3 for small things, **5 for
+  powerful items**. Never XP. HUD shows a blue gem with the count. Owner wants bosses (none yet) to be
+  another source of rare items later.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
   some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
 - **Save game**: 3 slots in `localStorage` (`slotKey(n)`, active slot in `watsonDogActive`). Autosaves the
