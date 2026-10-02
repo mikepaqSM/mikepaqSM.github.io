@@ -41,7 +41,8 @@ in `game/`.
 - **Turf**: hold the PEE button (or P) to pee; letting go loses an unfinished trail; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
   the trail (so does swimming). The pee meter refills **only at the doghouse**. Plants inside new
-  turf are purified; fewer plants spawn as turf grows.
+  turf are purified; fewer plants spawn as turf grows. Claimed land sprouts flowers (`flowerAt`,
+  `drawFlower`): new ones pop up over ~1.4s (`growing`, `drawBlooms`), then get baked into the chunks.
 - **Open world, no winning.** Progress = exploring, freeing friends, finding rare items.
 - **Rare finds** (`TREASURES`, one per big island, glowing beam) unlock **doghouse upgrades**
   (`UPGRADES`, built from the doghouse menu with **Home XP** (`homeXp`): 1 per tile of land claimed
@@ -90,7 +91,8 @@ Sections are marked with `// ---------- Name ----------` comments:
 - **Game data**: `WEAPONS` (fetch gear with `verb`), `SKILLS`, `STATS`, `ENEMY_TYPES` (plants),
   `FRIENDS`, `ISLANDS`, `OUTFITS`. All balance numbers live here.
 - **State**: `player`, plus positions of `JACKIE`, `FRED`, and the doghouse at the map `CENTER`.
-- **Overlays**: title, shop (`renderShop` for the doghouse level-up, `renderFredWares` for Fred),
+- **Overlays**: title, shop (`renderShop`: tabs per mode, one short line per item; doghouse = Level up /
+  Doghouse / Friends / Wardrobe, Fred = Gear / Tricks / Treats / Outfits; owner wants menus low on text),
   death, win. Dialogue line lists (`FRED_*`, `JACKIE_*`).
 - **Input**: keyboard, mouse, touch joystick (`joy`), phone buttons (`touchButton`,
   `updateTouchButtons`), full screen, and no-zoom handlers.
