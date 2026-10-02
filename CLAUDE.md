@@ -27,9 +27,22 @@ in `game/`.
 - **Fred**: small orange tabby who sells gear from a crate next to the doghouse. Aloof and
   nonchalant, doesn't care about anything, always cold (red scarf, shivers), wants warmth, perks
   up only for the warm Inferno Bone.
-- Pollution has turned the town's friendly plant folk mean (regular enemies: Sproutling,
-  Thornbush, Toxic Toadstool, Smog Oak) and tainted four townspeople (bosses: Paperboy,
-  Mail Carrier, Gardener, Dog Catcher). Bosses drop trophies that Fred trades for rare items.
+- Pollution has turned the town's friendly plant folk mean (enemies: Sproutling, Thornbush,
+  Toxic Toadstool, Smog Oak). **No dog-on-dog or dog-on-human violence**: the old human bosses were
+  removed (their `LOOKS` art is still there, unused). Only plants are ever attacked.
+- **Dog friends** (`FRIENDS`): lost dogs tangled in vines around town; Watson frees them (FREE
+  button), brings one along (swap at the doghouse). Ability friends: Splash (swim), Scout (plants back
+  off while peeing), Zip (free running). Attack friends (own button): Boomer, Frost, Ember. Bond
+  (1-3 stars) grows with plants knocked out together. Some friends sit on islands that need Splash.
+- **Water** (`WATER`): Watson hates it, shakes his head and won't go in unless Splash is with him.
+- **Turf**: PEE button toggles peeing; a trail outside Watson's turf that loops back to the turf (or
+  closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
+  the trail. Bladder meter limits trail length. Claiming 50% of the map wins. Plants inside new turf
+  are purified; fewer plants spawn as turf grows.
+- **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
+  some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
+- **Resting**: Watson licks Jackie, then rolls over for belly rubs (`startRest`/`updateScene`,
+  `drawDogBellyUp`, Jackie `kneel`/`bend`), then the doghouse menu opens.
 
 ### Design rules the owner cares about
 - Souls-like but fair: telegraphed attacks (red circle), dodge roll, stamina, punish window
@@ -58,7 +71,9 @@ Sections are marked with `// ---------- Name ----------` comments:
   `updateTouchButtons`), full screen, and no-zoom handlers.
 - **Combat / Update**: enemy AI states (idle, chase, windup, recover, return), boss combos and
   leash, relic effects.
-- **Character art**: everything is drawn with canvas shapes. `drawDog`, `drawPerson` (+ `LOOKS`),
+- **Ground**: tiles, turf and water are cached in an offscreen canvas (`renderGround`), redrawn when
+  `groundDirty` is set.
+- **Character art**: everything is drawn with canvas shapes. `drawDog` (breeds via `look`), `drawPerson` (+ `LOOKS`),
   `drawPlant`, `drawFred`, `drawDoghouse`. `paintMode` handles hit flash and wind-up tint.
 - **Learn-as-you-play hints**, the logo renderer, and the main loop are at the end.
 
