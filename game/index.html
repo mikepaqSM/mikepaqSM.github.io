@@ -141,7 +141,7 @@
 <div class="overlay" id="win">
   <div class="panel" style="text-align:center">
     <h1 class="title">The pollution is lifting!</h1>
-    <p>Watson's turf covers half the town, and the plant folk are friendly again. Good boy, Lovebug.</p>
+    <p>Watson's turf covers the islands, and the plant folk are friendly again. Good boy, Lovebug.</p>
     <p style="margin-top:16px"><button id="keepPlaying">Keep playing</button></p>
   </div>
 </div>
@@ -157,10 +157,10 @@
 <script>
 // ---------- Setup ----------
 const TW = 64, TH = 32;        // isometric tile size in pixels
-const MAP = 40;                // map is MAP x MAP tiles
+const MAP = 120;               // map is MAP x MAP tiles (mostly sea, with islands)
 const CENTER = MAP / 2;
 const SAFE_R = 2.5;            // radius of the safe area around the doghouse (tiles)
-const MAX_ENEMIES = 30;
+const MAX_ENEMIES = 70;
 const LOCK_RANGE = 7;          // how far away auto lock-on reaches (tiles)
 
 const canvas = document.getElementById('game');
@@ -219,10 +219,10 @@ const levelCost = lvl => Math.floor(30 * 1.16 ** (lvl - 1));
 // windup = seconds of warning before the hit, reach = size of the red danger circle,
 // staggers = whether your hits interrupt their attack. s = drawing scale, look = how they're drawn.
 const ENEMY_TYPES = [
-  { name: 'Sproutling',       lvl: 1,  hp: 10,  dmg: 14, speed: 1.6, xp: 6,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', minDist: 0,  windup: 0.66, reach: 0.45, recover: 0.7, staggers: true,  aggro: 4.0 },
-  { name: 'Thornbush',        lvl: 3,  hp: 30,  dmg: 20, speed: 2.1, xp: 20,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', minDist: 8,  windup: 0.54, reach: 0.6,  recover: 0.55, staggers: true, aggro: 5.0 },
-  { name: 'Toxic Toadstool',  lvl: 6,  hp: 55,  dmg: 30, speed: 1.8, xp: 60,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', minDist: 13, windup: 0.84,  reach: 0.85, recover: 0.8, staggers: false, aggro: 5.5 },
-  { name: 'Smog Oak',         lvl: 10, hp: 110, dmg: 50, speed: 1.3, xp: 180, r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', minDist: 18, windup: 1.2,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 6.0 },
+  { name: 'Sproutling',       lvl: 1,  hp: 10,  dmg: 14, speed: 1.6, xp: 6,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', tier: 0,  windup: 0.66, reach: 0.45, recover: 0.7, staggers: true,  aggro: 4.0 },
+  { name: 'Thornbush',        lvl: 3,  hp: 30,  dmg: 20, speed: 2.1, xp: 20,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', tier: 1,  windup: 0.54, reach: 0.6,  recover: 0.55, staggers: true, aggro: 5.0 },
+  { name: 'Toxic Toadstool',  lvl: 6,  hp: 55,  dmg: 30, speed: 1.8, xp: 60,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', tier: 2,  windup: 0.84,  reach: 0.85, recover: 0.8, staggers: false, aggro: 5.5 },
+  { name: 'Smog Oak',         lvl: 10, hp: 110, dmg: 50, speed: 1.3, xp: 180, r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', tier: 3,  windup: 1.2,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 6.0 },
 ];
 
 // Dog friends: lost pups tangled in polluted vines around town. Free one and it joins you.
@@ -230,38 +230,45 @@ const ENEMY_TYPES = [
 // kind 'attack' = a special move on its own button. ox/oy = where it's found (tiles from the doghouse),
 // home = where it lounges in the yard once saved. Bond grows as you knock out plants together (3 levels).
 const FRIENDS = [
-  { id: 'splash', name: 'Splash', breed: 'Labrador', ox: -5, oy: 4.5, home: [0.9, -1.7], kind: 'ability', power: 'swim',
+  { id: 'splash', name: 'Splash', breed: 'Labrador', ox: -12, oy: 8, home: [0.9, -1.7], kind: 'ability', power: 'swim',
     short: 'Loves water, so Watson can swim too', thanks: 'Woof! Thanks! Ooh, is that a pond?',
     look: { fur: '#e3b968', light: '#f3d9a4', dark: '#c2954a', saddle: null, collar: '#2e86de', s: 1 } },
-  { id: 'boomer', name: 'Boomer', breed: 'Bulldog', ox: -9, oy: -6, home: [-0.9, -1.8], kind: 'attack', move: 'pound', verb: 'POUND',
+  { id: 'boomer', name: 'Boomer', breed: 'Bulldog', ox: 40, oy: -10, home: [-0.9, -1.8], kind: 'attack', move: 'pound', verb: 'POUND',
     moveName: 'Ground Pound', cd: 6, dmg: 40, short: 'Belly-flops on plants and knocks them off balance', thanks: "Hrmph. Thanks, pal. I'll wait at your place.",
     look: { fur: '#b98a5e', light: '#f2ead8', dark: '#6e4c30', saddle: null, bw: 1.15, leg: 0.75, collar: '#8e44ad', s: 0.95 } },
-  { id: 'scout', name: 'Scout', breed: 'German Shepherd', ox: 12, oy: -9, home: [1.9, 0.9], kind: 'ability', power: 'lookout',
+  { id: 'scout', name: 'Scout', breed: 'German Shepherd', ox: 31, oy: 0, home: [1.9, 0.9], kind: 'ability', power: 'lookout',
     short: 'Keeps watch while you pee. Plants back off', thanks: "Thanks! I'll keep an eye out for you.",
     look: { fur: '#c08038', light: '#d9a462', dark: '#2a2018', saddle: '#2a2018', earUp: true, collar: '#27ae60', s: 1.08 } },
-  { id: 'frost', name: 'Frost', breed: 'Husky', ox: -6, oy: 14, home: [-1.7, -0.5], kind: 'attack', move: 'howl', verb: 'HOWL',
+  { id: 'frost', name: 'Frost', breed: 'Husky', ox: -23, oy: 37, home: [-1.7, -0.5], kind: 'attack', move: 'howl', verb: 'HOWL',
     moveName: 'Frost Howl', cd: 9, dmg: 12, short: 'A chilly howl that freezes nearby plants (free critical hits)', thanks: 'Awooo! You found me!',
     look: { fur: '#8d96a3', light: '#f1f3f6', dark: '#4f5763', saddle: '#6f7885', belly: true, earUp: true, eye: '#5ab4ff', collar: '#e74c3c', s: 1.05 } },
-  { id: 'zip', name: 'Zip', breed: 'Greyhound', ox: -16, oy: -13, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
+  { id: 'zip', name: 'Zip', breed: 'Greyhound', ox: -12, oy: 30, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
     short: 'Run as long as you like, and a bit faster', thanks: 'Zoom zoom! Race you home!',
     look: { fur: '#c9a27a', light: '#e6cfb2', dark: '#8a6a4a', saddle: null, bw: 0.9, leg: 1.25, collar: '#f39c12', s: 1.02 } },
-  { id: 'ember', name: 'Ember', breed: 'Dalmatian', ox: 15, oy: 15, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
+  { id: 'ember', name: 'Ember', breed: 'Dalmatian', ox: -29, oy: -30, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
     moveName: 'Fire Fetch', cd: 4, dmg: 45, short: 'Throws a flaming ball. Fred likes her (she is warm)', thanks: "Phew! It's toasty out here. Thanks!",
     look: { fur: '#f4f1ea', light: '#ffffff', dark: '#222222', saddle: null, spots: true, collar: '#c0392b', s: 1 } },
 ];
 for (const f of FRIENDS) Object.assign(f, { cdBase: f.cd || 0, x: CENTER + f.ox, y: CENTER + f.oy, walk: 0, moving: false, fx: 1, fy: 0, cd: 0, act: null, z: 0, helpT: rand(2, 6) });
 
-// Ponds and lakes. Watson hates water and won't go in unless Splash is with him.
-// x/y = centre (tiles from the doghouse), rx/ry = size, island = radius of dry land in the middle.
-const WATER = [
-  { ox: 4,  oy: 4,  rx: 1.8, ry: 1.3 },               // the park pond
-  { ox: -9, oy: -6, rx: 2.8, ry: 2.4, island: 1.0 },  // suburbs lake (Boomer)
-  { ox: 9,  oy: 6,  rx: 1.5, ry: 2.3 },
-  { ox: -6, oy: 14, rx: 2.8, ry: 2.6, island: 1.1 },  // downtown lake (Frost)
-  { ox: 15, oy: 15, rx: 3,   ry: 3,   island: 1.3 },  // pound district moat (Ember)
-  { ox: 14, oy: -2, rx: 1.4, ry: 2.6 },
-].map(w => ({ ...w, x: CENTER + w.ox, y: CENTER + w.oy }));
-const inWater = (x, y) => WATER.some(w => ((x - w.x) / w.rx) ** 2 + ((y - w.y) / w.ry) ** 2 < 1 && !(w.island && Math.hypot(x - w.x, y - w.y) < w.island));
+// The world is islands in the sea. Watson starts on Home Island and hates water, so he can't leave
+// until he frees Splash, who loves to swim. x/y = centre (tiles from the doghouse), R = size,
+// tier = how tough the plants are (Home Island is easy near the doghouse, harder near its shore).
+const ISLANDS = [
+  { name: 'Home Island',   ox: 0,   oy: 0,   R: 17,  tier: 0, ground: [56, 112, 52] },
+  { name: 'Suburb Isle',   ox: 36,  oy: -6,  R: 13,  tier: 2, ground: [96, 128, 70] },
+  { name: 'Downtown Isle', ox: -18, oy: 33,  R: 14,  tier: 2, ground: [116, 116, 122] },
+  { name: 'Pound Isle',    ox: -26, oy: -27, R: 13,  tier: 3, ground: [70, 62, 66] },
+  { name: 'islet', ox: 18,  oy: 20, R: 3.5, tier: 2, ground: [110, 138, 78] },
+  { name: 'islet', ox: 40,  oy: 26, R: 4,   tier: 2, ground: [110, 138, 78] },
+  { name: 'islet', ox: -40, oy: 4,  R: 3,   tier: 2, ground: [110, 138, 78] },
+].map((isl, k) => ({ ...isl, x: CENTER + isl.ox, y: CENTER + isl.oy, p1: k * 1.7, p2: k * 2.9 + 1, p3: k * 0.6 + 2 }));
+// Wobbly coastline: island radius in a given direction.
+const coastR = (isl, a) => isl.R * (1 + 0.07 * Math.sin(3 * a + isl.p1) + 0.04 * Math.sin(5 * a + isl.p2) + 0.02 * Math.sin(11 * a + isl.p3));
+const islandAt = (x, y) => ISLANDS.find(isl => Math.hypot(x - isl.x, y - isl.y) < coastR(isl, Math.atan2(y - isl.y, x - isl.x)));
+const inWater = (x, y) => !islandAt(x, y);
+// Plant toughness at a spot.
+const tierAt = (x, y) => { const isl = islandAt(x, y); return !isl ? 0 : isl === ISLANDS[0] ? (distC(x, y) < 9 ? 0 : 1) : isl.tier; };
 
 // Outfits and armor, sold by Fred. One per slot; change them at the doghouse.
 // armor = damage taken reduced by this much, speed / roll / dmg = multipliers. No numbers = just for style.
@@ -283,17 +290,8 @@ const OUTFITS = [
 
 // Turf: Watson claims ground by peeing a trail that loops back to his turf (or closes on itself).
 const PEE_BASE = 24, PEE_PER = 8;   // trail length (tiles) you can pee, + per Bladder level
-const WIN_TURF = 0.5;               // claim this much of the town to win
+const WIN_TURF = 0.4;               // claim this much of all the land to win
 const PEE_SPEED = 0.85;             // walk a little slower while peeing
-
-const ZONES = [
-  { name: "Watson's Doghouse", maxD: SAFE_R },
-  { name: 'The Park',          maxD: 8 },
-  { name: 'The Suburbs',       maxD: 13 },
-  { name: 'Downtown',          maxD: 18 },
-  { name: 'The Pound District', maxD: Infinity },
-];
-const zoneAt = (x, y) => ZONES.find(z => distC(x, y) < z.maxD);
 
 // ---------- State ----------
 const player = {
@@ -335,12 +333,16 @@ const zoomMult = () => [1.08, 1.14, 1.2][bondLvl('zip') - 1];
 // Turf grid: G cells per tile. turf = Watson's claimed ground, trailMark = cells under the current pee trail.
 const G = 2, N = MAP * G;
 const turf = new Uint8Array(N * N), trailMark = new Uint8Array(N * N);
-let trail = [], turfCount = 0, groundDirty = true, trailLostT = -99, lastTurfPt = null;
+let trail = [], turfCount = 0, landCount = 0, trailLostT = -99, lastTurfPt = null;
+const landCell = new Uint8Array(N * N);   // which cells are dry land (only land counts as turf)
 const cellAt = (x, y) => clamp(Math.floor(x * G), 0, N - 1) + clamp(Math.floor(y * G), 0, N - 1) * N;
 const isTurf = (x, y) => turf[cellAt(x, y)] === 1;
-const turfFrac = () => turfCount / (N * N);
-for (let j = 0; j < N; j++) for (let i = 0; i < N; i++)
-  if (distC((i + 0.5) / G, (j + 0.5) / G) < SAFE_R + 0.4) { turf[i + j * N] = 1; turfCount++; }
+const turfFrac = () => turfCount / landCount;
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+  const x = (i + 0.5) / G, y = (j + 0.5) / G;
+  if (!inWater(x, y)) { landCell[i + j * N] = 1; landCount++; }
+  if (distC(x, y) < SAFE_R + 0.4) { turf[i + j * N] = 1; turfCount++; }
+}
 
 const cooldowns = { strike: 0, whirl: 0, fireball: 0 };
 let enemies = [], projectiles = [], effects = [], floaters = [];
@@ -674,17 +676,17 @@ function renderFredWares(section, row) {
 }
 
 // ---------- Spawning ----------
-function pickType(d) {
-  const allowed = ENEMY_TYPES.filter(t => d >= t.minDist);
+function pickType(d) {   // d = plant tier of the spot
+  const allowed = ENEMY_TYPES.filter(t => d >= t.tier);
   // Mostly the toughest type for the zone, sometimes an easier one.
   return Math.random() < 0.7 ? allowed[allowed.length - 1] : allowed[Math.floor(Math.random() * allowed.length)];
 }
 const okSpot = (x, y) => !inWater(x, y) && !isTurf(x, y) && distC(x, y) >= SAFE_R + 2.5;
 function spawnEnemy() {
-  for (let tries = 0; tries < 30; tries++) {
+  for (let tries = 0; tries < 80; tries++) {
     const x = rand(1, MAP - 1), y = rand(1, MAP - 1);
     if (!okSpot(x, y) || Math.hypot(x - player.x, y - player.y) < 9) continue;
-    enemies.push(makeEnemy(pickType(distC(x, y)), x, y));
+    enemies.push(makeEnemy(pickType(tierAt(x, y)), x, y));
     return;
   }
 }
@@ -703,7 +705,7 @@ function populate() {
     for (let k = 0, tries = 0; k < 2 && tries < 20; tries++) {
       const a = rand(0, Math.PI * 2), r = rand(1.5, 2.6), x = f.x + Math.cos(a) * r, y = f.y + Math.sin(a) * r;
       if (!okSpot(x, y)) continue;
-      enemies.push(makeEnemy(pickType(distC(f.x, f.y)), x, y)); k++;
+      enemies.push(makeEnemy(pickType(tierAt(f.x, f.y)), x, y)); k++;
     }
   }
   for (let i = 0; i < maxEnemies(); i++) spawnEnemy();
@@ -826,10 +828,10 @@ function tryClaim(force) {
   for (let c = 0; c < N * N; c++) if (!turf[c] && !trailMark[c] && !seen[c]) enclosed++;
   if (!enclosed && !force) return;
   let gained = 0;
-  for (let c = 0; c < N * N; c++) if (!turf[c] && (trailMark[c] || !seen[c])) { turf[c] = 1; gained++; }
+  for (let c = 0; c < N * N; c++) if (!turf[c] && landCell[c] && (trailMark[c] || !seen[c])) { turf[c] = 1; gained++; }
   turfCount += gained;
   clearTrail();
-  groundDirty = true;
+  dirtyChunks();
   if (gained < 3) return;
   tut.claims++;
   // Plants caught inside the new turf are purified.
@@ -861,6 +863,10 @@ function updatePee(dt, moved) {
     if (trail.length) { addTrailPoint(p.x, p.y); tryClaim(true); }
     lastTurfPt = { x: p.x, y: p.y };
     p.bladder = Math.min(maxPee(), p.bladder + 4 * dt);
+    return;
+  }
+  if (p.swimming) {   // the water washes the trail away
+    if (trail.length) { clearTrail(); floatText(p.x, p.y, 'Washed away', '#9fd4ff', 1.2); }
     return;
   }
   if (!trail.length && lastTurfPt && Math.hypot(lastTurfPt.x - p.x, lastTurfPt.y - p.y) < 1) addTrailPoint(lastTurfPt.x, lastTurfPt.y);
@@ -1296,82 +1302,107 @@ function update(dt) {
 // ---------- Drawing ----------
 // clean = part of Watson's turf: no pollution, fresh green grass.
 function tileColor(i, j, clean) {
-  const d = distC(i + 0.5, j + 0.5);
+  const x = i + 0.5, y = j + 0.5, d = distC(x, y);
   const n = ((i * 73856093) ^ (j * 19349663)) & 7;   // cheap per-tile variation
   const shade = (n - 3.5) * 2 - ((i + j) % 2) * 4;
-  let r, g, b;
-  if (d < SAFE_R)  [r, g, b] = [128, 104, 72];    // Watson's yard
-  else if (d < 8)  [r, g, b] = [56, 112, 52];     // the park
-  else if (d < 13) [r, g, b] = [96, 128, 70];     // suburban lawns
-  else if (d < 18) [r, g, b] = [116, 116, 122];   // downtown pavement
-  else             [r, g, b] = [70, 62, 66];      // the pound district
+  const isl = islandAt(x, y) || ISLANDS.reduce((a, b) => Math.hypot(x - a.x, y - a.y) / a.R < Math.hypot(x - b.x, y - b.y) / b.R ? a : b);
+  let [r, g, b] = d < SAFE_R ? [128, 104, 72] : isl.ground;   // Watson's yard is dirt
   if (clean && d >= SAFE_R) { r = lerp(r, 84, 0.5); g = lerp(g, 168, 0.5); b = lerp(b, 70, 0.5); }
   else if (!clean) {
-    // Pollution: tiles get a sickly purple tint the farther you are from home.
-    const smog = clamp((d - 5) / 22, 0, 0.4);
+    // Pollution: a sickly purple tint, worse on the tougher islands.
+    const smog = [0.03, 0.12, 0.24, 0.4][tierAt(x, y)];
     r = lerp(r, 92, smog); g = lerp(g, 64, smog); b = lerp(b, 110, smog);
   }
   return `rgb(${Math.round(r + shade)},${Math.round(g + shade)},${Math.round(b + shade)})`;
 }
 
-// The ground (tiles, turf, water) is painted once into its own canvas and redrawn only when the turf changes.
-const ground = document.createElement('canvas'), gctx = ground.getContext('2d');
-const GOX = MAP * TW / 2 + TW, GOY = TH;
-ground.width = MAP * TW + TW * 2; ground.height = MAP * TH + TH * 2;
-function renderGround() {
-  groundDirty = false;
-  const g = gctx;
+// The ground is drawn in square chunks of CH x CH tiles, each cached in its own small canvas
+// (one canvas for the whole map would be too big for phones). Chunks redraw when the turf changes.
+const CH = 12, NCH = Math.ceil(MAP / CH), SEA = '#2a6fa6', SHALLOW = '#3b8cc2', SAND = '#d8c48e';
+const chunks = new Map();
+const dirtyChunks = () => { for (const c of chunks.values()) c.dirty = true; };
+const chunkOrigin = (ci, cj) => ({ x: (ci * CH - cj * CH - CH) * TW / 2, y: (ci * CH + cj * CH) * TH / 2 });
+function coastPath(g, isl, grow) {
+  g.moveTo(isl.x + coastR(isl, 0) + grow, isl.y);
+  for (let k = 1; k <= 72; k++) { const a = k / 72 * Math.PI * 2, r = coastR(isl, a) + grow; g.lineTo(isl.x + Math.cos(a) * r, isl.y + Math.sin(a) * r); }
+  g.closePath();
+}
+function renderChunk(ci, cj, c) {
+  c.dirty = false;
+  const g = c.canvas.getContext('2d'), o = chunkOrigin(ci, cj);
   g.setTransform(1, 0, 0, 1, 0, 0);
-  g.clearRect(0, 0, ground.width, ground.height);
-  g.setTransform(TW / 2, TH / 2, -TW / 2, TH / 2, GOX, GOY);   // draw in world (tile) units
-  for (let i = 0; i < MAP; i++) for (let j = 0; j < MAP; j++) { g.fillStyle = tileColor(i, j); g.fillRect(i - 0.01, j - 0.01, 1.02, 1.02); }
-  const c = 1 / G;
-  for (let cj = 0; cj < N; cj++) for (let ci = 0; ci < N; ci++) {
-    if (!turf[ci + cj * N]) continue;
-    g.fillStyle = tileColor(Math.floor(ci / G), Math.floor(cj / G), true);
-    g.fillRect(ci * c - 0.01, cj * c - 0.01, c + 0.02, c + 0.02);
+  g.clearRect(0, 0, c.canvas.width, c.canvas.height);
+  g.setTransform(TW / 2, TH / 2, -TW / 2, TH / 2, -o.x, -o.y);   // draw in world (tile) units
+  const x0 = ci * CH, y0 = cj * CH, x1 = x0 + CH, y1 = y0 + CH;
+  g.save();
+  g.beginPath(); g.rect(x0, y0, CH, CH); g.clip();
+  const near = ISLANDS.filter(isl => isl.x + isl.R * 1.3 + 2 > x0 && isl.x - isl.R * 1.3 - 2 < x1 && isl.y + isl.R * 1.3 + 2 > y0 && isl.y - isl.R * 1.3 - 2 < y1);
+  if (!near.length) { g.restore(); c.empty = true; return; }
+  g.fillStyle = SHALLOW; g.beginPath(); for (const isl of near) coastPath(g, isl, 1.4); g.fill();
+  g.fillStyle = SAND; g.beginPath(); for (const isl of near) coastPath(g, isl, 0.45); g.fill();
+  g.beginPath(); for (const isl of near) coastPath(g, isl, 0); g.clip();
+  for (let i = x0; i < x1; i++) for (let j = y0; j < y1; j++) { g.fillStyle = tileColor(i, j); g.fillRect(i - 0.01, j - 0.01, 1.02, 1.02); }
+  const cs = 1 / G;
+  for (let cy = y0 * G; cy < y1 * G; cy++) for (let cx = x0 * G; cx < x1 * G; cx++) {
+    if (!turf[cx + cy * N]) continue;
+    g.fillStyle = tileColor(Math.floor(cx / G), Math.floor(cy / G), true);
+    g.fillRect(cx * cs - 0.01, cy * cs - 0.01, cs + 0.02, cs + 0.02);
   }
   g.strokeStyle = 'rgba(0,0,0,.14)'; g.lineWidth = 0.035;   // tile grid
   g.beginPath();
-  for (let k = 0; k <= MAP; k++) { g.moveTo(k, 0); g.lineTo(k, MAP); g.moveTo(0, k); g.lineTo(MAP, k); }
+  for (let k = 0; k <= CH; k++) { g.moveTo(x0 + k, y0); g.lineTo(x0 + k, y1); g.moveTo(x0, y0 + k); g.lineTo(x1, y0 + k); }
   g.stroke();
   // Edge of Watson's turf
   g.strokeStyle = 'rgba(255,226,120,.7)'; g.lineWidth = 0.06;
   g.beginPath();
-  for (let cj = 0; cj < N; cj++) for (let ci = 0; ci < N; ci++) {
-    if (!turf[ci + cj * N]) continue;
-    const x = ci * c, y = cj * c;
-    if (ci > 0 && !turf[ci - 1 + cj * N]) { g.moveTo(x, y); g.lineTo(x, y + c); }
-    if (ci < N - 1 && !turf[ci + 1 + cj * N]) { g.moveTo(x + c, y); g.lineTo(x + c, y + c); }
-    if (cj > 0 && !turf[ci + (cj - 1) * N]) { g.moveTo(x, y); g.lineTo(x + c, y); }
-    if (cj < N - 1 && !turf[ci + (cj + 1) * N]) { g.moveTo(x, y + c); g.lineTo(x + c, y + c); }
+  const T = (cx, cy) => cx >= 0 && cy >= 0 && cx < N && cy < N && turf[cx + cy * N];
+  for (let cy = y0 * G; cy < y1 * G; cy++) for (let cx = x0 * G; cx < x1 * G; cx++) {
+    if (!T(cx, cy)) continue;
+    const x = cx * cs, y = cy * cs;
+    if (!T(cx - 1, cy)) { g.moveTo(x, y); g.lineTo(x, y + cs); }
+    if (!T(cx + 1, cy)) { g.moveTo(x + cs, y); g.lineTo(x + cs, y + cs); }
+    if (!T(cx, cy - 1)) { g.moveTo(x, y); g.lineTo(x + cs, y); }
+    if (!T(cx, cy + 1)) { g.moveTo(x, y + cs); g.lineTo(x + cs, y + cs); }
   }
   g.stroke();
-  // Water, with islands of dry land in some lakes
-  for (const w of WATER) {
-    g.fillStyle = '#d8c48e'; g.beginPath(); g.ellipse(w.x, w.y, w.rx + 0.12, w.ry + 0.12, 0, 0, Math.PI * 2); g.fill();   // sandy shore
-    g.fillStyle = '#2f78b0'; g.beginPath(); g.ellipse(w.x, w.y, w.rx, w.ry, 0, 0, Math.PI * 2); g.fill();
-    g.fillStyle = '#3f92c8'; g.beginPath(); g.ellipse(w.x, w.y, w.rx * 0.78, w.ry * 0.78, 0, 0, Math.PI * 2); g.fill();
-    if (w.island) {
-      g.fillStyle = '#d8c48e'; g.beginPath(); g.arc(w.x, w.y, w.island + 0.1, 0, Math.PI * 2); g.fill();
-      g.fillStyle = tileColor(Math.floor(w.x), Math.floor(w.y), isTurf(w.x, w.y)); g.beginPath(); g.arc(w.x, w.y, w.island - 0.05, 0, Math.PI * 2); g.fill();
-    }
-  }
-  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.restore();
+  c.empty = false;
 }
 function drawTiles() {
-  if (groundDirty) renderGround();
-  const o = toScreen(0, 0);
-  ctx.drawImage(ground, Math.round(o.x - GOX), Math.round(o.y - GOY));
-  // Sparkles drifting on the water
-  ctx.strokeStyle = 'rgba(220,240,255,.55)'; ctx.lineWidth = 1.5;
-  for (const w of WATER) for (let k = 0; k < 5; k++) {
-    const a = k * 1.9 + time * 0.25, rr = 0.35 + ((k * 0.37 + time * 0.05) % 0.4);
-    const x = w.x + Math.cos(a) * w.rx * rr, y = w.y + Math.sin(a) * w.ry * rr;
-    if (w.island && Math.hypot(x - w.x, y - w.y) < w.island + 0.2) continue;
-    const s = toScreen(x, y), l = 4 + Math.sin(time * 2 + k) * 2;
-    ctx.beginPath(); ctx.moveTo(s.x - l, s.y); ctx.lineTo(s.x + l, s.y); ctx.stroke();
+  ctx.fillStyle = SEA; ctx.fillRect(0, 0, W, H);
+  const o0 = toScreen(0, 0);
+  for (let ci = 0; ci < NCH; ci++) for (let cj = 0; cj < NCH; cj++) {
+    const o = chunkOrigin(ci, cj), sx = Math.round(o0.x + o.x), sy = Math.round(o0.y + o.y);
+    if (sx > W || sy > H || sx + CH * TW < 0 || sy + CH * TH < 0) continue;
+    const key = ci + cj * NCH;
+    let c = chunks.get(key);
+    if (!c) {
+      if (chunks.size >= 24) {   // forget the chunk farthest from the camera
+        let far = null, fd = -1;
+        for (const [k, v] of chunks) { const d = Math.hypot(v.sx - sx, v.sy - sy); if (d > fd) { fd = d; far = k; } }
+        chunks.delete(far);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = CH * TW; canvas.height = CH * TH;
+      c = { canvas, dirty: true };
+      chunks.set(key, c);
+    }
+    c.sx = sx; c.sy = sy;
+    if (c.dirty) renderChunk(ci, cj, c);
+    if (!c.empty) ctx.drawImage(c.canvas, sx, sy);
   }
+  // Sparkles on the sea
+  const tl = toWorld(0, 0), br = toWorld(W, H), tr = toWorld(W, 0), bl = toWorld(0, H);
+  const ax = Math.floor(Math.min(tl.x, bl.x)), bx = Math.ceil(Math.max(tr.x, br.x)), ay = Math.floor(Math.min(tl.y, tr.y)), by = Math.ceil(Math.max(bl.y, br.y));
+  ctx.strokeStyle = 'rgba(220,240,255,.45)'; ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  for (let i = ax - (ax % 3 + 3) % 3; i < bx; i += 3) for (let j = ay - (ay % 3 + 3) % 3; j < by; j += 3) {
+    const h = ((i * 73856093) ^ (j * 19349663)) >>> 0, x = i + (h % 100) / 100 * 3, y = j + ((h >> 8) % 100) / 100 * 3;
+    if (!inWater(x, y) || (h & 1)) continue;
+    const s = toScreen(x, y), l = 3 + Math.sin(time * 2 + h) * 2.5;
+    ctx.moveTo(s.x - l, s.y); ctx.lineTo(s.x + l, s.y);
+  }
+  ctx.stroke();
   ctx.lineWidth = 1;
 }
 
@@ -2157,6 +2188,7 @@ function drawHUDInner() {
 
   drawHint();
   drawInteract();
+  drawMinimap();
 
   // Locked-on target, top centre.
   if (target) {
@@ -2198,6 +2230,30 @@ function drawHUDInner() {
   });
 }
 
+// Little map in the top-right corner: islands, Watson's turf, Watson, home, and lost dogs.
+const mini = document.createElement('canvas'), MINI_W = 180, MINI_SC = MINI_W / (MAP * TW);
+mini.width = MINI_W; mini.height = MINI_W / 2;
+let miniTurf = -1;
+const miniPt = (x, y) => ({ x: MINI_W / 2 + (x - y) * MINI_SC * TW / 2, y: (x + y) * MINI_SC * TH / 2 });
+function drawMinimap() {
+  if (miniTurf !== turfCount) {
+    miniTurf = turfCount;
+    const g = mini.getContext('2d');
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, mini.width, mini.height);
+    g.fillStyle = 'rgba(20,50,80,.75)'; g.beginPath(); g.moveTo(MINI_W / 2, 0); g.lineTo(MINI_W, MINI_W / 4); g.lineTo(MINI_W / 2, MINI_W / 2); g.lineTo(0, MINI_W / 4); g.fill();
+    g.setTransform(MINI_SC * TW / 2, MINI_SC * TH / 2, -MINI_SC * TW / 2, MINI_SC * TH / 2, MINI_W / 2, 0);
+    g.fillStyle = '#7a9a5a'; g.beginPath(); for (const isl of ISLANDS) coastPath(g, isl, 0); g.fill();
+    g.fillStyle = '#ffe066';
+    for (let c = 0; c < N * N; c++) if (turf[c]) g.fillRect((c % N) / G, Math.floor(c / N) / G, 1 / G + 0.05, 1 / G + 0.05);
+  }
+  const x0 = W - MINI_W - (isTouch ? 64 / VIEW : 16), y0 = 12;
+  ctx.drawImage(mini, x0, y0);
+  const dot = (x, y, r, c) => { const m = miniPt(x, y); ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0 + m.x, y0 + m.y, r, 0, Math.PI * 2); ctx.fill(); };
+  dot(CENTER, CENTER, 2.5, '#c0392b');
+  for (const f of FRIENDS) if (!saved.has(f.id)) dot(f.x, f.y, 2 + Math.sin(time * 5) * 0.8, '#ffffff');
+  dot(player.x, player.y, 3, '#ff9a3a');
+}
+
 // Small bubble at the bottom when Watson can talk to Fred or rest. The attack button activates it.
 function drawInteract() {
   const it = interactTarget();
@@ -2234,7 +2290,9 @@ function draw() {
   drawTiles();
   drawTrail();
   if (bloodstain) drawBloodstain();
-  for (const e of enemies) {
+  const seen = (x, y) => { const s = toScreen(x, y); return s.x > -150 && s.x < W + 150 && s.y > -150 && s.y < H + 200; };
+  const shown = enemies.filter(e => seen(e.x, e.y));
+  for (const e of shown) {
     if (e.state === 'windup') drawTelegraph(e);
     if (e.state === 'recover' && e.punishable) {   // yellow ring = open to a critical hit
       ctx.strokeStyle = 'rgba(255,210,90,.9)'; ctx.lineWidth = 3;
@@ -2251,8 +2309,8 @@ function draw() {
     { d: CENTER * 2, f: drawDoghouse },
     { d: JACKIE.x + JACKIE.y, f: drawJackie },
     { d: FRED.x + FRED.y, f: drawFred },
-    ...FRIENDS.map(fr => ({ d: fr.x + fr.y, f: () => drawFriend(fr) })),
-    ...enemies.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
+    ...FRIENDS.filter(fr => seen(fr.x, fr.y)).map(fr => ({ d: fr.x + fr.y, f: () => drawFriend(fr) })),
+    ...shown.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
       shadow(pr.x, pr.y, 0.12);
       const s = toScreen(pr.x, pr.y), a = Math.atan2(pr.vy * 0.5 + pr.vx * 0.5, pr.vx - pr.vy);
@@ -2305,7 +2363,7 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'heal',   text: 'Q  to eat a biscuit and heal', touch: 'Tap TREAT to eat a biscuit and heal',                    when: () => player.hp < maxHp() * 0.45 && player.flasks > 0,       done: () => tut.ate > 0 },
   { id: 'tired',  text: "Out of stamina! Back off and catch your breath",  when: () => player.sta <= 0,                                         limit: 4 },
   { id: 'crit',   text: "Yellow ring: they're off balance. Hit them now for a critical!", when: () => enemies.some(e => e.state === 'recover' && e.punishable && near(e, 3.5)), done: () => tut.crits > 0, limit: 8 },
-  { id: 'water',  text: "Watson hates water! He won't go in", when: () => player.shake > 0 && !hasPower('swim'), limit: 3 },
+  { id: 'water',  text: "Watson hates water! A friend who loves swimming might help", when: () => player.shake > 0 && !hasPower('swim'), limit: 4 },
   { id: 'free',   text: 'A dog is stuck in polluted vines! Walk up and CLICK to free them', touch: 'A dog is stuck in polluted vines! Walk up and tap FREE',
     when: () => FRIENDS.some(f => !saved.has(f.id) && near(f, 4.5)), done: () => saved.size > 0, limit: 10 },
   { id: 'lost',   text: 'Got hit! The pee trail washed away. Start over', when: () => time - trailLostT < 2.5, limit: 6 },
