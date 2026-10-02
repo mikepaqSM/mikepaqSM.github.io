@@ -32,7 +32,7 @@ in `game/`.
   removed (their `LOOKS` art is still there, unused). Only plants are ever attacked.
 - **Dog friends** (`FRIENDS`): lost dogs tangled in vines around town; Watson frees them (FREE
   button), brings one along (swap at the doghouse). Ability friends: Splash (swim), Scout (plants back
-  off while peeing), Zip (free running). Attack friends (own button): Boomer, Frost, Ember. Bond
+  off while peeing), Zip (faster, half-cost rolls). Attack friends (own button): Boomer, Frost, Ember. Bond
   (1-3 stars) grows with plants knocked out together. Some friends sit on islands that need Splash.
 - **World**: a 120x120 sea with islands (`ISLANDS`, wobbly coastlines via `coastR`). Watson starts on
   Home Island; he hates water (shakes his head, won't go in) until he frees Splash there, then can swim
@@ -40,8 +40,14 @@ in `game/`.
   A corner minimap shows islands, turf, Watson, home and lost dogs.
 - **Turf**: PEE button toggles peeing; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
-  the trail (so does swimming). Bladder meter limits trail length. Claiming 40% of the land wins. Plants inside new turf
-  are purified; fewer plants spawn as turf grows.
+  the trail (so does swimming). The pee meter refills **only at the doghouse**. Plants inside new
+  turf are purified; fewer plants spawn as turf grows.
+- **Open world, no winning.** Progress = exploring, freeing friends, finding rare items.
+- **Rare finds** (`TREASURES`, one per big island, glowing beam) unlock **doghouse upgrades**
+  (`UPGRADES`, built from the doghouse menu with XP): Big Water Bowl, Fred's Shop Stall, Comfy Bed,
+  Cozy Fireplace. Fred's stock starts tiny; items tagged `shop: 'stall'` / `shop: 'fire'` appear
+  once those are built. Owner wants to grow this slowly (more finds, upgrades, a real Fred shop).
+- Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
   some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
 - **Resting**: Watson licks Jackie, then rolls over for belly rubs (`startRest`/`updateScene`,
