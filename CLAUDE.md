@@ -45,8 +45,13 @@ in `game/`.
 - **Open world, no winning.** Progress = exploring, freeing friends, finding rare items.
 - **Rare finds** (`TREASURES`, one per big island, glowing beam) unlock **doghouse upgrades**
   (`UPGRADES`, built from the doghouse menu with XP): Big Water Bowl, Fred's Shop Stall, Comfy Bed,
-  Cozy Fireplace. Fred's stock starts tiny; items tagged `shop: 'stall'` / `shop: 'fire'` appear
-  once those are built. Owner wants to grow this slowly (more finds, upgrades, a real Fred shop).
+  Cozy Fireplace, Bigger Doghouse, Fred's Shop, Doghouse Tower (`after` = needs another upgrade
+  first). Some finds sit under `OBSTACLES`: boulders (smashed only by Boomer's Ground Pound) and
+  brambles (burned only by Ember's Fire Fetch). Fred's stock starts tiny; items tagged
+  `shop: 'stall' | 'fire' | 'shop'` appear once those are built. The doghouse and Fred's stand
+  visibly change with upgrades. Owner wants to grow this slowly.
+- **Outposts** (`OUTPOSTS`): dry water bowls on the other islands; once inside Watson's turf they
+  refill his pee like the doghouse does.
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
   some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
