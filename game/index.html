@@ -90,12 +90,16 @@
   #death .panel { background: none; border: 0; box-shadow: none; text-align: center; }
   /* Shop menus: compact on small screens so everything fits and stays readable */
   #shop .panel { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .tabs { display: flex; gap: 6px; margin: 10px 0 8px; flex-wrap: wrap; }
+  .tabs button { background: #2c2427; color: #c4b8b6; border-radius: 16px; padding: 5px 14px; }
+  .tabs button.on { background: #c98a48; color: #1a120e; }
+  .row .desc:empty { display: none; }
+  .row.dim { opacity: .55; }
   @media (max-width: 760px), (max-height: 520px) {
     #shop .panel { width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-height: calc(100vh - 16px);
       padding: 10px 12px; border-radius: 8px; box-sizing: border-box; }
     #shop .panel h1 { font-size: 18px; margin: 0; }
     #shop .panel h2 { margin: 5px 0 3px; font-size: 10px; }
-    #shopSub { display: none; }
     #shop .xp { font-size: 13px; }
     #shop .row { padding: 4px 8px; gap: 8px; margin-bottom: 4px; }
     #shop .row .name { font-size: 13px; }
@@ -156,7 +160,7 @@
 <div class="overlay" id="shop">
   <div class="panel">
     <div class="top"><h1 id="shopTitle">Watson's Doghouse</h1><span class="shopHead"><span class="xp" id="shopXp"></span><button id="closeShop">Leave</button></span></div>
-    <p id="shopSub"></p>
+    <div class="tabs" id="shopTabs"></div>
     <div id="shopBody"></div>
   </div>
 </div>
@@ -220,8 +224,8 @@ const WEAPONS = [
 
 const SKILLS = [
   { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.7,  sta: 16, lock: 0.32, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
-  { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'Spin attack that hits everyone around you', desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
-  { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, shop: 'stall', cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
+  { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'Spin attack that hits everyone around you', tip: 'Spin attack', desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
+  { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, shop: 'stall', cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', tip: 'Long-range blast', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
 const CRIT_MULT = 2;   // damage bonus for hitting an enemy right after it attacks
 const ROLL_STA = 22;
@@ -229,11 +233,11 @@ const RUN_MULT = 1.75;   // run speed multiplier (running costs no stamina)
 
 // Stats you raise when you level up.
 const STATS = [
-  { id: 'vig', name: 'Vigor',     desc: '+12 max HP' },
-  { id: 'end', name: 'Endurance', desc: '+10 max stamina' },
-  { id: 'str', name: 'Jaw Strength', desc: '+7% chomp and gear damage' },
-  { id: 'arc', name: 'Bark Power',   desc: '+10% Mega Bark damage' },
-  { id: 'bla', name: 'Bladder',      desc: '+8 pee (bigger turf loops)' },
+  { id: 'vig', name: 'Vigor',     desc: '+12 HP' },
+  { id: 'end', name: 'Endurance', desc: '+10 stamina' },
+  { id: 'str', name: 'Jaw Strength', desc: '+7% damage' },
+  { id: 'arc', name: 'Bark Power',   desc: '+10% bark damage' },
+  { id: 'bla', name: 'Bladder',      desc: '+8 pee' },
 ];
 const levelCost = lvl => Math.floor(40 * 1.2 ** (lvl - 1));
 
@@ -252,22 +256,22 @@ const ENEMY_TYPES = [
 // kind 'attack' = a special move on its own button. ox/oy = where it's found (tiles from the doghouse),
 // home = where it lounges in the yard once saved. Bond grows as you knock out plants together (3 levels).
 const FRIENDS = [
-  { id: 'splash', name: 'Splash', breed: 'Labrador', ox: -12, oy: 8, home: [0.9, -1.7], kind: 'ability', power: 'swim',
+  { id: 'splash', name: 'Splash', breed: 'Labrador', tip: 'Swims', ox: -12, oy: 8, home: [0.9, -1.7], kind: 'ability', power: 'swim',
     short: 'Loves water, so Watson can swim too', thanks: 'Woof! Thanks! Ooh, is that a pond?',
     look: { fur: '#e3b968', light: '#f3d9a4', dark: '#c2954a', saddle: null, collar: '#2e86de', s: 1 } },
-  { id: 'boomer', name: 'Boomer', breed: 'Bulldog', ox: 40, oy: -10, home: [-0.9, -1.8], kind: 'attack', move: 'pound', verb: 'POUND',
+  { id: 'boomer', name: 'Boomer', breed: 'Bulldog', tip: 'Smashes boulders', ox: 40, oy: -10, home: [-0.9, -1.8], kind: 'attack', move: 'pound', verb: 'POUND',
     moveName: 'Ground Pound', cd: 6, dmg: 40, short: 'Belly-flops on plants and knocks them off balance', thanks: "Hrmph. Thanks, pal. I'll wait at your place.",
     look: { fur: '#b98a5e', light: '#f2ead8', dark: '#6e4c30', saddle: null, bw: 1.15, leg: 0.75, collar: '#8e44ad', s: 0.95 } },
-  { id: 'scout', name: 'Scout', breed: 'German Shepherd', ox: 31, oy: 0, home: [1.9, 0.9], kind: 'ability', power: 'lookout',
+  { id: 'scout', name: 'Scout', breed: 'German Shepherd', tip: 'Guards you while you pee', ox: 31, oy: 0, home: [1.9, 0.9], kind: 'ability', power: 'lookout',
     short: 'Keeps watch while you pee. Plants back off', thanks: "Thanks! I'll keep an eye out for you.",
     look: { fur: '#c08038', light: '#d9a462', dark: '#2a2018', saddle: '#2a2018', earUp: true, collar: '#27ae60', s: 1.08 } },
-  { id: 'frost', name: 'Frost', breed: 'Husky', ox: -23, oy: 37, home: [-1.7, -0.5], kind: 'attack', move: 'howl', verb: 'HOWL',
+  { id: 'frost', name: 'Frost', breed: 'Husky', tip: 'Freezes plants', ox: -23, oy: 37, home: [-1.7, -0.5], kind: 'attack', move: 'howl', verb: 'HOWL',
     moveName: 'Frost Howl', cd: 9, dmg: 12, short: 'A chilly howl that freezes nearby plants (free critical hits)', thanks: 'Awooo! You found me!',
     look: { fur: '#8d96a3', light: '#f1f3f6', dark: '#4f5763', saddle: '#6f7885', belly: true, earUp: true, eye: '#5ab4ff', collar: '#e74c3c', s: 1.05 } },
-  { id: 'zip', name: 'Zip', breed: 'Greyhound', ox: -12, oy: 30, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
+  { id: 'zip', name: 'Zip', breed: 'Greyhound', tip: 'Faster, cheaper rolls', ox: -12, oy: 30, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
     short: 'Watson runs faster, and rolls cost half the stamina', thanks: 'Zoom zoom! Race you home!',
     look: { fur: '#c9a27a', light: '#e6cfb2', dark: '#8a6a4a', saddle: null, bw: 0.9, leg: 1.25, collar: '#f39c12', s: 1.02 } },
-  { id: 'ember', name: 'Ember', breed: 'Dalmatian', ox: -29, oy: -30, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
+  { id: 'ember', name: 'Ember', breed: 'Dalmatian', tip: 'Burns brambles', ox: -29, oy: -30, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
     moveName: 'Fire Fetch', cd: 4, dmg: 45, short: 'Throws a flaming ball. Fred likes her (she is warm)', thanks: "Phew! It's toasty out here. Thanks!",
     look: { fur: '#f4f1ea', light: '#ffffff', dark: '#222222', saddle: null, spots: true, collar: '#c0392b', s: 1 } },
 ];
@@ -335,13 +339,13 @@ const OUTPOSTS = [
 // Doghouse upgrades: each needs a rare find plus some XP. 'stall' and 'fire' open more of Fred's shop.
 // Costs are in Doghouse XP (home points), earned by claiming land with pee: 1 per tile claimed.
 const UPGRADES = [
-  { id: 'bowl',  needs: 'bowl',   cost: 25, name: 'Big Water Bowl',    desc: '+16 pee, for bigger turf loops' },
-  { id: 'stall', needs: 'awning', cost: 60, name: "Fred's Shop Stall", desc: 'Fred opens a real shop: outfits, Mega Bark and better gear' },
-  { id: 'bed',   needs: 'pillow', cost: 90, name: 'Comfy Bed',         desc: '+2 healing biscuits' },
-  { id: 'fire',  needs: 'ember',  cost: 160, name: 'Cozy Fireplace',    desc: "Fred finally warms up and brings out his rare stock" },
-  { id: 'house2', needs: 'planks', cost: 110, name: 'Bigger Doghouse',  desc: '+25 max HP' },
-  { id: 'shop',  needs: 'sign',   cost: 140, name: "Fred's Shop",       desc: 'Fred moves into a real shop and sells his fanciest things', after: 'stall' },
-  { id: 'house3', needs: 'shingles', cost: 200, name: 'Doghouse Tower', desc: '+25 max stamina', after: 'house2' },
+  { id: 'bowl',  needs: 'bowl',   cost: 25, name: 'Big Water Bowl',    desc: "+16 pee" },
+  { id: 'stall', needs: 'awning', cost: 60, name: "Fred's Shop Stall", desc: "Fred sells more" },
+  { id: 'bed',   needs: 'pillow', cost: 90, name: 'Comfy Bed',         desc: "+2 biscuits" },
+  { id: 'fire',  needs: 'ember',  cost: 160, name: 'Cozy Fireplace',    desc: "Fred's rare stock" },
+  { id: 'house2', needs: 'planks', cost: 110, name: 'Bigger Doghouse',  desc: "+25 HP" },
+  { id: 'shop',  needs: 'sign',   cost: 140, name: "Fred's Shop",       desc: "Fred's fanciest things", after: 'stall' },
+  { id: 'house3', needs: 'shingles', cost: 200, name: 'Doghouse Tower', desc: "+25 stamina", after: 'house2' },
 ];
 // Fred's stock: things with shop: 'stall' or 'fire' only appear once that upgrade is built.
 
@@ -665,119 +669,108 @@ overlay('respawn').onclick = respawn;
 
 const flaskCost = () => 120 * 2 ** (player.maxFlasks - 4);
 
+// One short line per item, one tab at a time, so the menus stay calm.
+const shopTab = { rest: 'level', fred: 'gear' };
+const outfitTip = o => [o.armor && `-${Math.round(o.armor * 100)}% damage taken`, o.speed && `${o.speed > 1 ? '+' : ''}${Math.round((o.speed - 1) * 100)}% speed`,
+  o.roll && 'Cheaper rolls', o.dmg && `+${Math.round((o.dmg - 1) * 100)}% damage`].filter(Boolean).join(', ') || 'Style';
 function renderShop() {
-  const p = player;
-  overlay('shopXp').textContent = shopMode === 'rest' ? `${p.xp} XP · ${homeXp} Home XP` : `${p.xp} XP`;
-  const body = overlay('shopBody');
-  body.innerHTML = '';
-  const section = t => { const h = document.createElement('h2'); h.textContent = t; body.appendChild(h); };
-  const row = (name, desc, label, enabled, onBuy, val) => {
-    const div = document.createElement('div');
-    div.className = 'row';
-    div.innerHTML = `<div class="info"><div class="name">${name}</div><div class="desc">${desc}</div></div>` +
-      (val !== undefined ? `<div class="val">${val}</div>` : '');
-    const btn = document.createElement('button');
-    btn.textContent = label;
-    btn.disabled = !enabled;
-    // Ignore the tap that opened the shop so it can't buy something by accident.
-    btn.onclick = () => { if (performance.now() - shopOpenedAt < 400) return; onBuy(); renderShop(); };
-    div.appendChild(btn);
-    return div;
-  };
-
-  const fred = shopMode === 'fred';
+  const p = player, fred = shopMode === 'fred';
   overlay('shopTitle').textContent = fred ? "Fred's Wares" : "Watson's Doghouse";
-  overlay('shopSub').textContent = fred
-    ? 'Fred barely looks up from his crate. He looks cold. He takes XP.'
-    : 'Rest up, spend XP to grow stronger, pick a friend, and get dressed.';
-  if (fred) { renderFredWares(section, row); return; }
+  overlay('shopXp').textContent = fred ? `${p.xp} XP` : `${p.xp} XP · ${homeXp} Home XP`;
+  const body = overlay('shopBody'), tabsEl = overlay('shopTabs');
+  body.innerHTML = ''; tabsEl.innerHTML = '';
+  const row = (name, desc, label, enabled, onBuy, val, dim) => {
+    const div = document.createElement('div');
+    div.className = 'row' + (dim ? ' dim' : '');
+    div.innerHTML = `<div class="info"><div class="name">${name}</div><div class="desc">${desc || ''}</div></div>` +
+      (val !== undefined ? `<div class="val">${val}</div>` : '');
+    if (label) {
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      btn.disabled = !enabled;
+      // Ignore the tap that opened the shop so it can't buy something by accident.
+      btn.onclick = () => { if (performance.now() - shopOpenedAt < 400) return; onBuy(); renderShop(); };
+      div.appendChild(btn);
+    }
+    body.appendChild(div);
+  };
+  const tabs = fred
+    ? [['gear', 'Gear'], ['tricks', 'Tricks'], ['treats', 'Treats'], ...(built.has('stall') ? [['outfits', 'Outfits']] : [])]
+    : [['level', 'Level up'], ['home', 'Doghouse'], ...(saved.size ? [['friends', 'Friends']] : []), ['wear', 'Wardrobe']];
+  if (!tabs.some(([id]) => id === shopTab[shopMode])) shopTab[shopMode] = tabs[0][0];
+  for (const [id, label] of tabs) {
+    const b = document.createElement('button');
+    b.textContent = label; if (id === shopTab[shopMode]) b.className = 'on';
+    b.onclick = () => { shopTab[shopMode] = id; renderShop(); };
+    tabsEl.appendChild(b);
+  }
+  const tab = shopTab[shopMode];
 
-  const cost = levelCost(p.level);
-  section(`Level up: Level ${p.level} → ${p.level + 1} costs ${cost} XP`);
-  STATS.forEach(s => {
-    body.appendChild(row(s.name, s.desc, `+1 (${cost} XP)`, p.xp >= cost, () => {
+  if (tab === 'level') {
+    const cost = levelCost(p.level);
+    STATS.forEach(s => row(s.name, s.desc, `+1 · ${cost} XP`, p.xp >= cost, () => {
       p.xp -= cost; p.level++; p.stats[s.id]++;
       if (s.id === 'vig') p.hp += 12;
       if (s.id === 'end') p.sta += 10;
       if (s.id === 'bla') p.bladder = maxPee();
     }, p.stats[s.id]));
-  });
-
-  section('Doghouse upgrades');
-  UPGRADES.forEach(u => {
-    const t = TREASURES.find(t => t.id === u.needs), has = found.has(u.needs), done = built.has(u.id);
-    if (!has && !done) { body.appendChild(row('???', 'Find something rare out on the islands', 'Need item', false, () => {})); return; }
-    const pre = u.after && !built.has(u.after) ? UPGRADES.find(x => x.id === u.after).name : null;
-    body.appendChild(row(u.name, pre ? `${u.desc} · build the ${pre} first` : `${u.desc} · uses the ${t.name}`,
-      done ? 'Built' : pre ? 'Later' : `${u.cost} Home XP`, !done && !pre && homeXp >= u.cost,
-      () => {
-        homeXp -= u.cost; built.add(u.id); tut.built++;
-        if (u.id === 'bowl') p.bladder = maxPee();
-        if (u.id === 'bed') { p.maxFlasks += 2; p.flasks = p.maxFlasks; }
-        if (u.id === 'stall') speak('fred', 'Hm. A stall. ...Fine, it\'s nice. Come see.');
-        if (u.id === 'fire') speak('fred', 'Oh. Oh, that\'s warm. ...Okay, I like you now.');
-        if (u.id === 'shop') speak('fred', 'A real shop. With a sign. ...I might cry. I won\'t.');
-        if (u.id === 'house2' || u.id === 'house3') { p.hp = maxHp(); p.sta = maxSta(); speak('jackie', 'Look at our house, Lovebug!'); }
-      }));
-  });
-
-  if (saved.size) {
-    section('Dog friends (bring one along)');
+  } else if (tab === 'home') {
+    let hidden = 0;
+    UPGRADES.forEach(u => {
+      const done = built.has(u.id);
+      if (!found.has(u.needs) && !done) { hidden++; return; }
+      const pre = u.after && !built.has(u.after) ? UPGRADES.find(x => x.id === u.after).name : null;
+      row(u.name, pre ? `After the ${pre}` : u.desc, done ? 'Built' : pre ? 'Later' : `${u.cost} Home XP`, !done && !pre && homeXp >= u.cost,
+        () => {
+          homeXp -= u.cost; built.add(u.id); tut.built++;
+          if (u.id === 'bowl') p.bladder = maxPee();
+          if (u.id === 'bed') { p.maxFlasks += 2; p.flasks = p.maxFlasks; }
+          if (u.id === 'stall') speak('fred', 'Hm. A stall. ...Fine, it\'s nice. Come see.');
+          if (u.id === 'fire') speak('fred', 'Oh. Oh, that\'s warm. ...Okay, I like you now.');
+          if (u.id === 'shop') speak('fred', 'A real shop. With a sign. ...I might cry. I won\'t.');
+          if (u.id === 'house2' || u.id === 'house3') { p.hp = maxHp(); p.sta = maxSta(); speak('jackie', 'Look at our house, Lovebug!'); }
+        }, undefined, done);
+    });
+    if (hidden) row(`${hidden} more to discover`, 'Find rare items on the islands', null, false, null, undefined, true);
+  } else if (tab === 'friends') {
     FRIENDS.forEach(f => {
       if (!saved.has(f.id)) return;
-      const what = f.kind === 'attack' ? `${f.moveName}: ${f.short}` : f.short;
-      body.appendChild(row(`${f.name} <span style="color:#f2c94c">${stars(f.id)}</span>`, `${f.breed} · ${what}`,
+      row(`${f.name} <span style="color:#f2c94c">${stars(f.id)}</span>`, f.tip,
         p.buddy === f.id ? 'With you' : 'Bring', p.buddy !== f.id,
-        () => { p.buddy = f.id; tut.swaps++; f.x = p.x - 0.6; f.y = p.y + 0.4; f.act = null; }));
+        () => { p.buddy = f.id; tut.swaps++; f.x = p.x - 0.6; f.y = p.y + 0.4; f.act = null; });
+    });
+  } else if (tab === 'wear') {
+    OUTFITS.forEach(o => {
+      if (!p.outfits.has(o.id)) return;
+      const on = p.wear[o.slot] === o.id;
+      row(o.name, outfitTip(o), on ? 'Take off' : 'Wear', true, () => { p.wear[o.slot] = on ? null : o.id; });
+    });
+  } else if (tab === 'gear') {
+    WEAPONS.forEach((w, i) => {
+      if (i === 0 || !inShop(w)) return;
+      const owned = p.weapon >= i;
+      row(w.name, `${w.dmg} damage`, owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : `${w.cost} XP`, !owned && p.xp >= w.cost,
+        () => { p.xp -= w.cost; p.weapon = i; speak('fred', pick(FRED_SOLD)); }, undefined, owned && p.weapon !== i);
+    });
+  } else if (tab === 'tricks') {
+    SKILLS.forEach(s => {
+      if (s.cost === 0 || !inShop(s)) return;
+      const owned = p.skills.has(s.id);
+      row(s.name, s.tip, owned ? 'Learned' : `${s.cost} XP`, !owned && p.xp >= s.cost, () => { p.xp -= s.cost; p.skills.add(s.id); });
+    });
+  } else if (tab === 'treats') {
+    const fc = flaskCost();
+    const maxed = p.maxFlasks >= 6 + (built.has('stall') ? 2 : 0) + (built.has('shop') ? 2 : 0) + (built.has('bed') ? 2 : 0);
+    row('Golden Biscuit', `+1 biscuit (you have ${p.maxFlasks})`, maxed ? 'Max' : `${fc} XP`, !maxed && p.xp >= fc,
+      () => { p.xp -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; });
+  } else if (tab === 'outfits') {
+    OUTFITS.forEach(o => {
+      if (o.cost === 0 || !inShop(o)) return;
+      const owned = p.outfits.has(o.id);
+      row(o.name, outfitTip(o), owned ? 'Owned' : `${o.cost} XP`, !owned && p.xp >= o.cost,
+        () => { p.xp -= o.cost; p.outfits.add(o.id); p.wear[o.slot] = o.id; speak('fred', pick(FRED_SOLD)); }, undefined, owned);
     });
   }
-
-  section('Wardrobe');
-  OUTFITS.forEach(o => {
-    if (!p.outfits.has(o.id)) return;
-    const on = p.wear[o.slot] === o.id;
-    body.appendChild(row(o.name, o.desc, on ? 'Take off' : 'Wear', true,
-      () => { p.wear[o.slot] = on ? null : o.id; }));
-  });
-}
-
-function renderFredWares(section, row) {
-  const p = player, body = overlay('shopBody');
-  section('Fetch gear (held in your mouth)');
-  WEAPONS.forEach((w, i) => {
-    if (i === 0 || !inShop(w)) return;
-    const owned = p.weapon >= i;
-    body.appendChild(row(w.name, `${w.dmg} damage · ${w.desc}`,
-      owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : `${w.cost} XP`,
-      !owned && p.xp >= w.cost,
-      () => { p.xp -= w.cost; p.weapon = i; speak('fred', pick(FRED_SOLD)); }));
-  });
-
-  section('Tricks');
-  SKILLS.forEach(s => {
-    if (s.cost === 0 || !inShop(s)) return;
-    const owned = p.skills.has(s.id);
-    body.appendChild(row(`${s.name} <kbd>${s.key}</kbd>`, `${s.short} · ${s.sta} stamina`,
-      owned ? 'Learned' : `${s.cost} XP`,
-      !owned && p.xp >= s.cost,
-      () => { p.xp -= s.cost; p.skills.add(s.id); }));
-  });
-
-  section('Treats');
-  const fc = flaskCost();
-  const maxed = p.maxFlasks >= 6 + (built.has('stall') ? 2 : 0) + (built.has('shop') ? 2 : 0) + (built.has('bed') ? 2 : 0);
-  body.appendChild(row('Golden Biscuit', `+1 healing biscuit (you have ${p.maxFlasks})`,
-    maxed ? 'Max' : `${fc} XP`, !maxed && p.xp >= fc,
-    () => { p.xp -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; }));
-
-  if (!built.has('stall')) return;
-  section('Outfits and armor');
-  OUTFITS.forEach(o => {
-    if (o.cost === 0 || !inShop(o)) return;
-    const owned = p.outfits.has(o.id);
-    body.appendChild(row(o.name, o.desc, owned ? 'Owned' : `${o.cost} XP`, !owned && p.xp >= o.cost,
-      () => { p.xp -= o.cost; p.outfits.add(o.id); p.wear[o.slot] = o.id; speak('fred', pick(FRED_SOLD)); }));
-  });
 }
 
 // ---------- Spawning ----------

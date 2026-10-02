@@ -91,7 +91,8 @@ Sections are marked with `// ---------- Name ----------` comments:
 - **Game data**: `WEAPONS` (fetch gear with `verb`), `SKILLS`, `STATS`, `ENEMY_TYPES` (plants),
   `FRIENDS`, `ISLANDS`, `OUTFITS`. All balance numbers live here.
 - **State**: `player`, plus positions of `JACKIE`, `FRED`, and the doghouse at the map `CENTER`.
-- **Overlays**: title, shop (`renderShop` for the doghouse level-up, `renderFredWares` for Fred),
+- **Overlays**: title, shop (`renderShop`: tabs per mode, one short line per item; doghouse = Level up /
+  Doghouse / Friends / Wardrobe, Fred = Gear / Tricks / Treats / Outfits; owner wants menus low on text),
   death, win. Dialogue line lists (`FRED_*`, `JACKIE_*`).
 - **Input**: keyboard, mouse, touch joystick (`joy`), phone buttons (`touchButton`,
   `updateTouchButtons`), full screen, and no-zoom handlers.
