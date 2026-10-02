@@ -81,7 +81,8 @@ in `game/`.
   sounds.** The **Audio** section (`SOUNDS`, `MUSIC`) loads `game/Audio/Watson Dog_<name>.mp3` (capital A; names like `SFX_Bark_01`, `MX_Theme_01`) with Web Audio,
   unlocking on the first tap. Each sound has several takes played round robin (`sfx(kind)`): attack
   (Watson's hit lands), death (plant knocked out), bark (Watson gets hit), fred (walking up to Fred),
-  click (menu buttons, 2 takes). `music` loops. Missing files are skipped silently. Mute toggle in the
+  click (menu buttons, 2 takes), swipe (attack that misses), special (freeing a friend or finding a rare
+  item). `music` loops. Missing files are skipped silently. Mute toggle in the
   pause menu (`watsonMute`). Later: more music, crossfade by island.
 
 ### Code map (`game/index.html`)
