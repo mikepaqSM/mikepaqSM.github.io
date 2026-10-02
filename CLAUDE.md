@@ -41,7 +41,8 @@ in `game/`.
 - **Turf**: hold the PEE button (or P) to pee; letting go loses an unfinished trail; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
   the trail (so does swimming). The pee meter refills **only at the doghouse**. Plants inside new
-  turf are purified; fewer plants spawn as turf grows.
+  turf are purified; fewer plants spawn as turf grows. Claimed land sprouts flowers (`flowerAt`,
+  `drawFlower`): new ones pop up over ~1.4s (`growing`, `drawBlooms`), then get baked into the chunks.
 - **Open world, no winning.** Progress = exploring, freeing friends, finding rare items.
 - **Rare finds** (`TREASURES`, one per big island, glowing beam) unlock **doghouse upgrades**
   (`UPGRADES`, built from the doghouse menu with **Home XP** (`homeXp`): 1 per tile of land claimed

@@ -942,7 +942,10 @@ function tryClaim(force) {
   for (let c = 0; c < N * N; c++) if (!turf[c] && !trailMark[c] && !seen[c]) enclosed++;
   if (!enclosed && !force) return;
   let gained = 0;
-  for (let c = 0; c < N * N; c++) if (!turf[c] && landCell[c] && (trailMark[c] || !seen[c])) { turf[c] = 1; gained++; }
+  for (let c = 0; c < N * N; c++) if (!turf[c] && landCell[c] && (trailMark[c] || !seen[c])) {
+    turf[c] = 1; gained++;
+    if (flowerAt(c % N, Math.floor(c / N))) growing.set(c, time);
+  }
   turfCount += gained;
   clearTrail();
   dirtyChunks();
@@ -1509,8 +1512,56 @@ function renderChunk(ci, cj, c) {
     if (!T(cx, cy + 1)) { g.moveTo(x, y + cs); g.lineTo(x + cs, y + cs); }
   }
   g.stroke();
+  // Flowers on claimed land (ones still growing are drawn by drawBlooms until they're done).
+  g.setTransform(1, 0, 0, 1, -o.x, -o.y);
+  for (let cy = y0 * G; cy < y1 * G; cy++) for (let cx = x0 * G; cx < x1 * G; cx++) {
+    const f = flowerAt(cx, cy);
+    if (!f || !turf[cx + cy * N] || growing.has(cx + cy * N)) continue;
+    if (f.x - x0 < 0.35 || x1 - f.x < 0.35 || f.y - y0 < 0.35 || y1 - f.y < 0.35) continue;   // keep clear of chunk edges
+    drawFlower(g, (f.x - f.y) * TW / 2, (f.x + f.y) * TH / 2, f.h, 1);
+  }
   g.restore();
   c.empty = false;
+}
+
+// Flowers: about one in three claimed cells gets one, always the same one for that spot.
+const FLOWER_COLORS = ['#ff6fa8', '#ffd84a', '#ffffff', '#b98cff', '#ff8a4a', '#7ec8ff'];
+function flowerAt(cx, cy) {
+  const h = ((cx * 73856093) ^ (cy * 19349663) ^ 0x5bd1e995) >>> 0;
+  if (h % 100 >= 32) return null;
+  const x = (cx + 0.2 + ((h >> 8) % 60) / 100) / G, y = (cy + 0.2 + ((h >> 16) % 60) / 100) / G;
+  if (distC(x, y) < SAFE_R + 0.3) return null;   // Watson's dirt yard stays bare
+  return { x, y, h };
+}
+function drawFlower(g, px, py, h, k) {
+  if (k <= 0) return;
+  const stem = 7 * k, col = FLOWER_COLORS[h % FLOWER_COLORS.length], r = (2.5 + (h % 3) * 0.45) * k;
+  g.strokeStyle = "#3f7a2e"; g.lineWidth = 1.4;
+  g.beginPath(); g.moveTo(px, py); g.lineTo(px, py - stem); g.stroke();
+  if ((h >> 4) % 4 === 0) {   // a little tulip
+    g.fillStyle = col; g.beginPath(); g.moveTo(px - r, py - stem); g.lineTo(px - r, py - stem - r * 1.8); g.lineTo(px, py - stem - r); g.lineTo(px + r, py - stem - r * 1.8); g.lineTo(px + r, py - stem); g.closePath(); g.fill();
+  } else {                    // a five-petal daisy
+    g.fillStyle = col;
+    for (let i = 0; i < 5; i++) { const a = i * 1.2566 + h; g.beginPath(); g.arc(px + Math.cos(a) * r, py - stem + Math.sin(a) * r * 0.8, r * 0.75, 0, Math.PI * 2); g.fill(); }
+    g.fillStyle = col === '#ffd84a' ? '#b0602a' : '#ffd84a'; g.beginPath(); g.arc(px, py - stem, r * 0.6, 0, Math.PI * 2); g.fill();
+  }
+}
+// Newly claimed land: its flowers sprout over a moment, then get painted into the ground.
+const growing = new Map();   // cell -> time it was claimed
+const GROW_T = 1.4;
+function drawBlooms() {
+  if (!growing.size) return;
+  const o0 = toScreen(0, 0);
+  let newest = -1e9;
+  for (const t0 of growing.values()) newest = Math.max(newest, t0);
+  if (time - newest >= GROW_T) { growing.clear(); dirtyChunks(); return; }   // all grown: bake them into the ground
+  for (const [c, t0] of growing) {
+    const age = time - t0;
+    const f = flowerAt(c % N, Math.floor(c / N)), sx = o0.x + (f.x - f.y) * TW / 2, sy = o0.y + (f.x + f.y) * TH / 2;
+    if (sx < -20 || sx > W + 20 || sy < -20 || sy > H + 20) continue;
+    const k = clamp((age - ((f.h >> 3) % 50) / 100) / 0.6, 0, 1);   // staggered pop-up
+    drawFlower(ctx, sx, sy, f.h, k < 1 ? k * (1.25 - 0.25 * k) : 1);
+  }
 }
 function drawTiles() {
   ctx.fillStyle = SEA; ctx.fillRect(0, 0, W, H);
@@ -2535,6 +2586,7 @@ function draw() {
   ctx.fillStyle = '#0b0a0c';
   ctx.fillRect(0, 0, W, H);
   drawTiles();
+  drawBlooms();
   drawTrail();
   if (bloodstain) drawBloodstain();
   const seen = (x, y) => { const s = toScreen(x, y); return s.x > -150 && s.x < W + 150 && s.y > -150 && s.y < H + 200; };
