@@ -215,17 +215,17 @@ const distC = (x, y) => Math.hypot(x - CENTER, y - CENTER);
 // ---------- Game data (tweak these to balance the game) ----------
 const WEAPONS = [
   { name: 'Puppy Teeth',   dmg: 10, cost: 0,    color: '#ffffff', verb: 'BITE', type: 'bite',      desc: 'Just your own chompers' },
-  { name: 'Fetch Stick',   dmg: 18, cost: 40,   color: '#8a5a2e', verb: 'WHACK', type: 'stick',     desc: 'A really good stick' },
-  { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#a9cc9c', verb: 'BONK', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
-  { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', verb: 'SLASH', type: 'frisbee',   shop: 'stall', desc: 'A frisbee with a serrated edge' },
-  { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', verb: 'SCORCH', type: 'flamebone', shop: 'fire', desc: 'A legendary bone that never stops burning' },
-  { name: 'Moon Bone',     dmg: 95, cost: 2500, color: '#cfe8ff', verb: 'SMITE', type: 'moonbone',  shop: 'fire', desc: 'A glowing bone from Fred\'s secret stash' },
+  { name: 'Fetch Stick', tk: 1,   dmg: 18, cost: 40,   color: '#8a5a2e', verb: 'WHACK', type: 'stick',     desc: 'A really good stick' },
+  { name: 'Iron Bone', tk: 2,     dmg: 28, cost: 150,  color: '#a9cc9c', verb: 'BONK', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
+  { name: 'Razor Frisbee', tk: 3, dmg: 44, cost: 450,  color: '#2ec4b6', verb: 'SLASH', type: 'frisbee',   shop: 'stall', desc: 'A frisbee with a serrated edge' },
+  { name: 'Inferno Bone', tk: 4,  dmg: 68, cost: 1200, color: '#ff7a3a', verb: 'SCORCH', type: 'flamebone', shop: 'fire', desc: 'A legendary bone that never stops burning' },
+  { name: 'Moon Bone', tk: 5,     dmg: 95, cost: 2500, color: '#cfe8ff', verb: 'SMITE', type: 'moonbone',  shop: 'fire', desc: 'A glowing bone from Fred\'s secret stash' },
 ];
 
 const SKILLS = [
   { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.7,  sta: 16, lock: 0.32, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
-  { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'Spin attack that hits everyone around you', tip: 'Spin attack', desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
-  { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, shop: 'stall', cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', tip: 'Long-range blast', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
+  { id: 'whirl', tk: 1,    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'Spin attack that hits everyone around you', tip: 'Spin attack', desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
+  { id: 'fireball', tk: 2, key: '3', name: 'Mega Bark', cost: 200, shop: 'stall', cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', tip: 'Long-range blast', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
 const CRIT_MULT = 2;   // damage bonus for hitting an enemy right after it attacks
 const ROLL_STA = 22;
@@ -300,20 +300,20 @@ const tierAt = (x, y) => { const isl = islandAt(x, y); return !isl ? 0 : isl ===
 // armor = damage taken reduced by this much, speed / roll / dmg = multipliers. No numbers = just for style.
 const OUTFITS = [
   { id: 'redcollar',     slot: 'neck', name: 'Red Collar',       cost: 0,    desc: "Watson's trusty collar" },
-  { id: 'bandana',       slot: 'neck', shop: 'stall', name: 'Blue Bandana',     cost: 60,   desc: 'Looks sharp. Just for style' },
-  { id: 'expresscollar', slot: 'neck', shop: 'stall', name: 'Express Collar',   cost: 220,  desc: 'Rolling costs 30% less stamina', roll: 0.7 },
-  { id: 'spikecollar',   slot: 'neck', shop: 'fire', name: 'Spiked Collar',    cost: 400,  desc: '+10% bite and gear damage', dmg: 1.1 },
-  { id: 'partyhat',      slot: 'head', shop: 'stall', name: 'Party Hat',        cost: 40,   desc: 'Just for style' },
-  { id: 'cowboy',        slot: 'head', shop: 'stall', name: 'Cowboy Hat',       cost: 120,  desc: 'Yeehaw. Just for style' },
-  { id: 'helmet',        slot: 'head', shop: 'stall', name: 'Knight Helmet',    cost: 350,  desc: 'Take 10% less damage', armor: 0.1 },
-  { id: 'raincoat',      slot: 'body', shop: 'stall', name: 'Raincoat',         cost: 90,   desc: "Still won't go in the water. Just for style" },
-  { id: 'cape',          slot: 'body', shop: 'stall', name: 'Hero Cape',        cost: 250,  desc: 'Move 8% faster', speed: 1.08 },
-  { id: 'royalcape',     slot: 'body', shop: 'shop', name: 'Royal Cape',        cost: 900,  desc: 'Move 12% faster, take 10% less damage', speed: 1.12, armor: 0.1 },
-  { id: 'crown',         slot: 'head', shop: 'shop', name: 'Golden Crown',      cost: 700,  desc: 'King of the islands. Just for style' },
-  { id: 'thorncoat',     slot: 'body', shop: 'stall', name: 'Thornproof Coat',  cost: 500,  desc: 'Take 20% less damage', armor: 0.2 },
-  { id: 'knight',        slot: 'body', shop: 'fire', name: 'Knight Armor',     cost: 1100, desc: 'Take 35% less damage, but 10% slower', armor: 0.35, speed: 0.9 },
-  { id: 'rainboots',     slot: 'feet', shop: 'stall', name: 'Rain Boots',       cost: 70,   desc: 'Just for style' },
-  { id: 'sneakers',      slot: 'feet', shop: 'stall', name: 'Squeaky Sneakers', cost: 300,  desc: 'Move 15% faster', speed: 1.15 },
+  { id: 'bandana', tk: 1,       slot: 'neck', shop: 'stall', name: 'Blue Bandana',     cost: 60,   desc: 'Looks sharp. Just for style' },
+  { id: 'expresscollar', tk: 2, slot: 'neck', shop: 'stall', name: 'Express Collar',   cost: 220,  desc: 'Rolling costs 30% less stamina', roll: 0.7 },
+  { id: 'spikecollar', tk: 3,   slot: 'neck', shop: 'fire', name: 'Spiked Collar',    cost: 400,  desc: '+10% bite and gear damage', dmg: 1.1 },
+  { id: 'partyhat', tk: 1,      slot: 'head', shop: 'stall', name: 'Party Hat',        cost: 40,   desc: 'Just for style' },
+  { id: 'cowboy', tk: 1,        slot: 'head', shop: 'stall', name: 'Cowboy Hat',       cost: 120,  desc: 'Yeehaw. Just for style' },
+  { id: 'helmet', tk: 2,        slot: 'head', shop: 'stall', name: 'Knight Helmet',    cost: 350,  desc: 'Take 10% less damage', armor: 0.1 },
+  { id: 'raincoat', tk: 1,      slot: 'body', shop: 'stall', name: 'Raincoat',         cost: 90,   desc: "Still won't go in the water. Just for style" },
+  { id: 'cape', tk: 2,          slot: 'body', shop: 'stall', name: 'Hero Cape',        cost: 250,  desc: 'Move 8% faster', speed: 1.08 },
+  { id: 'royalcape', tk: 4,     slot: 'body', shop: 'shop', name: 'Royal Cape',        cost: 900,  desc: 'Move 12% faster, take 10% less damage', speed: 1.12, armor: 0.1 },
+  { id: 'crown', tk: 2,         slot: 'head', shop: 'shop', name: 'Golden Crown',      cost: 700,  desc: 'King of the islands. Just for style' },
+  { id: 'thorncoat', tk: 3,     slot: 'body', shop: 'stall', name: 'Thornproof Coat',  cost: 500,  desc: 'Take 20% less damage', armor: 0.2 },
+  { id: 'knight', tk: 4,        slot: 'body', shop: 'fire', name: 'Knight Armor',     cost: 1100, desc: 'Take 35% less damage, but 10% slower', armor: 0.35, speed: 0.9 },
+  { id: 'rainboots', tk: 1,     slot: 'feet', shop: 'stall', name: 'Rain Boots',       cost: 70,   desc: 'Just for style' },
+  { id: 'sneakers', tk: 2,      slot: 'feet', shop: 'stall', name: 'Squeaky Sneakers', cost: 300,  desc: 'Move 15% faster', speed: 1.15 },
 ];
 
 // Rare finds hidden around the islands. Bring them home to build doghouse upgrades.
@@ -327,6 +327,21 @@ const TREASURES = [
   { id: 'sign',     name: 'Shop Sign',      ox: -13, oy: 38,  color: '#2ec4b6', under: 'bramble' },   // Downtown Isle (needs Ember)
   { id: 'shingles', name: 'Fancy Shingles', ox: 40,  oy: 26,  color: '#b3191c', under: 'bramble' },   // little islet (needs Ember)
 ].map(t => ({ ...t, x: CENTER + t.ox, y: CENTER + t.oy }));
+// Shiny trinkets: small glinting things scattered over the islands. Fred trades his wares for them
+// (cats love shiny things). Placed the same way every game; `tk` on an item = how many it costs.
+const TRINKET_PER = [9, 10, 10, 10, 2, 2, 2];   // per island, in ISLANDS order
+const TRINKETS = [];
+{
+  let seed = 12345;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  ISLANDS.forEach((isl, k) => {
+    for (let n = 0, tries = 0; n < TRINKET_PER[k] && tries < 400; tries++) {
+      const a = rnd() * Math.PI * 2, r = Math.sqrt(rnd()) * isl.R * 0.85, x = isl.x + Math.cos(a) * r, y = isl.y + Math.sin(a) * r;
+      if (inWater(x, y) || distC(x, y) < 5 || TREASURES.some(t => Math.hypot(t.x - x, t.y - y) < 2) || TRINKETS.some(t => Math.hypot(t.x - x, t.y - y) < 3)) continue;
+      TRINKETS.push({ id: TRINKETS.length, x, y, kind: TRINKETS.length % 4 }); n++;
+    }
+  });
+}
 // Things in the way. Boulders: only Boomer's Ground Pound smashes them. Brambles: only Ember's Fire Fetch burns them.
 const OBSTACLES = TREASURES.filter(t => t.under).map(t => ({ type: t.under, x: t.x, y: t.y, r: 0.85, hides: t.id, gone: false }));
 const obstacleAt = (x, y) => OBSTACLES.find(o => !o.gone && Math.hypot(x - o.x, y - o.y) < o.r);
@@ -370,6 +385,19 @@ const player = {
   chew: null,               // chewing a friend free of vines
   scene: null,              // resting with Jackie: licks, then belly rubs
 };
+// XP fills the level bar. Watson only levels up when he rests at the doghouse; each level gives
+// one pick (spent on a stat in the doghouse menu). Unbanked XP is what drops when he's knocked out.
+const freePicks = () => player.level - 1 - Object.values(player.stats).reduce((a, b) => a + b, 0);
+const readyToLevel = () => player.xp >= levelCost(player.level);
+function gainXp(n) { player.xp += n; }
+function levelUpAtRest() {
+  const p = player, before = p.level;
+  while (p.xp >= levelCost(p.level)) { p.xp -= levelCost(p.level); p.level++; }
+  if (p.level > before) {
+    floatText(p.x, p.y - 0.8, `Level ${p.level}!`, '#ffd25a', 2.4);
+    effects.push({ type: 'ring', x: p.x, y: p.y, range: 1.4, t: 0.7, max: 0.7, color: '#ffd25a', fill: true });
+  }
+}
 const maxHp = () => 100 + 12 * player.stats.vig + (built.has('house2') ? 25 : 0);
 const maxSta = () => 80 + 10 * player.stats.end + (built.has('house3') ? 25 : 0);
 const maxPee = () => PEE_BASE + PEE_PER * player.stats.bla + (built.has('bowl') ? 16 : 0);
@@ -381,6 +409,8 @@ const fireballDmg = () => Math.round(35 * (1 + 0.1 * player.stats.arc));
 
 // Dog friends
 const saved = new Set();          // ids of friends you've freed
+let trinkets = 0;                 // shiny trinkets carried (Fred's currency)
+const gotTrinket = new Set();     // ids already picked up
 let homeXp = 0;   // Doghouse XP: earned by claiming land, spent on doghouse upgrades
 const found = new Set(), built = new Set();   // rare finds picked up / doghouse upgrades built
 const inShop = it => !it.shop || built.has(it.shop);
@@ -625,7 +655,7 @@ function toggleShop(mode) {
   openOverlay('shop');
 }
 // Fred is aloof, can't be bothered, and is always a little cold.
-const FRED_LINES = ["...Oh. It's you. Whatever.", "Buy something or don't. I'm not your mom.", "Mrrp. XP. Sure. Fine.",
+const FRED_LINES = ["...Oh. It's you. Whatever.", "Buy something or don't. I'm not your mom.", "Mrrp. Shiny things only. No refunds.",
   "I was napping. Make it quick.", "Is it cold, or is it just me? ...It's me. I'm cold.", "Your doghouse looks warm. Not that I care."];
 const FRED_IDLE = ['*shivers*', 'Brr.', 'Got a blanket? No? Figures.', "Don't look at me.", 'Block the wind if you\'re going to stand there.',
   '*yawns*', 'Mrrp.', "I'm not cold. I'm just... vibrating.", 'Sun went behind a cloud. Rude.'];
@@ -667,7 +697,7 @@ overlay('title').onclick = () => { if (performance.now() - titleOpenedAt > 350) 
 overlay('closeShop').onclick = () => { if (performance.now() - shopOpenedAt > 400) closeOverlays(); };
 overlay('respawn').onclick = respawn;
 
-const flaskCost = () => 120 * 2 ** (player.maxFlasks - 4);
+const tkLabel = n => `${n} trinket${n === 1 ? '' : 's'}`;
 
 // One short line per item, one tab at a time, so the menus stay calm.
 const shopTab = { rest: 'level', fred: 'gear' };
@@ -676,7 +706,7 @@ const outfitTip = o => [o.armor && `-${Math.round(o.armor * 100)}% damage taken`
 function renderShop() {
   const p = player, fred = shopMode === 'fred';
   overlay('shopTitle').textContent = fred ? "Fred's Wares" : "Watson's Doghouse";
-  overlay('shopXp').textContent = fred ? `${p.xp} XP` : `${p.xp} XP · ${homeXp} Home XP`;
+  overlay('shopXp').textContent = fred ? `${trinkets} trinket${trinkets === 1 ? '' : 's'}` : `${freePicks()} pick${freePicks() === 1 ? '' : 's'} · ${homeXp} Home XP`;
   const body = overlay('shopBody'), tabsEl = overlay('shopTabs');
   body.innerHTML = ''; tabsEl.innerHTML = '';
   const row = (name, desc, label, enabled, onBuy, val, dim) => {
@@ -707,9 +737,8 @@ function renderShop() {
   const tab = shopTab[shopMode];
 
   if (tab === 'level') {
-    const cost = levelCost(p.level);
-    STATS.forEach(s => row(s.name, s.desc, `+1 · ${cost} XP`, p.xp >= cost, () => {
-      p.xp -= cost; p.level++; p.stats[s.id]++;
+    STATS.forEach(s => row(s.name, s.desc, '+1', freePicks() > 0, () => {
+      p.stats[s.id]++;
       if (s.id === 'vig') p.hp += 12;
       if (s.id === 'end') p.sta += 10;
       if (s.id === 'bla') p.bladder = maxPee();
@@ -749,26 +778,26 @@ function renderShop() {
     WEAPONS.forEach((w, i) => {
       if (i === 0 || !inShop(w)) return;
       const owned = p.weapon >= i;
-      row(w.name, `${w.dmg} damage`, owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : `${w.cost} XP`, !owned && p.xp >= w.cost,
-        () => { p.xp -= w.cost; p.weapon = i; speak('fred', pick(FRED_SOLD)); }, undefined, owned && p.weapon !== i);
+      row(w.name, `${w.dmg} damage`, owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : tkLabel(w.tk), !owned && trinkets >= w.tk,
+        () => { trinkets -= w.tk; p.weapon = i; speak('fred', pick(FRED_SOLD)); }, undefined, owned && p.weapon !== i);
     });
   } else if (tab === 'tricks') {
     SKILLS.forEach(s => {
       if (s.cost === 0 || !inShop(s)) return;
       const owned = p.skills.has(s.id);
-      row(s.name, s.tip, owned ? 'Learned' : `${s.cost} XP`, !owned && p.xp >= s.cost, () => { p.xp -= s.cost; p.skills.add(s.id); });
+      row(s.name, s.tip, owned ? 'Learned' : tkLabel(s.tk), !owned && trinkets >= s.tk, () => { trinkets -= s.tk; p.skills.add(s.id); });
     });
   } else if (tab === 'treats') {
-    const fc = flaskCost();
+    const fc = 1;
     const maxed = p.maxFlasks >= 6 + (built.has('stall') ? 2 : 0) + (built.has('shop') ? 2 : 0) + (built.has('bed') ? 2 : 0);
-    row('Golden Biscuit', `+1 biscuit (you have ${p.maxFlasks})`, maxed ? 'Max' : `${fc} XP`, !maxed && p.xp >= fc,
-      () => { p.xp -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; });
+    row('Golden Biscuit', `+1 biscuit (you have ${p.maxFlasks})`, maxed ? 'Max' : tkLabel(fc), !maxed && trinkets >= fc,
+      () => { trinkets -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; });
   } else if (tab === 'outfits') {
     OUTFITS.forEach(o => {
       if (o.cost === 0 || !inShop(o)) return;
       const owned = p.outfits.has(o.id);
-      row(o.name, outfitTip(o), owned ? 'Owned' : `${o.cost} XP`, !owned && p.xp >= o.cost,
-        () => { p.xp -= o.cost; p.outfits.add(o.id); p.wear[o.slot] = o.id; speak('fred', pick(FRED_SOLD)); }, undefined, owned);
+      row(o.name, outfitTip(o), owned ? 'Owned' : tkLabel(o.tk), !owned && trinkets >= o.tk,
+        () => { trinkets -= o.tk; p.outfits.add(o.id); p.wear[o.slot] = o.id; speak('fred', pick(FRED_SOLD)); }, undefined, owned);
     });
   }
 }
@@ -953,7 +982,7 @@ function tryClaim(force) {
     xp += e.xp; e.hp = 0; purified++;
     effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2.5, t: 0.6, max: 0.6, color: '#9be37a', fill: true });
   }
-  player.xp += xp;
+  gainXp(xp);
   floatText(player.x, player.y, `+${home} Home XP`, '#ffb36b', 1.8);
   if (xp) floatText(player.x, player.y + 0.5, `+${xp} XP`, '#f2c94c', 1.6);
   if (purified) floatText(player.x, player.y - 0.6, purified > 1 ? `${purified} plants purified` : 'Plant purified', '#9be37a', 2);
@@ -1099,6 +1128,7 @@ function updateScene(dt) {
   if (sc.t >= SCENE_END) {
     p.scene = null;
     p.hp = maxHp(); p.bladder = maxPee();
+    levelUpAtRest();
     shopMode = 'rest'; shopOpenedAt = performance.now();
     openOverlay('shop');
   }
@@ -1134,7 +1164,7 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
   floatText(e.x, e.y, crit ? `${dmg}!` : dmg, crit ? '#ffd25a' : '#fff', crit ? 1.1 : 0.8);
   if (e.hp <= 0) {
     sfx('death');
-    player.xp += e.xp;
+    gainXp(e.xp);
     kills++;
     floatText(e.x, e.y, `+${e.xp} XP`, '#f2c94c', 1.2);
     effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2, t: 0.3, max: 0.3, color: e.color, fill: true });
@@ -1331,6 +1361,13 @@ function update(dt) {
     fredChatT = rand(20, 30);
   }
 
+  // Pick up shiny trinkets.
+  for (const t of TRINKETS) if (!gotTrinket.has(t.id) && Math.hypot(t.x - p.x, t.y - p.y) < 0.7) {
+    gotTrinket.add(t.id); trinkets++; tut.trinkets++;
+    sfx('special');
+    floatText(t.x, t.y, '+1 trinket', '#bfe6ff', 1.4);
+    effects.push({ type: 'ring', x: t.x, y: t.y, range: 0.7, t: 0.4, max: 0.4, color: '#bfe6ff', fill: true });
+  }
   // Pick up rare finds.
   for (const o of OUTPOSTS) if (isTurf(o.x, o.y) && Math.hypot(o.x - p.x, o.y - p.y) < 1.2 && p.bladder < maxPee()) {
     p.bladder = maxPee();
@@ -1345,7 +1382,7 @@ function update(dt) {
 
   // Recover your lost XP.
   if (bloodstain && Math.hypot(bloodstain.x - p.x, bloodstain.y - p.y) < 0.6) {
-    p.xp += bloodstain.xp;
+    gainXp(bloodstain.xp);
     floatText(p.x, p.y, `Recovered ${bloodstain.xp} XP`, '#f2c94c', 1.6);
     bloodstain = null;
   }
@@ -2368,6 +2405,22 @@ function drawObstacle(o) {
   }
   if (Math.sin(time * 2 + o.x) > 0.6) { ctx.fillStyle = '#fff6c8'; ctx.beginPath(); ctx.arc(s.x + 8, s.y - 26, 2, 0, Math.PI * 2); ctx.fill(); }
 }
+// Shiny trinkets: a small gem, button, bottle cap or marble that glints now and then.
+function drawTrinket(t) {
+  const s = toScreen(t.x, t.y), bob = Math.sin(time * 3 + t.id) * 1.5, y = s.y - 6 + bob;
+  ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
+  const col = ['#9fd4ff', '#ffd25a', '#ff8fb8', '#b6f5a8'][t.kind];
+  ctx.fillStyle = col;
+  if (t.kind === 0) { ctx.beginPath(); ctx.moveTo(s.x, y - 5); ctx.lineTo(s.x + 4, y); ctx.lineTo(s.x, y + 5); ctx.lineTo(s.x - 4, y); ctx.closePath(); ctx.fill(); }
+  else { ctx.beginPath(); ctx.arc(s.x, y, 3.8, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.beginPath(); ctx.arc(s.x - 1.2, y - 1.2, 1.3, 0, Math.PI * 2); ctx.fill(); }
+  const g = (time * 0.7 + t.id * 0.37) % 2.2;   // a glint every couple of seconds
+  if (g < 0.35) {
+    const k = Math.sin(g / 0.35 * Math.PI) * 6;
+    ctx.strokeStyle = 'rgba(255,255,255,.95)'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.moveTo(s.x + 2 - k, y - 3); ctx.lineTo(s.x + 2 + k, y - 3); ctx.moveTo(s.x + 2, y - 3 - k); ctx.lineTo(s.x + 2, y - 3 + k); ctx.stroke();
+    ctx.lineWidth = 1;
+  }
+}
 // Water bowls on far islands: dry and dusty until they're inside Watson's turf.
 function drawOutpost(o) {
   const s = toScreen(o.x, o.y), on = isTurf(o.x, o.y);
@@ -2441,7 +2494,7 @@ function drawHUD() {
   drawHUDInner();
   ctx.restore();
 }
-const canLevelUp = () => player.xp >= levelCost(player.level);
+const canLevelUp = () => freePicks() > 0 || readyToLevel();
 const canBuildUpgrade = () => UPGRADES.some(u => !built.has(u.id) && found.has(u.needs) && (!u.after || built.has(u.after)) && homeXp >= u.cost);
 function drawHUDInner() {
   const p = player;
@@ -2455,7 +2508,10 @@ function drawHUDInner() {
   ctx.font = 'bold 14px system-ui, sans-serif';
   ctx.fillStyle = '#e8e4e0'; ctx.fillText(`Lv ${p.level}`, 18, 78);
   let lw = ctx.measureText(`Lv ${p.level}`).width;
-  // Gentle pulsing badges: a gold up-arrow when Watson can level up, a glow on the house when an upgrade can be built.
+  // Level bar: XP toward the next level
+  bar(26 + lw, 70, 46, 5, p.xp / levelCost(p.level), readyToLevel() ? '#ffe680' : '#f2c94c');   // full = rest to level up
+  lw += 58;
+  // Gentle pulsing badges: a gold up-arrow when there's a level-up pick to spend, a glow on the house when an upgrade can be built.
   const pulse = 0.6 + Math.sin(time * 4) * 0.4;
   if (canLevelUp()) {
     const bx = 30 + lw, by = 73;
@@ -2467,8 +2523,7 @@ function drawHUDInner() {
     ctx.lineTo(bx + 1.5, by + 4); ctx.lineTo(bx - 1.5, by + 4); ctx.lineTo(bx - 1.5, by + 0.5); ctx.lineTo(bx - 4, by + 0.5); ctx.closePath(); ctx.fill();
     lw += 20;
   }
-  ctx.fillStyle = '#f2c94c'; ctx.fillText(`${p.xp} XP`, 28 + lw, 78);
-  const hx = 40 + lw + ctx.measureText(`${p.xp} XP`).width;   // Doghouse XP: a little house and the amount
+  const hx = 32 + lw;   // Doghouse XP: a little house and the amount
   if (canBuildUpgrade()) {
     ctx.save(); ctx.fillStyle = `rgba(255,179,107,${0.35 * pulse})`; ctx.shadowColor = '#ffb36b'; ctx.shadowBlur = 10 * pulse;
     ctx.beginPath(); ctx.arc(hx + 6.5, 72.5, 10, 0, Math.PI * 2); ctx.fill(); ctx.restore();
@@ -2477,6 +2532,11 @@ function drawHUDInner() {
   ctx.beginPath(); ctx.moveTo(hx, 73); ctx.lineTo(hx + 6.5, 66.5); ctx.lineTo(hx + 13, 73); ctx.fill();
   ctx.fillRect(hx + 2, 72, 9, 6);
   ctx.fillText(`${homeXp}`, hx + 17, 78);
+  // Shiny trinkets for Fred: a little blue gem and the count
+  const tx = hx + 30 + ctx.measureText(`${homeXp}`).width;
+  ctx.fillStyle = '#9fd4ff'; ctx.beginPath(); ctx.moveTo(tx, 66); ctx.lineTo(tx + 5.5, 72); ctx.lineTo(tx, 78); ctx.lineTo(tx - 5.5, 72); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#e6f6ff'; ctx.beginPath(); ctx.moveTo(tx, 67.5); ctx.lineTo(tx + 2.5, 71); ctx.lineTo(tx, 71); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#bfe6ff'; ctx.fillText(`${trinkets}`, tx + 9, 78);
   // Turf claimed, then one pip per dog friend (filled once saved)
   ctx.font = 'bold 12px system-ui, sans-serif'; ctx.fillStyle = '#9be37a';
   const tt = `Turf ${Math.floor(turfFrac() * 100)}%`;
@@ -2621,6 +2681,7 @@ function draw() {
     { d: JACKIE.x + JACKIE.y, f: drawJackie },
     { d: FRED.x + FRED.y, f: drawFred },
     ...TREASURES.filter(t => !found.has(t.id) && !obstacleAt(t.x, t.y) && seen(t.x, t.y)).map(t => ({ d: t.x + t.y, f: () => drawTreasure(t) })),
+    ...TRINKETS.filter(t => !gotTrinket.has(t.id) && seen(t.x, t.y)).map(t => ({ d: t.x + t.y, f: () => drawTrinket(t) })),
     ...OBSTACLES.filter(o => !o.gone && seen(o.x, o.y)).map(o => ({ d: o.x + o.y, f: () => drawObstacle(o) })),
     ...OUTPOSTS.filter(o => seen(o.x, o.y)).map(o => ({ d: o.x + o.y - 0.5, f: () => drawOutpost(o) })),
     ...FRIENDS.filter(fr => seen(fr.x, fr.y)).map(fr => ({ d: fr.x + fr.y, f: () => drawFriend(fr) })),
@@ -2670,7 +2731,7 @@ function draw() {
 // No instruction screen: each hint pops up the first time it's useful and goes away
 // once you've done it (or after a few seconds for the ones that are just warnings).
 const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0, fred: 0,
-  pal: 0, claims: 0, swaps: 0, swum: 0, shakes: 0, peeOn: 0, built: 0 };
+  pal: 0, claims: 0, swaps: 0, swum: 0, shakes: 0, peeOn: 0, built: 0, trinkets: 0 };
 const near = (e, d) => Math.hypot(e.x - player.x, e.y - player.y) < d;
 const HINTS = [   // earlier hints win when several apply at once
   { id: 'roll',   text: 'SPACE  to roll out of the red circle', touch: 'Tap ROLL to get out of the red circle',            when: () => enemies.some(e => e.state === 'windup' && near(e, 3)),   done: () => tut.rolls > 0 },
@@ -2696,8 +2757,10 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'palmove', text: () => `F for ${buddy().name}'s ${buddy().moveName}`, touch: () => `Tap ${buddy().verb} for ${buddy().name}'s ${buddy().moveName}`,
     when: () => { const b = buddy(); return !!b && b.kind === 'attack' && enemies.some(e => near(e, 4)); }, done: () => tut.pal > 0 },
   { id: 'swap',   text: 'Swap dog friends at the doghouse', when: () => saved.size >= 2 && distC(player.x, player.y) < 6, done: () => tut.swaps > 0, limit: 8 },
+  { id: 'levelrest', text: 'Level bar full! Rest at the doghouse to level up', when: () => readyToLevel() && distC(player.x, player.y) > SAFE_R, done: () => player.level > 1, limit: 6 },
+  { id: 'trinket', text: 'A shiny trinket! Fred trades his wares for these', when: () => trinkets > 0 && tut.fred === 0, done: () => tut.fred > 0, limit: 8 },
   { id: 'fred',   text: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred', touch: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred',
-    when: () => player.xp >= WEAPONS[1].cost && distC(player.x, player.y) < 5 && !nearFred(), done: () => tut.fred > 0, limit: 12 },
+    when: () => trinkets >= 1 && distC(player.x, player.y) < 5 && !nearFred(), done: () => tut.fred > 0, limit: 12 },
   { id: 'whirl',  text: '2  for Zoomies', touch: 'Tap ZOOM for Zoomies',                                  when: () => player.skills.has('whirl') && !paused,                  done: () => tut.whirl > 0 },
   { id: 'bark',   text: '3  for Mega Bark', touch: 'Tap BARK for Mega Bark',                                when: () => player.skills.has('fireball') && !paused,               done: () => tut.fireball > 0 },
   { id: 'run',    text: 'Hold SHIFT to run', touch: 'Push the stick all the way to run',                               when: () => tut.moved > 4 && tut.playT > 15,                         done: () => tut.ran > 0.4 },
@@ -2838,7 +2901,7 @@ function saveGame(slot = activeSlot) {
     p: { level: p.level, stats: p.stats, xp: p.xp, weapon: p.weapon, skills: [...p.skills], outfits: [...p.outfits], wear: p.wear,
          buddy: p.buddy, maxFlasks: p.maxFlasks },
     saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
-    turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp };
+    turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp, trinkets, gotTrinket: [...gotTrinket] };
   try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); } catch (e) {}
 }
 const readSlot = n => { try { const d = JSON.parse(localStorage.getItem(slotKey(n))); return d && d.v === 1 ? d : null; } catch (e) { return null; } };
@@ -2855,6 +2918,7 @@ function loadGame() {
   for (const n of d.turf) { turf.fill(v, c, c + n); if (v) turfCount += n; c += n; v = 1 - v; }
   dirtyChunks();
   bloodstain = d.bloodstain; Object.assign(tut, d.tut); d.hints.forEach(h => hintDone.add(h));
+  trinkets = d.trinkets || 0; (d.gotTrinket || []).forEach(id => gotTrinket.add(id));
   homeXp = d.homeXp !== undefined ? d.homeXp : Math.round(Math.max(0, turfCount - 25) / (G * G));   // older saves: credit claimed land
   Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks, bladder: maxPee() });
   for (const f of FRIENDS) if (saved.has(f.id)) { f.x = CENTER + f.home[0]; f.y = CENTER + f.home[1]; }
@@ -2899,7 +2963,7 @@ function renderSlots() {
     const when = d ? new Date(d.when || 0).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
     const sm = d && d.summary;
     div.innerHTML = `<div class="info"><div class="name">Slot ${n}${cur ? ' · playing now' : ''}</div><div class="desc">${
-      sm ? `Lv ${sm.level} · ${sm.xp} XP · ${sm.home || 0} Home XP · ${sm.friends} friends · Turf ${sm.turf}% · ${when}` : 'Empty'}</div></div>`;
+      sm ? `Lv ${sm.level} · ${sm.home || 0} Home XP · ${sm.friends} friends · Turf ${sm.turf}% · ${when}` : 'Empty'}</div></div>`;
     const btn = (label, fn, alt) => {
       const b = document.createElement('button'); b.textContent = label; if (alt) b.className = 'alt';
       b.onclick = () => { if (performance.now() - pauseOpenedAt > 350) fn(); };
