@@ -78,7 +78,7 @@ in `game/`.
   the gear's verb (BITE, WHACK, BONK...). No zooming. Desktop: WASD, click attacks toward the
   mouse, Space rolls, Shift runs.
 - **Audio: the owner makes all SFX and music themselves. Never generate or add placeholder
-  sounds.** The **Audio** section (`SOUNDS`, `MUSIC`) loads `game/audio/<name>.mp3` with Web Audio,
+  sounds.** The **Audio** section (`SOUNDS`, `MUSIC`) loads `game/Audio/Watson Dog_<name>.mp3` (capital A; names like `SFX_Bark_01`, `MX_Theme_01`) with Web Audio,
   unlocking on the first tap. Each sound has several takes played round robin (`sfx(kind)`): attack
   (Watson's hit lands), death (plant knocked out), bark (Watson gets hit), fred (walking up to Fred),
   click (menu buttons, 2 takes). `music` loops. Missing files are skipped silently. Mute toggle in the

@@ -2682,17 +2682,17 @@ function drawLogoDog() {
 }
 
 // ---------- Audio ----------
-// All sounds and music are the owner's own recordings, in game/audio/. Each sound can have several
+// All sounds and music are the owner's own recordings, in game/Audio/ (named "Watson Dog_<name>.mp3"). Each sound can have several
 // takes that play in turn (take 1, then 2, then 3, then 1 again...). Missing files are just skipped.
 const SOUNDS = {
-  attack: ['attack1', 'attack2', 'attack3'],   // Watson's bite/swing lands on a plant
-  death:  ['death1', 'death2', 'death3'],      // a plant is knocked out
-  bark:   ['bark1', 'bark2', 'bark3'],         // Watson gets hit
-  fred:   ['fred1', 'fred2', 'fred3'],         // walking up to Fred
-  click:  ['click1', 'click2'],                // menu buttons
+  attack: ['SFX_Attack_01', 'SFX_Attack_02', 'SFX_Attack_03'],   // Watson's bite/swing lands on a plant
+  death:  ['SFX_Attack_DeathSound_01'],                          // a plant is knocked out
+  bark:   ['SFX_Bark_01', 'SFX_Bark_02', 'SFX_Bark_03'],         // Watson gets hit
+  fred:   ['SFX_Fred_01', 'SFX_Fred_02', 'SFX_Fred_03'],         // walking up to Fred
+  click:  ['SFX_InterfaceSFX_UI_01', 'SFX_InterfaceSFX_UI_02'],  // menu buttons
 };
-const MUSIC = 'music';                          // loops forever in the background
-const audioFile = name => `audio/${name}.mp3`;
+const MUSIC = 'MX_Theme_01';                                     // loops forever in the background
+const audioFile = name => encodeURI(`Audio/Watson Dog_${name}.mp3`);
 let actx = null, sfxGain = null, musicGain = null, muted = false;
 const buffers = {}, nextTake = {};
 try { muted = localStorage.getItem('watsonMute') === '1'; } catch (e) {}
