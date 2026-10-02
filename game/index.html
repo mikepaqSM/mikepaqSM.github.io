@@ -333,14 +333,15 @@ const OUTPOSTS = [
   { ox: -22, oy: -24 },   // Pound Isle
 ].map(o => ({ x: CENTER + o.ox, y: CENTER + o.oy }));
 // Doghouse upgrades: each needs a rare find plus some XP. 'stall' and 'fire' open more of Fred's shop.
+// Costs are in Doghouse XP (home points), earned by claiming land with pee: 1 per tile claimed.
 const UPGRADES = [
-  { id: 'bowl',  needs: 'bowl',   cost: 150, name: 'Big Water Bowl',    desc: '+16 pee, for bigger turf loops' },
-  { id: 'stall', needs: 'awning', cost: 375, name: "Fred's Shop Stall", desc: 'Fred opens a real shop: outfits, Mega Bark and better gear' },
-  { id: 'bed',   needs: 'pillow', cost: 600, name: 'Comfy Bed',         desc: '+2 healing biscuits' },
-  { id: 'fire',  needs: 'ember',  cost: 1200, name: 'Cozy Fireplace',    desc: "Fred finally warms up and brings out his rare stock" },
-  { id: 'house2', needs: 'planks', cost: 750, name: 'Bigger Doghouse',  desc: '+25 max HP' },
-  { id: 'shop',  needs: 'sign',   cost: 900, name: "Fred's Shop",       desc: 'Fred moves into a real shop and sells his fanciest things', after: 'stall' },
-  { id: 'house3', needs: 'shingles', cost: 1350, name: 'Doghouse Tower', desc: '+25 max stamina', after: 'house2' },
+  { id: 'bowl',  needs: 'bowl',   cost: 25, name: 'Big Water Bowl',    desc: '+16 pee, for bigger turf loops' },
+  { id: 'stall', needs: 'awning', cost: 60, name: "Fred's Shop Stall", desc: 'Fred opens a real shop: outfits, Mega Bark and better gear' },
+  { id: 'bed',   needs: 'pillow', cost: 90, name: 'Comfy Bed',         desc: '+2 healing biscuits' },
+  { id: 'fire',  needs: 'ember',  cost: 160, name: 'Cozy Fireplace',    desc: "Fred finally warms up and brings out his rare stock" },
+  { id: 'house2', needs: 'planks', cost: 110, name: 'Bigger Doghouse',  desc: '+25 max HP' },
+  { id: 'shop',  needs: 'sign',   cost: 140, name: "Fred's Shop",       desc: 'Fred moves into a real shop and sells his fanciest things', after: 'stall' },
+  { id: 'house3', needs: 'shingles', cost: 200, name: 'Doghouse Tower', desc: '+25 max stamina', after: 'house2' },
 ];
 // Fred's stock: things with shop: 'stall' or 'fire' only appear once that upgrade is built.
 
@@ -376,6 +377,7 @@ const fireballDmg = () => Math.round(35 * (1 + 0.1 * player.stats.arc));
 
 // Dog friends
 const saved = new Set();          // ids of friends you've freed
+let homeXp = 0;   // Doghouse XP: earned by claiming land, spent on doghouse upgrades
 const found = new Set(), built = new Set();   // rare finds picked up / doghouse upgrades built
 const inShop = it => !it.shop || built.has(it.shop);
 let peeEmptyT = -99;
@@ -665,7 +667,7 @@ const flaskCost = () => 120 * 2 ** (player.maxFlasks - 4);
 
 function renderShop() {
   const p = player;
-  overlay('shopXp').textContent = `${p.xp} XP`;
+  overlay('shopXp').textContent = shopMode === 'rest' ? `${p.xp} XP · ${homeXp} Home XP` : `${p.xp} XP`;
   const body = overlay('shopBody');
   body.innerHTML = '';
   const section = t => { const h = document.createElement('h2'); h.textContent = t; body.appendChild(h); };
@@ -707,9 +709,9 @@ function renderShop() {
     if (!has && !done) { body.appendChild(row('???', 'Find something rare out on the islands', 'Need item', false, () => {})); return; }
     const pre = u.after && !built.has(u.after) ? UPGRADES.find(x => x.id === u.after).name : null;
     body.appendChild(row(u.name, pre ? `${u.desc} · build the ${pre} first` : `${u.desc} · uses the ${t.name}`,
-      done ? 'Built' : pre ? 'Later' : `${u.cost} XP`, !done && !pre && p.xp >= u.cost,
+      done ? 'Built' : pre ? 'Later' : `${u.cost} Home XP`, !done && !pre && homeXp >= u.cost,
       () => {
-        p.xp -= u.cost; built.add(u.id); tut.built++;
+        homeXp -= u.cost; built.add(u.id); tut.built++;
         if (u.id === 'bowl') p.bladder = maxPee();
         if (u.id === 'bed') { p.maxFlasks += 2; p.flasks = p.maxFlasks; }
         if (u.id === 'stall') speak('fred', 'Hm. A stall. ...Fine, it\'s nice. Come see.');
@@ -943,13 +945,17 @@ function tryClaim(force) {
   if (gained < 3) return;
   tut.claims++;
   // Plants caught inside the new turf are purified.
-  let xp = Math.round(gained * 0.25), purified = 0;
+  // Claimed land earns Doghouse XP (home points) for doghouse upgrades.
+  const home = Math.max(1, Math.round(gained / (G * G)));
+  homeXp += home;
+  let xp = 0, purified = 0;
   for (const e of enemies) if (e.hp > 0 && isTurf(e.x, e.y)) {
     xp += e.xp; e.hp = 0; purified++;
     effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2.5, t: 0.6, max: 0.6, color: '#9be37a', fill: true });
   }
   player.xp += xp;
-  floatText(player.x, player.y, `Turf! +${xp} XP`, '#f2c94c', 1.8);
+  floatText(player.x, player.y, `+${home} Home XP`, '#ffb36b', 1.8);
+  if (xp) floatText(player.x, player.y + 0.5, `+${xp} XP`, '#f2c94c', 1.6);
   if (purified) floatText(player.x, player.y - 0.6, purified > 1 ? `${purified} plants purified` : 'Plant purified', '#9be37a', 2);
   effects.push({ type: 'ring', x: player.x, y: player.y, range: 1.6, t: 0.6, max: 0.6, color: '#f2c94c', fill: true });
   if (Math.random() < 0.5) speak('jackie', pick(JACKIE_TURF));
@@ -2391,6 +2397,11 @@ function drawHUDInner() {
   ctx.fillStyle = '#e8e4e0'; ctx.fillText(`Lv ${p.level}`, 18, 78);
   const lw = ctx.measureText(`Lv ${p.level}`).width;
   ctx.fillStyle = '#f2c94c'; ctx.fillText(`${p.xp} XP`, 28 + lw, 78);
+  const hx = 40 + lw + ctx.measureText(`${p.xp} XP`).width;   // Doghouse XP: a little house and the amount
+  ctx.fillStyle = '#ffb36b';
+  ctx.beginPath(); ctx.moveTo(hx, 73); ctx.lineTo(hx + 6.5, 66.5); ctx.lineTo(hx + 13, 73); ctx.fill();
+  ctx.fillRect(hx + 2, 72, 9, 6);
+  ctx.fillText(`${homeXp}`, hx + 17, 78);
   // Turf claimed, then one pip per dog friend (filled once saved)
   ctx.font = 'bold 12px system-ui, sans-serif'; ctx.fillStyle = '#9be37a';
   const tt = `Turf ${Math.floor(turfFrac() * 100)}%`;
@@ -2597,6 +2608,7 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'boulder', text: 'Too big to move. A strong friend could smash it', when: () => OBSTACLES.some(o => !o.gone && o.type === 'boulder' && near(o, 2.5)) && player.buddy !== 'boomer', limit: 5 },
   { id: 'bramble', text: 'Thick thorny brambles. Something hot could burn them', when: () => OBSTACLES.some(o => !o.gone && o.type === 'bramble' && near(o, 2.5)) && player.buddy !== 'ember', limit: 5 },
   { id: 'outpost', text: 'A dry water bowl! Claim the turf around it to refill your pee here', when: () => OUTPOSTS.some(o => !isTurf(o.x, o.y) && near(o, 2.5)), limit: 6 },
+  { id: 'home',   text: 'Claiming land earns Home XP for doghouse upgrades', when: () => homeXp > 0 && tut.built === 0, limit: 6 },
   { id: 'treasure', text: 'Something rare! Bring it home to upgrade the doghouse', when: () => found.size > built.size && distC(player.x, player.y) > SAFE_R, done: () => tut.built > 0, limit: 8 },
   { id: 'lost',   text: 'Got hit! The pee trail washed away. Start over', when: () => time - trailLostT < 2.5, limit: 6 },
   { id: 'attack', text: 'CLICK  to attack toward the mouse', touch: 'Tap the big button to attack',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
@@ -2682,11 +2694,11 @@ let noSave = false;
 function saveGame(slot = activeSlot) {
   if (player.dead || noSave) return;
   const p = player;
-  const data = { v: 1, when: Date.now(), summary: { level: p.level, xp: p.xp, friends: saved.size, turf: Math.floor(turfFrac() * 100), finds: found.size },
+  const data = { v: 1, when: Date.now(), summary: { level: p.level, xp: p.xp, home: homeXp, friends: saved.size, turf: Math.floor(turfFrac() * 100), finds: found.size },
     p: { level: p.level, stats: p.stats, xp: p.xp, weapon: p.weapon, skills: [...p.skills], outfits: [...p.outfits], wear: p.wear,
          buddy: p.buddy, maxFlasks: p.maxFlasks },
     saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
-    turf: packTurf(), bloodstain, tut, hints: [...hintDone] };
+    turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp };
   try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); } catch (e) {}
 }
 const readSlot = n => { try { const d = JSON.parse(localStorage.getItem(slotKey(n))); return d && d.v === 1 ? d : null; } catch (e) { return null; } };
@@ -2703,6 +2715,7 @@ function loadGame() {
   for (const n of d.turf) { turf.fill(v, c, c + n); if (v) turfCount += n; c += n; v = 1 - v; }
   dirtyChunks();
   bloodstain = d.bloodstain; Object.assign(tut, d.tut); d.hints.forEach(h => hintDone.add(h));
+  homeXp = d.homeXp !== undefined ? d.homeXp : Math.round(Math.max(0, turfCount - 25) / (G * G));   // older saves: credit claimed land
   Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks, bladder: maxPee() });
   for (const f of FRIENDS) if (saved.has(f.id)) { f.x = CENTER + f.home[0]; f.y = CENTER + f.home[1]; }
   populate();
@@ -2746,7 +2759,7 @@ function renderSlots() {
     const when = d ? new Date(d.when || 0).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
     const sm = d && d.summary;
     div.innerHTML = `<div class="info"><div class="name">Slot ${n}${cur ? ' · playing now' : ''}</div><div class="desc">${
-      sm ? `Lv ${sm.level} · ${sm.xp} XP · ${sm.friends} friends · Turf ${sm.turf}% · ${when}` : 'Empty'}</div></div>`;
+      sm ? `Lv ${sm.level} · ${sm.xp} XP · ${sm.home || 0} Home XP · ${sm.friends} friends · Turf ${sm.turf}% · ${when}` : 'Empty'}</div></div>`;
     const btn = (label, fn, alt) => {
       const b = document.createElement('button'); b.textContent = label; if (alt) b.className = 'alt';
       b.onclick = () => { if (performance.now() - pauseOpenedAt > 350) fn(); };
