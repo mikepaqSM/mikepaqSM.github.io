@@ -39,6 +39,10 @@
   #tZoom  { width: 54px; height: 54px; right: calc(118px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); }
   #tBark  { width: 54px; height: 54px; right: calc(56px + env(safe-area-inset-right)); bottom: calc(124px + env(safe-area-inset-bottom)); }
   #tTreat { width: 54px; height: 54px; right: calc(4px + env(safe-area-inset-right)); bottom: calc(124px + env(safe-area-inset-bottom)); }
+  #tPee   { width: 54px; height: 54px; right: calc(194px + env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); }
+  #tPal   { width: 54px; height: 54px; right: calc(180px + env(safe-area-inset-right)); bottom: calc(100px + env(safe-area-inset-bottom)); }
+  #tPee.on { background: rgba(242,201,76,.8); color: #1a120e; border-color: #f2c94c; }
+  #tPal.hide { display: none; }
   #tPause { width: 40px; height: 40px; right: calc(10px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top)); font-size: 14px; }
   .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: rgba(0, 0, 0, .7); }
@@ -112,6 +116,8 @@
   <button class="tbtn" id="tZoom">ZOOM<small></small></button>
   <button class="tbtn" id="tBark">BARK<small></small></button>
   <button class="tbtn" id="tTreat">TREAT<small></small></button>
+  <button class="tbtn" id="tPee">PEE<small></small></button>
+  <button class="tbtn hide" id="tPal"><span>PAL</span><small></small></button>
   <button class="tbtn" id="tPause">II</button>
 </div>
 
@@ -135,7 +141,7 @@
 <div class="overlay" id="win">
   <div class="panel" style="text-align:center">
     <h1 class="title">The pollution is lifting!</h1>
-    <p>All four tainted townspeople are back to their old selves, and Jackie is safe. Good boy, Lovebug.</p>
+    <p>Watson's turf covers half the town, and the plant folk are friendly again. Good boy, Lovebug.</p>
     <p style="margin-top:16px"><button id="keepPlaying">Keep playing</button></p>
   </div>
 </div>
@@ -187,7 +193,7 @@ const WEAPONS = [
   { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#a9cc9c', verb: 'BONK', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
   { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', verb: 'SLASH', type: 'frisbee',   desc: 'A frisbee with a serrated edge' },
   { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', verb: 'SCORCH', type: 'flamebone', desc: 'A legendary bone that never stops burning' },
-  { name: 'Moon Bone',     dmg: 95, cost: 0,    color: '#cfe8ff', verb: 'SMITE', type: 'moonbone',  desc: 'A glowing bone from Fred\'s secret stash', rare: true },
+  { name: 'Moon Bone',     dmg: 95, cost: 2500, color: '#cfe8ff', verb: 'SMITE', type: 'moonbone',  desc: 'A glowing bone from Fred\'s secret stash' },
 ];
 
 const SKILLS = [
@@ -205,6 +211,7 @@ const STATS = [
   { id: 'end', name: 'Endurance', desc: '+10 max stamina' },
   { id: 'str', name: 'Jaw Strength', desc: '+7% chomp and gear damage' },
   { id: 'arc', name: 'Bark Power',   desc: '+10% Mega Bark damage' },
+  { id: 'bla', name: 'Bladder',      desc: '+8 pee (bigger turf loops)' },
 ];
 const levelCost = lvl => Math.floor(30 * 1.16 ** (lvl - 1));
 
@@ -218,23 +225,66 @@ const ENEMY_TYPES = [
   { name: 'Smog Oak',         lvl: 10, hp: 110, dmg: 50, speed: 1.3, xp: 180, r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', minDist: 18, windup: 1.2,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 6.0 },
 ];
 
-// Bosses: townspeople tainted by the pollution, one per zone. Beaten bosses stay beaten.
-// ox/oy = where they wait (tiles from the doghouse), combo = hits chained per attack,
-// trophy = what they drop for Fred.
-const BOSSES = [
-  { name: 'Tainted Paperboy',     lvl: 5,  hp: 90,   dmg: 20, speed: 2.6, xp: 150,  r: 0.32, h: 44, s: 1.1,  look: 'paperboy',   color: '#b14cff', ox: -5,  oy: -5,  combo: 2, windup: 0.6,  reach: 0.65, recover: 0.6, aggro: 5.0, trophy: "Golden Newspaper" },
-  { name: 'Tainted Mail Carrier', lvl: 9,  hp: 200,  dmg: 28, speed: 2.4, xp: 400,  r: 0.38, h: 56, s: 1.35, look: 'mailman',    color: '#b14cff', ox: 8,   oy: -8,  combo: 2, windup: 0.66, reach: 0.8,  recover: 0.7, aggro: 5.0, trophy: "Express Stamp" },
-  { name: 'Tainted Gardener',     lvl: 14, hp: 350,  dmg: 38, speed: 2.1, xp: 900,  r: 0.42, h: 64, s: 1.5,  look: 'gardener',   color: '#b14cff', ox: -11, oy: 11,  combo: 3, windup: 0.84,  reach: 1.0,  recover: 0.8, aggro: 5.5, trophy: "Prize Trowel" },
-  { name: 'Tainted Dog Catcher',  lvl: 20, hp: 600,  dmg: 55, speed: 1.9, xp: 2000, r: 0.5,  h: 76, s: 1.8,  look: 'dogcatcher', color: '#b14cff', ox: 15,  oy: 15,  combo: 3, windup: 1.08,  reach: 1.3,  recover: 1.0, aggro: 6.0, trophy: "Catcher's Badge" },
+// Dog friends: lost pups tangled in polluted vines around town. Free one and it joins you.
+// Watson brings one friend along at a time (swap at the doghouse). kind 'ability' = a passive power,
+// kind 'attack' = a special move on its own button. ox/oy = where it's found (tiles from the doghouse),
+// home = where it lounges in the yard once saved. Bond grows as you knock out plants together (3 levels).
+const FRIENDS = [
+  { id: 'splash', name: 'Splash', breed: 'Labrador', ox: -5, oy: 4.5, home: [0.9, -1.7], kind: 'ability', power: 'swim',
+    short: 'Loves water, so Watson can swim too', thanks: 'Woof! Thanks! Ooh, is that a pond?',
+    look: { fur: '#e3b968', light: '#f3d9a4', dark: '#c2954a', saddle: null, collar: '#2e86de', s: 1 } },
+  { id: 'boomer', name: 'Boomer', breed: 'Bulldog', ox: -9, oy: -6, home: [-0.9, -1.8], kind: 'attack', move: 'pound', verb: 'POUND',
+    moveName: 'Ground Pound', cd: 6, dmg: 40, short: 'Belly-flops on plants and knocks them off balance', thanks: "Hrmph. Thanks, pal. I'll wait at your place.",
+    look: { fur: '#b98a5e', light: '#f2ead8', dark: '#6e4c30', saddle: null, bw: 1.15, leg: 0.75, collar: '#8e44ad', s: 0.95 } },
+  { id: 'scout', name: 'Scout', breed: 'German Shepherd', ox: 12, oy: -9, home: [1.9, 0.9], kind: 'ability', power: 'lookout',
+    short: 'Keeps watch while you pee. Plants back off', thanks: "Thanks! I'll keep an eye out for you.",
+    look: { fur: '#c08038', light: '#d9a462', dark: '#2a2018', saddle: '#2a2018', earUp: true, collar: '#27ae60', s: 1.08 } },
+  { id: 'frost', name: 'Frost', breed: 'Husky', ox: -6, oy: 14, home: [-1.7, -0.5], kind: 'attack', move: 'howl', verb: 'HOWL',
+    moveName: 'Frost Howl', cd: 9, dmg: 12, short: 'A chilly howl that freezes nearby plants (free critical hits)', thanks: 'Awooo! You found me!',
+    look: { fur: '#8d96a3', light: '#f1f3f6', dark: '#4f5763', saddle: '#6f7885', belly: true, earUp: true, eye: '#5ab4ff', collar: '#e74c3c', s: 1.05 } },
+  { id: 'zip', name: 'Zip', breed: 'Greyhound', ox: -16, oy: -13, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
+    short: 'Run as long as you like, and a bit faster', thanks: 'Zoom zoom! Race you home!',
+    look: { fur: '#c9a27a', light: '#e6cfb2', dark: '#8a6a4a', saddle: null, bw: 0.9, leg: 1.25, collar: '#f39c12', s: 1.02 } },
+  { id: 'ember', name: 'Ember', breed: 'Dalmatian', ox: 15, oy: 15, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
+    moveName: 'Fire Fetch', cd: 4, dmg: 45, short: 'Throws a flaming ball. Fred likes her (she is warm)', thanks: "Phew! It's toasty out here. Thanks!",
+    look: { fur: '#f4f1ea', light: '#ffffff', dark: '#222222', saddle: null, spots: true, collar: '#c0392b', s: 1 } },
+];
+for (const f of FRIENDS) Object.assign(f, { cdBase: f.cd || 0, x: CENTER + f.ox, y: CENTER + f.oy, walk: 0, moving: false, fx: 1, fy: 0, cd: 0, act: null, z: 0, helpT: rand(2, 6) });
+
+// Ponds and lakes. Watson hates water and won't go in unless Splash is with him.
+// x/y = centre (tiles from the doghouse), rx/ry = size, island = radius of dry land in the middle.
+const WATER = [
+  { ox: 4,  oy: 4,  rx: 1.8, ry: 1.3 },               // the park pond
+  { ox: -9, oy: -6, rx: 2.8, ry: 2.4, island: 1.0 },  // suburbs lake (Boomer)
+  { ox: 9,  oy: 6,  rx: 1.5, ry: 2.3 },
+  { ox: -6, oy: 14, rx: 2.8, ry: 2.6, island: 1.1 },  // downtown lake (Frost)
+  { ox: 15, oy: 15, rx: 3,   ry: 3,   island: 1.3 },  // pound district moat (Ember)
+  { ox: 14, oy: -2, rx: 1.4, ry: 2.6 },
+].map(w => ({ ...w, x: CENTER + w.ox, y: CENTER + w.oy }));
+const inWater = (x, y) => WATER.some(w => ((x - w.x) / w.rx) ** 2 + ((y - w.y) / w.ry) ** 2 < 1 && !(w.island && Math.hypot(x - w.x, y - w.y) < w.island));
+
+// Outfits and armor, sold by Fred. One per slot; change them at the doghouse.
+// armor = damage taken reduced by this much, speed / roll / dmg = multipliers. No numbers = just for style.
+const OUTFITS = [
+  { id: 'redcollar',     slot: 'neck', name: 'Red Collar',       cost: 0,    desc: "Watson's trusty collar" },
+  { id: 'bandana',       slot: 'neck', name: 'Blue Bandana',     cost: 60,   desc: 'Looks sharp. Just for style' },
+  { id: 'expresscollar', slot: 'neck', name: 'Express Collar',   cost: 220,  desc: 'Rolling costs 30% less stamina', roll: 0.7 },
+  { id: 'spikecollar',   slot: 'neck', name: 'Spiked Collar',    cost: 400,  desc: '+10% bite and gear damage', dmg: 1.1 },
+  { id: 'partyhat',      slot: 'head', name: 'Party Hat',        cost: 40,   desc: 'Just for style' },
+  { id: 'cowboy',        slot: 'head', name: 'Cowboy Hat',       cost: 120,  desc: 'Yeehaw. Just for style' },
+  { id: 'helmet',        slot: 'head', name: 'Knight Helmet',    cost: 350,  desc: 'Take 10% less damage', armor: 0.1 },
+  { id: 'raincoat',      slot: 'body', name: 'Raincoat',         cost: 90,   desc: "Still won't go in the water. Just for style" },
+  { id: 'cape',          slot: 'body', name: 'Hero Cape',        cost: 250,  desc: 'Move 8% faster', speed: 1.08 },
+  { id: 'thorncoat',     slot: 'body', name: 'Thornproof Coat',  cost: 500,  desc: 'Take 20% less damage', armor: 0.2 },
+  { id: 'knight',        slot: 'body', name: 'Knight Armor',     cost: 1100, desc: 'Take 35% less damage, but 10% slower', armor: 0.35, speed: 0.9 },
+  { id: 'rainboots',     slot: 'feet', name: 'Rain Boots',       cost: 70,   desc: 'Just for style' },
+  { id: 'sneakers',      slot: 'feet', name: 'Squeaky Sneakers', cost: 300,  desc: 'Move 15% faster', speed: 1.15 },
 ];
 
-// Rare items Fred trades for boss trophies.
-const RARES = [
-  { id: 'sneaker',  trophy: 'Golden Newspaper', boss: 'Tainted Paperboy',     name: 'Squeaky Sneaker', desc: 'Move 15% faster.' },
-  { id: 'collar',   trophy: 'Express Stamp',    boss: 'Tainted Mail Carrier', name: 'Express Collar',  desc: 'Rolling costs 30% less stamina.' },
-  { id: 'coat',     trophy: 'Prize Trowel',     boss: 'Tainted Gardener',     name: 'Thornproof Coat', desc: 'Take 20% less damage.' },
-  { id: 'moonbone', trophy: "Catcher's Badge",  boss: 'Tainted Dog Catcher',  name: 'Moon Bone',       desc: 'A glowing legendary bone. 95 base damage.' },
-];
+// Turf: Watson claims ground by peeing a trail that loops back to his turf (or closes on itself).
+const PEE_BASE = 24, PEE_PER = 8;   // trail length (tiles) you can pee, + per Bladder level
+const WIN_TURF = 0.5;               // claim this much of the town to win
+const PEE_SPEED = 0.85;             // walk a little slower while peeing
 
 const ZONES = [
   { name: "Watson's Doghouse", maxD: SAFE_R },
@@ -248,28 +298,59 @@ const zoneAt = (x, y) => ZONES.find(z => distC(x, y) < z.maxD);
 // ---------- State ----------
 const player = {
   x: CENTER, y: CENTER + 1.6, r: 0.3, h: 42, speed: 3.4,
-  level: 1, stats: { vig: 0, end: 0, str: 0, arc: 0 },
+  level: 1, stats: { vig: 0, end: 0, str: 0, arc: 0, bla: 0 },
   hp: 100, sta: 80, staDelay: 0,
-  xp: 0, weapon: 0, skills: new Set(['strike']), trophies: new Set(), relics: new Set(),
+  xp: 0, weapon: 0, skills: new Set(['strike']),
+  outfits: new Set(['redcollar']), wear: { neck: 'redcollar', head: null, body: null, feet: null },
+  buddy: null,              // id of the dog friend tagging along
+  pee: false, bladder: PEE_BASE,
   flasks: 4, maxFlasks: 4, drink: 0,
   face: { x: 1, y: 0 }, flash: 0, swing: 0, swingMax: 0.28, dead: false,
-  aimT: 0, walk: 0, moving: false, running: false, whirl: 0,
+  aimT: 0, walk: 0, moving: false, running: false, whirl: 0, swimming: false,
   roll: null, hitstun: 0, grace: 0, attackLock: 0,
+  shake: 0, shakeCd: 0,     // shaking off water
+  chew: null,               // chewing a friend free of vines
+  scene: null,              // resting with Jackie: licks, then belly rubs
 };
 const maxHp = () => 100 + 12 * player.stats.vig;
 const maxSta = () => 80 + 10 * player.stats.end;
-const weaponDmg = () => Math.round(WEAPONS[player.weapon].dmg * (1 + 0.07 * player.stats.str));
+const maxPee = () => PEE_BASE + PEE_PER * player.stats.bla;
+const gearOn = () => Object.values(player.wear).filter(Boolean).map(id => OUTFITS.find(o => o.id === id));
+const gearMult = k => gearOn().reduce((m, o) => m * (o[k] || 1), 1);
+const armorMult = () => Math.max(0.4, 1 - gearOn().reduce((s, o) => s + (o.armor || 0), 0));
+const weaponDmg = () => Math.round(WEAPONS[player.weapon].dmg * (1 + 0.07 * player.stats.str) * gearMult('dmg'));
 const fireballDmg = () => Math.round(35 * (1 + 0.1 * player.stats.arc));
+
+// Dog friends
+const saved = new Set();          // ids of friends you've freed
+const bondKills = {};             // plants knocked out together, per friend
+const buddy = () => player.buddy ? FRIENDS.find(f => f.id === player.buddy) : null;
+const hasPower = pw => { const b = buddy(); return !!b && b.power === pw; };
+const bondLvl = id => (bondKills[id] || 0) >= 30 ? 3 : (bondKills[id] || 0) >= 10 ? 2 : 1;
+const stars = id => '★'.repeat(bondLvl(id)) + '☆'.repeat(3 - bondLvl(id));
+const swimMult = () => [0.6, 0.78, 0.95][bondLvl('splash') - 1];
+const lookoutR = () => [4, 5.5, 7][bondLvl('scout') - 1];
+const zoomMult = () => [1.08, 1.14, 1.2][bondLvl('zip') - 1];
+
+// Turf grid: G cells per tile. turf = Watson's claimed ground, trailMark = cells under the current pee trail.
+const G = 2, N = MAP * G;
+const turf = new Uint8Array(N * N), trailMark = new Uint8Array(N * N);
+let trail = [], turfCount = 0, groundDirty = true, trailLostT = -99, lastTurfPt = null;
+const cellAt = (x, y) => clamp(Math.floor(x * G), 0, N - 1) + clamp(Math.floor(y * G), 0, N - 1) * N;
+const isTurf = (x, y) => turf[cellAt(x, y)] === 1;
+const turfFrac = () => turfCount / (N * N);
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++)
+  if (distC((i + 0.5) / G, (j + 0.5) / G) < SAFE_R + 0.4) { turf[i + j * N] = 1; turfCount++; }
 
 const cooldowns = { strike: 0, whirl: 0, fireball: 0 };
 let enemies = [], projectiles = [], effects = [], floaters = [];
 let target = null, bloodstain = null, won = false;
-const defeated = new Set();   // names of bosses already beaten
 const JACKIE = { x: CENTER + 1.4, y: CENTER - 0.2 };
 const FRED = { x: CENTER - 1.9, y: CENTER + 0.7 };   // Fred the cat's shop, beside the doghouse
 const nearFred = () => Math.hypot(player.x - FRED.x, player.y - FRED.y) < 1.7;
-// What the attack button does instead of attacking: talk to Fred or rest at the doghouse.
-const interactTarget = () => player.dead ? null : nearFred() ? 'fred' : distC(player.x, player.y) < 1.8 ? 'rest' : null;
+const lostFriendNear = () => FRIENDS.find(f => !saved.has(f.id) && Math.hypot(player.x - f.x, player.y - f.y) < 1.3);
+// What the attack button does instead of attacking: talk to Fred, free a friend, or rest at the doghouse.
+const interactTarget = () => player.dead ? null : nearFred() ? 'fred' : lostFriendNear() ? 'free' : distC(player.x, player.y) < 1.8 ? 'rest' : null;
 let shopOpenedAt = 0;
 let shopMode = 'rest';
 let spawnTimer = 0, kills = 0, time = 0;
@@ -315,7 +396,7 @@ addEventListener('keydown', e => {
   keys[k] = true;
   if (k === ' ' || k === 'tab' || k.startsWith('arrow')) e.preventDefault();
   if (overlay('title').classList.contains('open')) { if (!e.repeat) closeOverlays(); return; }
-  if (k === 'b') { toggleShop('rest'); return; }
+  if (k === 'b') { if (overlay('shop').classList.contains('open')) closeOverlays(); else if (!paused && distC(player.x, player.y) < SAFE_R) startRest(); return; }
   if (k === 'e') { toggleShop('fred'); return; }
   if (k === 'escape') { if (paused) closeOverlays(); else openOverlay('title'); return; }
   if (k === 'r' && player.dead) { respawn(); return; }
@@ -325,6 +406,8 @@ addEventListener('keydown', e => {
   if (k === '3') useSkill('fireball');
   if (k === 'q') drinkFlask();
   if (k === ' ') startRoll();
+  if (k === 'p') togglePee();
+  if (k === 'f') palMove();
 });
 addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 const mouse = { x: 0, y: 0 };
@@ -370,6 +453,8 @@ touchButton('tRoll', () => startRoll());
 touchButton('tZoom', () => useSkill('whirl'));
 touchButton('tBark', () => useSkill('fireball'));
 touchButton('tTreat', () => drinkFlask());
+touchButton('tPee', () => togglePee());
+touchButton('tPal', () => palMove());
 touchButton('tPause', () => openOverlay('title'));
 function updateTouchButtons() {
   if (!isTouch) return;
@@ -377,8 +462,8 @@ function updateTouchButtons() {
     const el = tb(id); el.classList.toggle('off', off); el.classList.toggle('cool', cool);
     if (sub !== undefined) el.querySelector('small').textContent = sub;
   };
-  // The big button says what it will do: REST / TRADE at home, otherwise your weapon's verb.
-  const it = interactTarget(), label = it === 'fred' ? 'TRADE' : it === 'rest' ? 'REST' : WEAPONS[p.weapon].verb;
+  // The big button says what it will do: REST / TRADE at home, FREE next to a lost dog, otherwise your weapon's verb.
+  const it = interactTarget(), label = it === 'fred' ? 'TRADE' : it === 'rest' ? 'REST' : it === 'free' ? 'FREE' : WEAPONS[p.weapon].verb;
   const btn = tb('tChomp');
   if (btn.textContent !== label) btn.textContent = label;
   btn.classList.toggle('act', !!it);
@@ -387,6 +472,15 @@ function updateTouchButtons() {
   set('tZoom', !p.skills.has('whirl'), cooldowns.whirl > 0, p.skills.has('whirl') ? '' : '80 XP');
   set('tBark', !p.skills.has('fireball'), cooldowns.fireball > 0, p.skills.has('fireball') ? '' : '200 XP');
   set('tTreat', p.flasks <= 0, p.drink > 0, `${p.flasks}/${p.maxFlasks}`);
+  tb('tPee').classList.toggle('on', p.pee);
+  set('tPee', p.bladder <= 0, false, `${Math.ceil(p.bladder)}`);
+  const b = buddy(), pal = tb('tPal'), hasMove = !!b && b.kind === 'attack';
+  pal.classList.toggle('hide', !hasMove);
+  if (hasMove) {
+    const span = pal.querySelector('span');
+    if (span.textContent !== b.verb) span.textContent = b.verb;
+    set('tPal', false, b.cd > 0 || !!b.act, b.cd > 0 ? `${Math.ceil(b.cd)}` : '');
+  }
 }
 // Direction from the player to the mouse cursor, in world space.
 function mouseDir() {
@@ -405,7 +499,7 @@ function openOverlay(id) {
   if (id === 'title') titleOpenedAt = performance.now();
   if (id === 'shop') {
     renderShop();
-    if (shopMode === 'rest') { tut.shop++; speak('jackie', pick(JACKIE_REST)); }
+    if (shopMode === 'rest') tut.shop++;
     else { tut.fred++; speak('fred', pick(FRED_LINES)); }
   }
 }
@@ -445,25 +539,28 @@ const FRED_LINES = ["...Oh. It's you. Whatever.", "Buy something or don't. I'm n
 const FRED_IDLE = ['*shivers*', 'Brr.', 'Got a blanket? No? Figures.', "Don't look at me.", 'Block the wind if you\'re going to stand there.',
   '*yawns*', 'Mrrp.', "I'm not cold. I'm just... vibrating.", 'Sun went behind a cloud. Rude.'];
 const FRED_WARM = ['...Is that bone on fire? Stand there. Closer.', 'Ooh. Warm bone. Don\'t move.', "Finally, a dog who's useful."];
-const FRED_TRADE = ['Huh. Shiny. ...Fine. Take this.', 'I suppose that will do. Here.', "I'd say thanks, but I'm cold."];
+const FRED_SOLD = ['Fine. Take it.', 'Pleasure doing business. I guess.', "I'd say thanks, but I'm cold.", "Looks... okay. Whatever."];
 // Jackie's nicknames for Watson are Lovebug and Lovie.
 const JACKIE_REST = ['Good boy, Watson!', 'Good work, Lovebug!', "That's my Lovie!", "Who's my brave boy? You are, Lovebug!", 'Rest up, Lovie.', 'Lovebug! Look at you go!'];
 const JACKIE_HOME = ['Welcome home, Lovebug!', 'Lovie! You made it back!', 'There you are, Lovebug!', 'Hi, Lovie!'];
 const JACKIE_HURT = ['Watson! Are you okay?', 'Oh, Lovebug, come here.', 'Lovie! You poor thing.', 'Easy, Lovebug. Rest a minute.'];
+const JACKIE_LICK = ['Ha! Kisses! Thank you, Lovebug!', 'Aww, Lovie, you big licker!', 'Okay, okay! I love you too!', 'Slobber! Ha! Good boy!'];
+const JACKIE_RUB = ['Belly rubs for my Lovebug!', "Who's a good boy? You are!", 'Look at that belly, Lovie!', 'Rest up, Lovebug.'];
+const JACKIE_TURF = ['Good work, Lovebug!', "That's my Lovie!", 'Lovebug! Look at you go!'];
 const pick = a => a[Math.floor(Math.random() * a.length)];
 let fredChatT = 3, awayFromHome = false;
-// Speech bubbles over Jackie and Fred. A new line replaces the old one.
+// Speech bubbles over Jackie, Fred and the dog friends. A new line replaces the old one.
 const speech = {};
 function speak(who, text) { speech[who] = { text, t: 2.6 + text.length * 0.03 }; }
 function drawSpeech() {
   for (const [who, sp] of Object.entries(speech)) {
     if (sp.t <= 0) continue;
-    const n = who === 'jackie' ? JACKIE : FRED, s = toScreen(n.x, n.y);
-    const y = s.y - (who === 'jackie' ? 70 : 44);
+    const n = who === 'jackie' ? JACKIE : who === 'fred' ? FRED : FRIENDS.find(f => f.id === who), s = toScreen(n.x, n.y);
+    const y = s.y - (who === 'jackie' ? 70 : who === 'fred' ? 44 : 42);
     ctx.font = '12px system-ui, sans-serif';
     const w = ctx.measureText(sp.text).width + 16;
     ctx.globalAlpha = Math.min(1, sp.t * 3);
-    ctx.fillStyle = who === 'jackie' ? '#ffffff' : '#ffe9d2';
+    ctx.fillStyle = who === 'jackie' ? '#ffffff' : who === 'fred' ? '#ffe9d2' : '#e6f4ff';
     ctx.beginPath(); ctx.roundRect(s.x - w / 2, y - 18, w, 22, 10); ctx.fill();
     ctx.beginPath(); ctx.moveTo(s.x - 5, y + 3); ctx.lineTo(s.x + 3, y + 3); ctx.lineTo(s.x - 2, y + 10); ctx.fill();
     ctx.fillStyle = '#2a1e18'; ctx.textAlign = 'center';
@@ -503,8 +600,8 @@ function renderShop() {
   const fred = shopMode === 'fred';
   overlay('shopTitle').textContent = fred ? "Fred's Wares" : "Watson's Doghouse";
   overlay('shopSub').textContent = fred
-    ? "Fred barely looks up from his crate. He looks cold. He takes XP, and boss trophies if they're interesting."
-    : 'Rest up and spend XP to grow stronger. Jackie gives you a scratch behind the ears.';
+    ? 'Fred barely looks up from his crate. He looks cold. He takes XP.'
+    : 'Rest up, spend XP to grow stronger, pick a friend, and get dressed.';
   if (fred) { renderFredWares(section, row); return; }
 
   const cost = levelCost(p.level);
@@ -514,7 +611,27 @@ function renderShop() {
       p.xp -= cost; p.level++; p.stats[s.id]++;
       if (s.id === 'vig') p.hp += 12;
       if (s.id === 'end') p.sta += 10;
+      if (s.id === 'bla') p.bladder = maxPee();
     }, p.stats[s.id]));
+  });
+
+  if (saved.size) {
+    section('Dog friends (bring one along)');
+    FRIENDS.forEach(f => {
+      if (!saved.has(f.id)) return;
+      const what = f.kind === 'attack' ? `${f.moveName}: ${f.short}` : f.short;
+      body.appendChild(row(`${f.name} <span style="color:#f2c94c">${stars(f.id)}</span>`, `${f.breed} · ${what}`,
+        p.buddy === f.id ? 'With you' : 'Bring', p.buddy !== f.id,
+        () => { p.buddy = f.id; tut.swaps++; f.x = p.x - 0.6; f.y = p.y + 0.4; f.act = null; }));
+    });
+  }
+
+  section('Wardrobe');
+  OUTFITS.forEach(o => {
+    if (!p.outfits.has(o.id)) return;
+    const on = p.wear[o.slot] === o.id;
+    body.appendChild(row(o.name, o.desc, on ? 'Take off' : 'Wear', true,
+      () => { p.wear[o.slot] = on ? null : o.id; }));
   });
 }
 
@@ -527,7 +644,7 @@ function renderFredWares(section, row) {
     body.appendChild(row(w.name, `${w.dmg} damage · ${w.desc}`,
       owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : `${w.cost} XP`,
       !owned && p.xp >= w.cost,
-      () => { p.xp -= w.cost; p.weapon = i; }));
+      () => { p.xp -= w.cost; p.weapon = i; speak('fred', pick(FRED_SOLD)); }));
   });
 
   section('Tricks');
@@ -547,16 +664,12 @@ function renderFredWares(section, row) {
     maxed ? 'Max' : `${fc} XP`, !maxed && p.xp >= fc,
     () => { p.xp -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; }));
 
-  section('Rare trades (boss trophies)');
-  RARES.forEach(rr => {
-    const owned = p.relics.has(rr.id), has = p.trophies.has(rr.trophy);
-    body.appendChild(row(rr.name, owned || has ? rr.desc : `${rr.desc} Needs the ${rr.trophy}.`,
-      owned ? 'Yours' : has ? 'Trade' : 'Need trophy', !owned && has,
-      () => {
-        p.trophies.delete(rr.trophy); p.relics.add(rr.id); tut.traded++;
-        if (rr.id === 'moonbone') p.weapon = WEAPONS.findIndex(w => w.type === 'moonbone');
-        speak('fred', pick(FRED_TRADE));
-      }));
+  section('Outfits and armor');
+  OUTFITS.forEach(o => {
+    if (o.cost === 0) return;
+    const owned = p.outfits.has(o.id);
+    body.appendChild(row(o.name, o.desc, owned ? 'Owned' : `${o.cost} XP`, !owned && p.xp >= o.cost,
+      () => { p.xp -= o.cost; p.outfits.add(o.id); p.wear[o.slot] = o.id; speak('fred', pick(FRED_SOLD)); }));
   });
 }
 
@@ -566,31 +679,39 @@ function pickType(d) {
   // Mostly the toughest type for the zone, sometimes an easier one.
   return Math.random() < 0.7 ? allowed[allowed.length - 1] : allowed[Math.floor(Math.random() * allowed.length)];
 }
+const okSpot = (x, y) => !inWater(x, y) && !isTurf(x, y) && distC(x, y) >= SAFE_R + 2.5;
 function spawnEnemy() {
   for (let tries = 0; tries < 30; tries++) {
     const x = rand(1, MAP - 1), y = rand(1, MAP - 1);
-    const d = distC(x, y);
-    if (d < SAFE_R + 2.5) continue;
-    if (Math.hypot(x - player.x, y - player.y) < 9) continue;
-    enemies.push(makeEnemy(pickType(d), x, y));
+    if (!okSpot(x, y) || Math.hypot(x - player.x, y - player.y) < 9) continue;
+    enemies.push(makeEnemy(pickType(distC(x, y)), x, y));
     return;
   }
 }
 function makeEnemy(t, x, y) {
   return { ...t, x, y, homeX: x, homeY: y, maxHp: t.hp,
     state: 'idle', t: 0, tMax: 1, comboLeft: (t.combo || 1) - 1, tx: x, ty: y, wanderT: rand(0, 3), atkCd: 0, flash: 0, kx: 0, ky: 0,
-    walk: rand(0, 6), moving: false, fx: 1, fy: 0, seed: rand(0, 6) };
+    walk: rand(0, 6), moving: false, fx: 1, fy: 0, seed: rand(0, 6), frozen: 0 };
 }
-const plantCount = () => enemies.filter(e => !e.boss).length;
+// Fewer plants come back as Watson's turf grows.
+const maxEnemies = () => Math.max(8, Math.round(MAX_ENEMIES * (1 - turfFrac() * 1.5)));
 function populate() {
   enemies = [];
-  for (const b of BOSSES) if (!defeated.has(b.name)) enemies.push(makeEnemy({ ...b, boss: true, staggers: false }, CENTER + b.ox, CENTER + b.oy));
-  for (let i = 0; i < MAX_ENEMIES; i++) spawnEnemy();
+  // A couple of plants guard each lost dog.
+  for (const f of FRIENDS) {
+    if (saved.has(f.id)) continue;
+    for (let k = 0, tries = 0; k < 2 && tries < 20; tries++) {
+      const a = rand(0, Math.PI * 2), r = rand(1.5, 2.6), x = f.x + Math.cos(a) * r, y = f.y + Math.sin(a) * r;
+      if (!okSpot(x, y)) continue;
+      enemies.push(makeEnemy(pickType(distC(f.x, f.y)), x, y)); k++;
+    }
+  }
+  for (let i = 0; i < maxEnemies(); i++) spawnEnemy();
 }
 populate();
 
 // ---------- Player actions ----------
-const canAct = () => !player.dead && !player.roll && player.hitstun <= 0 && player.drink <= 0 && player.attackLock <= 0;
+const canAct = () => !player.dead && !player.roll && player.hitstun <= 0 && player.drink <= 0 && player.attackLock <= 0 && !player.chew && !player.scene;
 
 function spendSta(n) {
   if (player.sta <= 0) return false;   // like Souls: any stamina left lets you act
@@ -613,7 +734,7 @@ function moveDir() {
 }
 
 function startRoll() {
-  if (!canAct() || !spendSta(ROLL_STA * (player.relics.has('collar') ? 0.7 : 1))) return;
+  if (!canAct() || !spendSta(ROLL_STA * gearMult('roll'))) return;
   const d = moveDir() || player.face;
   player.roll = { t: 0.4, x: d.x, y: d.y };
   tut.rolls++;
@@ -629,7 +750,12 @@ function drinkFlask() {
 
 // aim: a world direction (mouse attacks), or omitted to aim at the locked-on enemy.
 function useSkill(id, aim) {
-  if (id === 'strike' && !paused && interactTarget()) { toggleShop(interactTarget()); return; }
+  if (paused) return;
+  if (player.scene) { player.scene.t = Math.max(player.scene.t, SCENE_END); return; }   // tap to skip the belly rubs
+  const it = id === 'strike' && interactTarget();
+  if (it === 'rest') { startRest(); return; }
+  if (it === 'fred') { toggleShop('fred'); return; }
+  if (it === 'free') { startChew(lostFriendNear()); return; }
   if (!canAct() || !player.skills.has(id) || cooldowns[id] > 0) return;
   const s = SKILLS.find(s => s.id === id);
   if (!spendSta(s.sta)) return;
@@ -660,11 +786,211 @@ function useSkill(id, aim) {
   }
 }
 
+// Peeing: toggle on, then walk. Outside your turf you leave a trail; loop back to your turf
+// (or close the loop on itself) and everything inside becomes yours. Get hit and the trail is lost.
+function togglePee() {
+  if (paused || player.dead || player.scene) return;
+  if (player.pee && trail.length) clearTrail();
+  player.pee = !player.pee && player.bladder > 0;
+  if (player.pee) tut.peeOn++;
+}
+function clearTrail() { trail = []; trailMark.fill(0); }
+// Add a point to the trail and mark the cells under it. Returns true if it covered a new cell.
+function addTrailPoint(x, y) {
+  const last = trail[trail.length - 1];
+  let fresh = false;
+  const mark = (px, py) => { const c = cellAt(px, py); if (!trailMark[c]) { trailMark[c] = 1; fresh = true; } };
+  if (last) {
+    const d = Math.hypot(x - last.x, y - last.y);
+    if (d < 0.1) return false;
+    for (let k = 1, n = Math.ceil(d / 0.15); k <= n; k++) mark(last.x + (x - last.x) * k / n, last.y + (y - last.y) * k / n);
+  } else mark(x, y);
+  trail.push({ x, y });
+  return fresh;
+}
+// Flood fill from the edge of the map. Anything the fill can't reach (walled in by turf and
+// the trail) is enclosed. If anything is enclosed, or force is set (trail reached the turf), claim it.
+function tryClaim(force) {
+  const seen = new Uint8Array(N * N), q = new Int32Array(N * N);
+  let qn = 0;
+  const push = c => { if (!seen[c] && !turf[c] && !trailMark[c]) { seen[c] = 1; q[qn++] = c; } };
+  for (let k = 0; k < N; k++) { push(k); push(k + (N - 1) * N); push(k * N); push(k * N + N - 1); }
+  for (let qi = 0; qi < qn; qi++) {
+    const c = q[qi], i = c % N;
+    if (i > 0) push(c - 1);
+    if (i < N - 1) push(c + 1);
+    if (c >= N) push(c - N);
+    if (c < N * (N - 1)) push(c + N);
+  }
+  let enclosed = 0;
+  for (let c = 0; c < N * N; c++) if (!turf[c] && !trailMark[c] && !seen[c]) enclosed++;
+  if (!enclosed && !force) return;
+  let gained = 0;
+  for (let c = 0; c < N * N; c++) if (!turf[c] && (trailMark[c] || !seen[c])) { turf[c] = 1; gained++; }
+  turfCount += gained;
+  clearTrail();
+  groundDirty = true;
+  if (gained < 3) return;
+  tut.claims++;
+  // Plants caught inside the new turf are purified.
+  let xp = Math.round(gained * 0.75), purified = 0;
+  for (const e of enemies) if (e.hp > 0 && isTurf(e.x, e.y)) {
+    xp += e.xp; e.hp = 0; purified++;
+    effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2.5, t: 0.6, max: 0.6, color: '#9be37a', fill: true });
+  }
+  player.xp += xp;
+  floatText(player.x, player.y, `Turf! +${xp} XP`, '#f2c94c', 1.8);
+  if (purified) floatText(player.x, player.y - 0.6, purified > 1 ? `${purified} plants purified` : 'Plant purified', '#9be37a', 2);
+  effects.push({ type: 'ring', x: player.x, y: player.y, range: 1.6, t: 0.6, max: 0.6, color: '#f2c94c', fill: true });
+  if (Math.random() < 0.5) speak('jackie', pick(JACKIE_TURF));
+  if (turfFrac() >= WIN_TURF && !won) { won = true; setTimeout(() => openOverlay('win'), 1200); }
+}
+function loseTrail() {
+  if (!trail.length) return;
+  clearTrail();
+  trailLostT = time;
+  effects.push({ type: 'ring', x: player.x, y: player.y, range: 0.9, t: 0.4, max: 0.4, color: '#f2c94c' });
+}
+function updatePee(dt, moved) {
+  const p = player;
+  if (!p.pee) {   // the bladder refills slowly, faster on your own turf
+    p.bladder = Math.min(maxPee(), p.bladder + (isTurf(p.x, p.y) ? 4 : 1) * dt);
+    return;
+  }
+  if (isTurf(p.x, p.y)) {
+    if (trail.length) { addTrailPoint(p.x, p.y); tryClaim(true); }
+    lastTurfPt = { x: p.x, y: p.y };
+    p.bladder = Math.min(maxPee(), p.bladder + 4 * dt);
+    return;
+  }
+  if (!trail.length && lastTurfPt && Math.hypot(lastTurfPt.x - p.x, lastTurfPt.y - p.y) < 1) addTrailPoint(lastTurfPt.x, lastTurfPt.y);
+  if (addTrailPoint(p.x, p.y)) tryClaim(false);
+  p.bladder -= moved;
+  if (p.bladder <= 0) {   // ran dry before closing the loop
+    p.bladder = 0; p.pee = false;
+    loseTrail();
+    floatText(p.x, p.y, 'Out of pee!', '#f2c94c', 1.4);
+  }
+}
+
+// Freeing a lost dog: Watson chews through the polluted vines. Getting hit interrupts him.
+function startChew(f) {
+  if (!f || !canAct()) return;
+  player.chew = { f, t: 1.1 };
+}
+function saveFriend(f) {
+  saved.add(f.id);
+  effects.push({ type: 'ring', x: f.x, y: f.y, range: 1.4, t: 0.7, max: 0.7, color: '#9be37a', fill: true });
+  floatText(f.x, f.y, `${f.name} is free!`, '#9be37a', 2.2);
+  speak(f.id, f.thanks);
+  if (!player.buddy) player.buddy = f.id;   // the first friend comes straight along
+  else f.homeRun = true;                    // others wait at the doghouse
+}
+
+// The friend's special move (attack friends only). Only ever hits polluted plants.
+function palMove() {
+  const f = buddy(), p = player;
+  if (paused || p.dead || p.scene || !f || f.kind !== 'attack' || f.cd > 0 || f.act) return;
+  tut.pal++;
+  updateTarget();
+  const lvl = bondLvl(f.id), dmg = Math.round(f.dmg * [1, 1.4, 1.8][lvl - 1]);
+  f.cd = f.cdBase * [1, 0.85, 0.7][lvl - 1];
+  const tx = target ? target.x : p.x + p.face.x * 1.8, ty = target ? target.y : p.y + p.face.y * 1.8;
+  const dx = tx - f.x, dy = ty - f.y, d = Math.hypot(dx, dy) || 1;
+  f.fx = dx / d; f.fy = dy / d;
+  if (f.move === 'pound') f.act = { type: 'leap', t: 0, max: 0.55, sx: f.x, sy: f.y, tx, ty, dmg };
+  else if (f.move === 'howl') {
+    f.act = { type: 'howl', t: 0, max: 0.7 };
+    effects.push({ type: 'ring', x: f.x, y: f.y, range: 2.6, t: 0.6, max: 0.6, color: '#bfe8ff', fill: true });
+    for (const e of enemies) if (Math.hypot(e.x - f.x, e.y - f.y) < 2.6 + e.r) {
+      hurtEnemy(e, dmg, f.x, f.y);
+      if (e.hp > 0) Object.assign(e, { state: 'recover', t: 3, frozen: 3, punishable: true, kx: 0, ky: 0 });
+    }
+  } else if (f.move === 'fetch') {
+    f.act = { type: 'throw', t: 0, max: 0.3 };
+    projectiles.push({ x: f.x + f.fx * 0.3, y: f.y + f.fy * 0.3, vx: f.fx * 7, vy: f.fy * 7, life: 1.3, kind: 'fire', dmg });
+  }
+}
+function updateFriends(dt) {
+  const p = player;
+  for (const f of FRIENDS) {
+    f.cd = Math.max(0, f.cd - dt);
+    if (!saved.has(f.id)) {   // lost: whimpers now and then when Watson is close
+      f.helpT -= dt;
+      if (f.helpT <= 0 && Math.hypot(p.x - f.x, p.y - f.y) < 7) { speak(f.id, pick(['Help!', 'Arf! Over here!', '*whimper*', "I'm stuck!"])); f.helpT = rand(7, 11); }
+      continue;
+    }
+    let gx, gy, spd;
+    if (p.buddy === f.id) {
+      if (f.act) {
+        f.act.t += dt;
+        const k = Math.min(1, f.act.t / f.act.max);
+        if (f.act.type === 'leap') {
+          f.x = lerp(f.act.sx, f.act.tx, k); f.y = lerp(f.act.sy, f.act.ty, k); f.z = Math.sin(k * Math.PI) * 34;
+          if (k >= 1) {   // belly flop!
+            f.z = 0;
+            effects.push({ type: 'ring', x: f.x, y: f.y, range: 1.6, t: 0.45, max: 0.45, color: '#e8c37a', fill: true });
+            for (const e of enemies) if (Math.hypot(e.x - f.x, e.y - f.y) < 1.6 + e.r) {
+              hurtEnemy(e, f.act.dmg, f.x, f.y);
+              if (e.hp > 0 && !e.frozen) Object.assign(e, { state: 'recover', t: 1.1, punishable: true });
+            }
+          }
+        }
+        if (k >= 1) f.act = null;
+        f.moving = false;
+        continue;
+      }
+      // Trot along just behind Watson.
+      gx = p.x - p.face.x * 0.8 + p.face.y * 0.45; gy = p.y - p.face.y * 0.8 - p.face.x * 0.45;
+      spd = Math.max(p.speed * 1.25, Math.hypot(gx - f.x, gy - f.y) * 2.5);
+      if (Math.hypot(gx - f.x, gy - f.y) > 8) { f.x = gx; f.y = gy; }
+    } else {
+      // Lounging in the yard.
+      gx = CENTER + f.home[0]; gy = CENTER + f.home[1];
+      spd = f.homeRun ? 4.5 : 2.5;
+    }
+    const dx = gx - f.x, dy = gy - f.y, d = Math.hypot(dx, dy);
+    f.moving = d > 0.3;
+    if (f.moving) {
+      const st = Math.min(d, spd * dt);
+      f.x += dx / d * st; f.y += dy / d * st; f.walk += st * 9; f.fx = dx / d; f.fy = dy / d;
+    } else {
+      f.homeRun = false;
+      if (p.buddy === f.id) { const tx = p.x - f.x, ty = p.y - f.y, td = Math.hypot(tx, ty) || 1; f.fx = tx / td; f.fy = ty / td; }
+    }
+  }
+}
+
+// Resting at the doghouse: Watson licks Jackie, then flops over for belly rubs. Tap to skip.
+const SCENE_LICK = 1.2, SCENE_END = 3.0;
+const SCENE_SPOT = { x: CENTER + 2.05, y: CENTER - 0.2 };   // just in front of Jackie
+function startRest() {
+  if (player.scene || !canAct() || paused) return;
+  player.scene = { t: 0, rub: false, heartT: 0.4 };
+  speak('jackie', pick(JACKIE_LICK));
+}
+function updateScene(dt) {
+  const p = player, sc = p.scene;
+  sc.t += dt;
+  const k = Math.min(1, dt * 7);
+  p.x += (SCENE_SPOT.x - p.x) * k; p.y += (SCENE_SPOT.y - p.y) * k;
+  p.face = { x: -0.98, y: -0.18 };
+  if (sc.t > SCENE_LICK && !sc.rub) { sc.rub = true; speak('jackie', pick(JACKIE_RUB)); }
+  sc.heartT -= dt;
+  if (sc.heartT <= 0) { floatText(p.x + rand(-0.2, 0.2), p.y + rand(-0.2, 0.2), '♥', '#ff7aa8', 1); sc.heartT = 0.3; }
+  if (sc.t >= SCENE_END) {
+    p.scene = null;
+    p.hp = maxHp(); p.bladder = maxPee();
+    shopMode = 'rest'; shopOpenedAt = performance.now();
+    openOverlay('shop');
+  }
+}
+
 // ---------- Combat ----------
-function explode(x, y) {
-  const range = 1.2;
-  effects.push({ type: 'ring', x, y, range, t: 0.35, max: 0.35, color: '#9fd4ff', fill: true });
-  for (const e of enemies) if (Math.hypot(e.x - x, e.y - y) < range + e.r) hurtEnemy(e, fireballDmg(), x, y);
+function explode(pr) {
+  const fire = pr.kind === 'fire', range = fire ? 1.3 : 1.2, { x, y } = pr;
+  effects.push({ type: 'ring', x, y, range, t: 0.35, max: 0.35, color: fire ? '#ff9a3a' : '#9fd4ff', fill: true });
+  for (const e of enemies) if (Math.hypot(e.x - x, e.y - y) < range + e.r) hurtEnemy(e, fire ? pr.dmg : fireballDmg(), x, y);
 }
 
 function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
@@ -684,13 +1010,12 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
     kills++;
     floatText(e.x, e.y, `+${e.xp} XP`, '#f2c94c', 1.2);
     effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2, t: 0.3, max: 0.3, color: e.color, fill: true });
-    if (e.boss) {
-      defeated.add(e.name);
-      player.trophies.add(e.trophy);
-      floatText(e.x, e.y - 0.5, 'POLLUTION CLEARED', '#e3b8ff', 2.5);
-      floatText(e.x, e.y + 0.6, `Got the ${e.trophy}!`, '#ffd25a', 3);
-      effects.push({ type: 'ring', x: e.x, y: e.y, range: 3, t: 1, max: 1, color: '#e3b8ff', fill: true });
-      if (defeated.size === BOSSES.length && !won) { won = true; setTimeout(() => openOverlay('win'), 1200); }
+    // Friendship grows as you fight side by side.
+    const b = buddy();
+    if (b) {
+      const before = bondLvl(b.id);
+      bondKills[b.id] = (bondKills[b.id] || 0) + 1;
+      if (bondLvl(b.id) > before) { floatText(b.x, b.y, `${b.name} ${stars(b.id)}`, '#f2c94c', 2.2); speak(b.id, 'We make a great team!'); }
     }
   }
 }
@@ -698,15 +1023,19 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
 function hurtPlayer(dmg, fromX, fromY) {
   const p = player;
   if (invulnerable()) return;
-  if (p.relics.has('coat')) dmg = Math.round(dmg * 0.8);
+  dmg = Math.round(dmg * armorMult());
+  p.chew = null;      // getting hit stops Watson chewing a friend free
+  if (p.pee) loseTrail();   // and washes away the pee trail
   p.hp -= dmg;
   p.flash = 0.15;
   p.hitstun = 0.3;
   p.grace = 0.35;
   p.drink = 0;   // getting hit interrupts eating (the biscuit is wasted)
   const dx = p.x - fromX, dy = p.y - fromY, d = Math.hypot(dx, dy) || 1;
-  p.x = clamp(p.x + dx / d * 0.35, 0.3, MAP - 0.3);
-  p.y = clamp(p.y + dy / d * 0.35, 0.3, MAP - 0.3);
+  if (!inWater(p.x + dx / d * 0.35, p.y + dy / d * 0.35) || hasPower('swim')) {
+    p.x = clamp(p.x + dx / d * 0.35, 0.3, MAP - 0.3);
+    p.y = clamp(p.y + dy / d * 0.35, 0.3, MAP - 0.3);
+  }
   floatText(p.x, p.y, `-${dmg}`, '#ff6b6b');
   if (p.hp <= 0) die();
 }
@@ -715,6 +1044,7 @@ function die() {
   const p = player;
   p.hp = 0;
   p.dead = true;
+  clearTrail(); p.pee = false; p.chew = null; p.scene = null;
   const lostOld = bloodstain ? bloodstain.xp : 0;
   bloodstain = p.xp > 0 ? { x: p.x, y: p.y, xp: p.xp } : null;
   p.xp = 0;
@@ -729,7 +1059,9 @@ function die() {
 function respawn() {
   if (!player.dead) return;
   Object.assign(player, { dead: false, x: CENTER, y: CENTER + 1.6, hp: maxHp(), sta: maxSta(),
-    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0, aimT: 0, swing: 0, whirl: 0 });
+    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0, aimT: 0, swing: 0, whirl: 0, bladder: maxPee(), shake: 0 });
+  const b = buddy();
+  if (b) { b.x = player.x - 0.7; b.y = player.y + 0.3; b.act = null; b.z = 0; }
   populate();   // every monster comes back when you die
   projectiles = []; effects = []; floaters = []; target = null;
   overlay('death').classList.remove('open');
@@ -766,41 +1098,70 @@ function faceTarget() {
 }
 
 // ---------- Update ----------
+// Move a body by (dx, dy), but stop at the water's edge (sliding along it) unless it can swim.
+// Returns true if water got in the way.
+function moveBody(o, dx, dy, swim) {
+  const wet = (x, y, ax, ay) => { const l = Math.hypot(ax, ay) || 1; return inWater(x + ax / l * 0.22, y + ay / l * 0.22); };
+  if (swim || inWater(o.x, o.y) || !wet(o.x + dx, o.y + dy, dx, dy)) { o.x += dx; o.y += dy; return false; }
+  if (dx && !wet(o.x + dx, o.y, dx, 0)) o.x += dx;
+  else if (dy && !wet(o.x, o.y + dy, 0, dy)) o.y += dy;
+  return true;
+}
+
 function update(dt) {
   const p = player;
+  if (p.scene) updateScene(dt);
+  if (p.chew) {   // chewing a friend free of the vines
+    const f = p.chew.f, dx = f.x - p.x, dy = f.y - p.y, d = Math.hypot(dx, dy) || 1;
+    p.face = { x: dx / d, y: dy / d };
+    p.chew.t -= dt;
+    if (p.chew.t <= 0) { p.chew = null; saveFriend(f); }
+  }
+  const busy = p.scene || p.chew;
 
   // Face the locked-on enemy, unless you just attacked toward the mouse.
-  const md = moveDir();
+  const md = busy ? null : moveDir();
   p.aimT = Math.max(0, p.aimT - dt);
-  if (p.aimT > 0) updateTarget(); else faceTarget();
+  if (!busy) { if (p.aimT > 0) updateTarget(); else faceTarget(); }
   if (!target && md && !p.roll && p.aimT <= 0) p.face = md;
 
   // Movement
-  const ox = p.x, oy = p.y;
+  const ox = p.x, oy = p.y, swim = hasPower('swim');
+  let bumped = false;
   p.running = false;
   if (p.roll) {
     p.roll.t -= dt;
-    p.x += p.roll.x * 7 * dt; p.y += p.roll.y * 7 * dt;
+    bumped = moveBody(p, p.roll.x * 7 * dt, p.roll.y * 7 * dt, swim);
     if (p.roll.t <= 0) p.roll = null;
   } else if (md && p.hitstun <= 0) {
-    let spd = p.speed * (p.relics.has('sneaker') ? 1.15 : 1) * (p.drink > 0 ? 0.35 : p.attackLock > 0 ? 0.3 : 1);
+    let spd = p.speed * gearMult('speed') * (p.drink > 0 ? 0.35 : p.attackLock > 0 ? 0.3 : 1);
+    if (p.pee && trail.length) spd *= PEE_SPEED;
+    if (p.swimming) spd *= swimMult();
+    const zoom = hasPower('zoom');
+    if (zoom) spd *= zoomMult();
     if ((keys.shift || joy.mag > 0.92) && p.sta > 0 && p.drink <= 0 && p.attackLock <= 0) {   // phones: push the stick all the way
       p.running = true;
       tut.ran += dt;
       spd *= RUN_MULT;
-      p.sta = Math.max(0, p.sta - RUN_STA * dt);
-      p.staDelay = 0.5;
+      if (!zoom) { p.sta = Math.max(0, p.sta - RUN_STA * dt); p.staDelay = 0.5; }
       if (!target && p.aimT <= 0) p.face = md;
     }
-    p.x += md.x * spd * dt; p.y += md.y * spd * dt;
+    bumped = moveBody(p, md.x * spd * dt, md.y * spd * dt, swim);
   }
   p.x = clamp(p.x, 0.3, MAP - 0.3); p.y = clamp(p.y, 0.3, MAP - 0.3);
+  p.swimming = inWater(p.x, p.y);
+  if (p.swimming) tut.swum += dt;
+  // Watson hates water: bump into it and he shakes his head and refuses.
+  p.shake = Math.max(0, p.shake - dt); p.shakeCd = Math.max(0, p.shakeCd - dt);
+  if (bumped && p.shakeCd <= 0) { p.shake = 0.8; p.shakeCd = 2; tut.shakes++; }
   const moved = Math.hypot(p.x - ox, p.y - oy);
   tut.moved += moved;
   tut.playT += dt;
-  p.moving = moved > 0.0005 && !p.roll;
+  p.moving = moved > 0.0005 && !p.roll && !p.scene;
   p.walk += moved * 9;
   p.whirl = Math.max(0, p.whirl - dt);
+  if (!p.dead) updatePee(dt, moved);
+  updateFriends(dt);
 
   for (const k in cooldowns) cooldowns[k] = Math.max(0, cooldowns[k] - dt);
   p.flash = Math.max(0, p.flash - dt);
@@ -824,14 +1185,15 @@ function update(dt) {
 
   // The doghouse heals you and refills your biscuits. No other natural healing.
   const atHome = distC(p.x, p.y) < SAFE_R;
-  if (atHome) { p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.25 * dt); p.flasks = p.maxFlasks; }
+  if (atHome) { p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.25 * dt); p.flasks = p.maxFlasks; p.bladder = maxPee(); }
+  else if (isTurf(p.x, p.y) && p.hp < maxHp()) p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.02 * dt);   // home turf: slow healing
   // Jackie greets Watson when he gets back from an outing.
   if (distC(p.x, p.y) > SAFE_R + 4) awayFromHome = true;
   if (atHome && awayFromHome) { awayFromHome = false; speak('jackie', pick(JACKIE_HOME)); }
   // Fred mutters to himself when Watson is nearby. He perks up for anything warm.
   fredChatT -= dt;
   if (fredChatT <= 0 && Math.hypot(p.x - FRED.x, p.y - FRED.y) < 2.8) {
-    speak('fred', pick(WEAPONS[p.weapon].type === 'flamebone' ? FRED_WARM : FRED_IDLE));
+    speak('fred', pick(WEAPONS[p.weapon].type === 'flamebone' || p.buddy === 'ember' ? FRED_WARM : FRED_IDLE));
     fredChatT = rand(20, 30);
   }
 
@@ -846,14 +1208,14 @@ function update(dt) {
   for (const e of enemies) {
     e.flash = Math.max(0, e.flash - dt);
     e.atkCd = Math.max(0, e.atkCd - dt);
+    e.frozen = Math.max(0, e.frozen - dt);
     const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 0.001;
-    const playerSafe = distC(p.x, p.y) < SAFE_R + 0.3;
+    // Plants leave Watson alone at the doghouse, and back off from Scout while Watson pees.
+    const playerSafe = distC(p.x, p.y) < SAFE_R + 0.3 || (hasPower('lookout') && p.pee && d < lookoutR());
     const strikeDist = e.r + p.r + e.reach;
 
     if ((e.state === 'idle' || e.state === 'return') && !playerSafe && d < e.aggro) e.state = 'chase';
     if (e.state === 'chase' && (playerSafe || d > e.aggro * 1.8)) e.state = 'return';
-    // Bosses won't leave their own patch of town.
-    if (e.boss && e.state === 'chase' && Math.hypot(e.x - e.homeX, e.y - e.homeY) > 9) e.state = 'return';
 
     let mx = 0, my = 0, spd = e.speed;
     if (e.state === 'chase') {
@@ -878,15 +1240,14 @@ function update(dt) {
       if (e.t <= 0) { e.state = 'chase'; e.atkCd = rand(0.2, 0.9); }
     } else if (e.state === 'return') {
       const hx = e.homeX - e.x, hy = e.homeY - e.y, hd = Math.hypot(hx, hy);
-      if (hd < 0.3) { e.state = 'idle'; e.hp = e.maxHp; } else { mx = hx / hd; my = hy / hd; }
+      if (hd < 0.3 || e.stuckT > 6) { e.state = 'idle'; e.hp = e.maxHp; e.homeX = e.x; e.homeY = e.y; e.stuckT = 0; } else { mx = hx / hd; my = hy / hd; e.stuckT = (e.stuckT || 0) + dt; }
     } else {
       e.wanderT -= dt;
       if (e.wanderT <= 0) { e.tx = e.homeX + rand(-2, 2); e.ty = e.homeY + rand(-2, 2); e.wanderT = rand(2, 5); }
       const tx = e.tx - e.x, ty = e.ty - e.y, td = Math.hypot(tx, ty);
       if (td > 0.1) { mx = tx / td; my = ty / td; spd *= 0.4; }
     }
-    e.x += (mx * spd + e.kx) * dt;
-    e.y += (my * spd + e.ky) * dt;
+    moveBody(e, (mx * spd + e.kx) * dt, (my * spd + e.ky) * dt, false);
     e.kx *= 0.85; e.ky *= 0.85;
     // Animation: walk cycle and which way they're facing.
     e.moving = mx || my;
@@ -915,7 +1276,7 @@ function update(dt) {
   for (const pr of projectiles) {
     pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.life -= dt;
     const hit = enemies.some(e => e.hp > 0 && Math.hypot(e.x - pr.x, e.y - pr.y) < e.r + 0.15);
-    if (hit || pr.life <= 0 || pr.x < 0 || pr.y < 0 || pr.x > MAP || pr.y > MAP) { explode(pr.x, pr.y); pr.life = -1; }
+    if (hit || pr.life <= 0 || pr.x < 0 || pr.y < 0 || pr.x > MAP || pr.y > MAP) { explode(pr); pr.life = -1; }
   }
   projectiles = projectiles.filter(pr => pr.life > 0);
   enemies = enemies.filter(e => e.hp > 0);
@@ -923,7 +1284,7 @@ function update(dt) {
 
   // Slowly bring monsters back over time.
   spawnTimer -= dt;
-  if (spawnTimer <= 0 && plantCount() < MAX_ENEMIES) { spawnEnemy(); spawnTimer = 8; }
+  if (spawnTimer <= 0 && enemies.length < maxEnemies()) { spawnEnemy(); spawnTimer = 8; }
 
   for (const f of effects) f.t -= dt;
   effects = effects.filter(f => f.t > 0);
@@ -933,7 +1294,8 @@ function update(dt) {
 }
 
 // ---------- Drawing ----------
-function tileColor(i, j) {
+// clean = part of Watson's turf: no pollution, fresh green grass.
+function tileColor(i, j, clean) {
   const d = distC(i + 0.5, j + 0.5);
   const n = ((i * 73856093) ^ (j * 19349663)) & 7;   // cheap per-tile variation
   const shade = (n - 3.5) * 2 - ((i + j) % 2) * 4;
@@ -943,25 +1305,88 @@ function tileColor(i, j) {
   else if (d < 13) [r, g, b] = [96, 128, 70];     // suburban lawns
   else if (d < 18) [r, g, b] = [116, 116, 122];   // downtown pavement
   else             [r, g, b] = [70, 62, 66];      // the pound district
-  // Pollution: tiles get a sickly purple tint the farther you are from home.
-  const smog = clamp((d - 5) / 22, 0, 0.4);
-  r = lerp(r, 92, smog); g = lerp(g, 64, smog); b = lerp(b, 110, smog);
+  if (clean && d >= SAFE_R) { r = lerp(r, 84, 0.5); g = lerp(g, 168, 0.5); b = lerp(b, 70, 0.5); }
+  else if (!clean) {
+    // Pollution: tiles get a sickly purple tint the farther you are from home.
+    const smog = clamp((d - 5) / 22, 0, 0.4);
+    r = lerp(r, 92, smog); g = lerp(g, 64, smog); b = lerp(b, 110, smog);
+  }
   return `rgb(${Math.round(r + shade)},${Math.round(g + shade)},${Math.round(b + shade)})`;
 }
 
+// The ground (tiles, turf, water) is painted once into its own canvas and redrawn only when the turf changes.
+const ground = document.createElement('canvas'), gctx = ground.getContext('2d');
+const GOX = MAP * TW / 2 + TW, GOY = TH;
+ground.width = MAP * TW + TW * 2; ground.height = MAP * TH + TH * 2;
+function renderGround() {
+  groundDirty = false;
+  const g = gctx;
+  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.clearRect(0, 0, ground.width, ground.height);
+  g.setTransform(TW / 2, TH / 2, -TW / 2, TH / 2, GOX, GOY);   // draw in world (tile) units
+  for (let i = 0; i < MAP; i++) for (let j = 0; j < MAP; j++) { g.fillStyle = tileColor(i, j); g.fillRect(i - 0.01, j - 0.01, 1.02, 1.02); }
+  const c = 1 / G;
+  for (let cj = 0; cj < N; cj++) for (let ci = 0; ci < N; ci++) {
+    if (!turf[ci + cj * N]) continue;
+    g.fillStyle = tileColor(Math.floor(ci / G), Math.floor(cj / G), true);
+    g.fillRect(ci * c - 0.01, cj * c - 0.01, c + 0.02, c + 0.02);
+  }
+  g.strokeStyle = 'rgba(0,0,0,.14)'; g.lineWidth = 0.035;   // tile grid
+  g.beginPath();
+  for (let k = 0; k <= MAP; k++) { g.moveTo(k, 0); g.lineTo(k, MAP); g.moveTo(0, k); g.lineTo(MAP, k); }
+  g.stroke();
+  // Edge of Watson's turf
+  g.strokeStyle = 'rgba(255,226,120,.7)'; g.lineWidth = 0.06;
+  g.beginPath();
+  for (let cj = 0; cj < N; cj++) for (let ci = 0; ci < N; ci++) {
+    if (!turf[ci + cj * N]) continue;
+    const x = ci * c, y = cj * c;
+    if (ci > 0 && !turf[ci - 1 + cj * N]) { g.moveTo(x, y); g.lineTo(x, y + c); }
+    if (ci < N - 1 && !turf[ci + 1 + cj * N]) { g.moveTo(x + c, y); g.lineTo(x + c, y + c); }
+    if (cj > 0 && !turf[ci + (cj - 1) * N]) { g.moveTo(x, y); g.lineTo(x + c, y); }
+    if (cj < N - 1 && !turf[ci + (cj + 1) * N]) { g.moveTo(x, y + c); g.lineTo(x + c, y + c); }
+  }
+  g.stroke();
+  // Water, with islands of dry land in some lakes
+  for (const w of WATER) {
+    g.fillStyle = '#d8c48e'; g.beginPath(); g.ellipse(w.x, w.y, w.rx + 0.12, w.ry + 0.12, 0, 0, Math.PI * 2); g.fill();   // sandy shore
+    g.fillStyle = '#2f78b0'; g.beginPath(); g.ellipse(w.x, w.y, w.rx, w.ry, 0, 0, Math.PI * 2); g.fill();
+    g.fillStyle = '#3f92c8'; g.beginPath(); g.ellipse(w.x, w.y, w.rx * 0.78, w.ry * 0.78, 0, 0, Math.PI * 2); g.fill();
+    if (w.island) {
+      g.fillStyle = '#d8c48e'; g.beginPath(); g.arc(w.x, w.y, w.island + 0.1, 0, Math.PI * 2); g.fill();
+      g.fillStyle = tileColor(Math.floor(w.x), Math.floor(w.y), isTurf(w.x, w.y)); g.beginPath(); g.arc(w.x, w.y, w.island - 0.05, 0, Math.PI * 2); g.fill();
+    }
+  }
+  g.setTransform(1, 0, 0, 1, 0, 0);
+}
 function drawTiles() {
-  for (let i = 0; i < MAP; i++) for (let j = 0; j < MAP; j++) {
-    const a = toScreen(i, j);
-    if (a.x < -TW || a.x > W + TW || a.y < -TH * 2 || a.y > H + TH) continue;
-    const b = toScreen(i + 1, j), c = toScreen(i + 1, j + 1), d = toScreen(i, j + 1);
+  if (groundDirty) renderGround();
+  const o = toScreen(0, 0);
+  ctx.drawImage(ground, Math.round(o.x - GOX), Math.round(o.y - GOY));
+  // Sparkles drifting on the water
+  ctx.strokeStyle = 'rgba(220,240,255,.55)'; ctx.lineWidth = 1.5;
+  for (const w of WATER) for (let k = 0; k < 5; k++) {
+    const a = k * 1.9 + time * 0.25, rr = 0.35 + ((k * 0.37 + time * 0.05) % 0.4);
+    const x = w.x + Math.cos(a) * w.rx * rr, y = w.y + Math.sin(a) * w.ry * rr;
+    if (w.island && Math.hypot(x - w.x, y - w.y) < w.island + 0.2) continue;
+    const s = toScreen(x, y), l = 4 + Math.sin(time * 2 + k) * 2;
+    ctx.beginPath(); ctx.moveTo(s.x - l, s.y); ctx.lineTo(s.x + l, s.y); ctx.stroke();
+  }
+  ctx.lineWidth = 1;
+}
+
+// The pee trail: a wet yellow line on the ground.
+function drawTrail() {
+  if (!trail.length) return;
+  ctx.lineCap = ctx.lineJoin = 'round';
+  for (const [w, c] of [[6, 'rgba(214,176,40,.75)'], [2.5, 'rgba(255,240,150,.8)']]) {
+    ctx.strokeStyle = c; ctx.lineWidth = w;
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.lineTo(c.x, c.y); ctx.lineTo(d.x, d.y);
-    ctx.closePath();
-    ctx.fillStyle = tileColor(i, j);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,.14)';
+    trail.forEach((pt, k) => { const s = toScreen(pt.x, pt.y); k ? ctx.lineTo(s.x, s.y) : ctx.moveTo(s.x, s.y); });
+    const s = toScreen(player.x, player.y); ctx.lineTo(s.x, s.y);
     ctx.stroke();
   }
+  ctx.lineWidth = 1; ctx.lineCap = ctx.lineJoin = 'butt';
 }
 
 function groundEllipse(x, y, r) {
@@ -1000,7 +1425,7 @@ const lighten = (c, t) => mix(c, '#ffffff', t), darken = (c, t) => mix(c, '#0000
 
 // While drawing a character, P() turns its colours white (hit flash) or red (winding up).
 let paintMode = null;
-const P = c => paintMode === 'flash' ? '#ffffff' : paintMode === 'tint' ? mix(c, '#ff3a2a', 0.55) : c;
+const P = c => paintMode === 'flash' ? '#ffffff' : paintMode === 'tint' ? mix(c, '#ff3a2a', 0.55) : paintMode === 'ice' ? mix(c, '#bfe8ff', 0.6) : c;
 function fill(c) { ctx.fillStyle = P(c); ctx.fill(); }
 const lerp = (a, b, t) => a + (b - a) * t;
 
@@ -1047,36 +1472,75 @@ function drawDogItem(type, color, biting) {
   }
 }
 
-// o: { flip, walk, moving, running, attack (0..1 while attacking, else -1), item, color, eating }
+// How a dog looks: fur colours, saddle patch (undefined = Watson's small patch, null = none),
+// spots, pointy ears, body width (bw), leg length (leg), eye colour, light belly, collar colour, size (s).
+const WATSON_LOOK = { fur: '#cc7a2e', light: '#e8b47c', dark: '#8e4c1a', collar: '#c0392b', s: 1 };
+const COLLARS = { redcollar: '#c0392b', expresscollar: '#2e86de', spikecollar: '#2a2a2e', bandana: '#2e6fd8' };
+const COATS = { raincoat: ['#f4c20d', '#d9a800'], thorncoat: ['#3d5a3a', '#7a5028'], knight: ['#b8c2cc', '#7f8a96'] };
+
+// o: { flip, walk, moving, running, attack (0..1 while attacking, else -1), item, color, eating,
+//      look (default Watson), wear (Watson's outfit), shake (shaking off water), lick, pee, howl }
 const DOG_SCALE = 1.3;
 function drawDog(sx, sy, o) {
-  const fur = '#cc7a2e', light = '#e8b47c', dark = '#8e4c1a';
+  const L = o.look || WATSON_LOOK, wear = o.wear || {};
+  const fur = L.fur, light = L.light, dark = L.dark, bw = L.bw || 1, legL = L.leg || 1, S = DOG_SCALE * (L.s || 1);
   ctx.save();
   ctx.translate(sx, sy);
-  ctx.scale(o.flip ? -DOG_SCALE : DOG_SCALE, DOG_SCALE);
+  ctx.scale(o.flip ? -S : S, S);
   const sw = o.moving ? Math.sin(o.walk) * (o.running ? 0.9 : 0.6) : 0;
   const bob = o.moving ? Math.abs(Math.cos(o.walk)) * (o.running ? 2.2 : 1.3) : Math.sin(time * 2.5) * 0.4;
-  const by = -15 - bob;
-  const leg = (x, a, c) => {
+  const by = -2 - 13 * legL - bob;
+  const boot = (near) => near ? '#f4c20d' : '#c99e08';
+  const leg = (x, a, c, near) => {
+    const len = 13 * legL + bob;
     ctx.save(); ctx.translate(x, by + 3); ctx.rotate(a);
-    ctx.beginPath(); ctx.roundRect(-1.9, -1, 3.8, 13 + bob, 1.9); fill(c);
-    ctx.beginPath(); ctx.ellipse(0.8, 12 + bob, 2.6, 1.6, 0, 0, Math.PI * 2); fill(darken(c, 0.15));
+    ctx.beginPath(); ctx.roundRect(-1.9, -1, 3.8, len, 1.9); fill(c);
+    if (wear.feet === 'rainboots') { ctx.beginPath(); ctx.roundRect(-2.2, len - 6, 4.4, 6, 1.4); fill(boot(near)); }
+    const paw = wear.feet === 'sneakers' ? (near ? '#f4f4f4' : '#cfcfcf') : wear.feet === 'rainboots' ? boot(near) : darken(c, 0.15);
+    ctx.beginPath(); ctx.ellipse(0.8, len - 1, wear.feet ? 3 : 2.6, wear.feet ? 1.9 : 1.6, 0, 0, Math.PI * 2); fill(paw);
+    if (wear.feet === 'sneakers') { ctx.beginPath(); ctx.rect(-0.6, len - 2.4, 3, 0.8); fill('#c0392b'); }
     ctx.restore();
   };
 
+  // Hero cape flutters behind everything.
+  if (wear.body === 'cape') {
+    const fl = Math.sin(time * 9 + o.walk) * 1.5;
+    ctx.beginPath(); ctx.moveTo(8, by - 6); ctx.quadraticCurveTo(-4, by - 9 + fl, -16, by - 2 + fl);
+    ctx.lineTo(-13, by + 5 - fl); ctx.quadraticCurveTo(-2, by + 1, 7, by - 2); ctx.closePath(); fill('#c0392b');
+  }
+
   // Tail wags faster when moving.
   const wag = Math.sin(time * (o.moving ? 16 : 9)) * 0.45;
-  ctx.save(); ctx.translate(-11.5, by - 3); ctx.rotate(-0.9 + wag);
+  ctx.save(); ctx.translate(-11.5 * bw, by - 3); ctx.rotate(-0.9 + wag);
   ctx.beginPath(); ctx.roundRect(-1.7, -11, 3.4, 12, 1.7); fill(fur);
-  ctx.beginPath(); ctx.arc(0, -10.5, 1.8, 0, Math.PI * 2); fill(fur);
+  ctx.beginPath(); ctx.arc(0, -10.5, 1.8, 0, Math.PI * 2); fill(L.belly ? light : fur);
   ctx.restore();
 
-  leg(-8, sw, dark); leg(9, -sw, dark);                     // far legs
-  ctx.beginPath(); ctx.ellipse(0, by, 13.5, 7, 0, 0, Math.PI * 2); fill(fur);
-  ctx.beginPath(); ctx.ellipse(-3, by - 3, 5, 2.5, 0.2, 0, Math.PI * 2); fill(darken(fur, 0.12));   // saddle patch
-  leg(-5.5, -sw, fur); leg(11, sw, fur);                    // near legs
+  leg(-8 * bw, sw, dark, false); leg(9 * bw, -sw, dark, false);   // far legs
+  ctx.beginPath(); ctx.ellipse(0, by, 13.5 * bw, 7, 0, 0, Math.PI * 2); fill(fur);
+  if (L.belly) { ctx.beginPath(); ctx.ellipse(1, by + 3.2, 10 * bw, 3.4, 0, 0, Math.PI * 2); fill(light); }
+  if (L.saddle === undefined) { ctx.beginPath(); ctx.ellipse(-3, by - 3, 5, 2.5, 0.2, 0, Math.PI * 2); fill(darken(fur, 0.12)); }   // saddle patch
+  else if (L.saddle) { ctx.beginPath(); ctx.ellipse(-1.5, by - 3.2, 9 * bw, 3.8, 0.08, 0, Math.PI * 2); fill(L.saddle); }
+  if (L.spots) for (const [x, y, r] of [[-7, -3, 1.6], [-2, 1, 1.3], [4, -4, 1.5], [8, 0, 1.1], [-10, 1, 1.1], [1, -5, 1]]) { ctx.beginPath(); ctx.arc(x * bw, by + y, r, 0, Math.PI * 2); fill(dark); }
+  if (COATS[wear.body]) {   // coats and armor cover the back
+    const [c1, c2] = COATS[wear.body];
+    ctx.save(); ctx.beginPath(); ctx.ellipse(0, by, 13.5 * bw + 0.6, 7.6, 0, 0, Math.PI * 2); ctx.clip();
+    ctx.beginPath(); ctx.rect(-16, by - 9, 25, 10); fill(c1);
+    ctx.beginPath(); ctx.rect(-16, by + 0.4, 25, 1.6); fill(c2);
+    if (wear.body === 'knight') for (const x of [-9, -4, 1, 6]) { ctx.beginPath(); ctx.rect(x, by - 8, 0.8, 9); fill(c2); }
+    if (wear.body === 'raincoat') for (const x of [-6, 0]) { ctx.beginPath(); ctx.arc(x, by - 1.5, 0.8, 0, Math.PI * 2); fill(c2); }
+    ctx.restore();
+    if (wear.body === 'thorncoat') for (const x of [-9, -5, -1, 3]) { ctx.beginPath(); ctx.moveTo(x - 1.2, by - 6.2); ctx.lineTo(x, by - 9); ctx.lineTo(x + 1.2, by - 6.2); fill(c2); }
+  }
+  // Near hind leg: lifted while peeing.
+  leg(-5.5 * bw, o.pee ? 1.25 : -sw, fur, true); leg(11 * bw, sw, fur, true);   // near legs
+  if (o.pee) {   // a little yellow stream
+    ctx.strokeStyle = P('#f2d43a'); ctx.lineWidth = 1.4; ctx.setLineDash([2, 1.5]); ctx.lineDashOffset = -time * 30;
+    ctx.beginPath(); ctx.moveTo(-6 * bw, by + 4); ctx.quadraticCurveTo(-13, by + 2, -15, 0); ctx.stroke();
+    ctx.setLineDash([]); ctx.lineWidth = 1;
+  }
 
-  // Head lunges and tosses during an attack.
+  // Head lunges and tosses during an attack, shakes off water, or reaches up to lick.
   let tilt = 0, lunge = 0;
   if (o.attack >= 0) {
     const t = o.attack;
@@ -1084,31 +1548,101 @@ function drawDog(sx, sy, o) {
     lunge = Math.sin(t * Math.PI) * 5;
   }
   if (o.eating) tilt = 0.25 + Math.sin(time * 18) * 0.12;
+  if (o.shake) tilt = Math.sin(time * 48) * 0.5;
+  if (o.lick) { tilt = -0.5 + Math.sin(time * 16) * 0.12; lunge = 2 + Math.sin(time * 16) * 1.5; }
+  if (o.howl) tilt = -0.85;
   ctx.save();
-  ctx.translate(10 + lunge, by - 5);
+  ctx.translate(10 * bw + lunge, by - 5);
   ctx.rotate(tilt);
   ctx.beginPath(); ctx.ellipse(0, 0, 5, 6, 0.3, 0, Math.PI * 2); fill(fur);                   // neck
-  ctx.beginPath(); ctx.roundRect(-3.5, 1, 7, 2.6, 1.2); fill('#c0392b');                       // collar
-  ctx.beginPath(); ctx.arc(1.5, 4.6, 1.4, 0, Math.PI * 2); fill('#f2c94c');                    // tag
+  const neck = o.wear ? wear.neck : 'redcollar', cc = o.wear ? COLLARS[neck] : L.collar;
+  if (neck) {
+    ctx.beginPath(); ctx.roundRect(-3.5, 1, 7, 2.6, 1.2); fill(cc);                            // collar
+    if (neck === 'bandana') {
+      ctx.beginPath(); ctx.moveTo(-3.2, 3); ctx.lineTo(4.2, 3); ctx.lineTo(1, 9); ctx.closePath(); fill(cc);
+      for (const [x, y] of [[-0.5, 4.5], [2, 5], [1, 7]]) { ctx.beginPath(); ctx.arc(x, y, 0.5, 0, Math.PI * 2); fill('#ffffff'); }
+    } else if (neck === 'spikecollar') {
+      for (const x of [-2.2, 0.4, 3]) { ctx.beginPath(); ctx.moveTo(x - 1, 3.4); ctx.lineTo(x, 5.6); ctx.lineTo(x + 1, 3.4); fill('#d9dde2'); }
+    } else {
+      if (neck === 'expresscollar') { ctx.beginPath(); ctx.rect(-3.5, 2, 7, 0.6); fill('#ffffff'); }
+      ctx.beginPath(); ctx.arc(1.5, 4.6, 1.4, 0, Math.PI * 2); fill('#f2c94c');                // tag
+    }
+  }
   ctx.beginPath(); ctx.arc(3, -5.5, 6.2, 0, Math.PI * 2); fill(fur);                           // head
+  if (L.spots) for (const [x, y, r] of [[0, -8, 1.1], [5, -10, 0.8]]) { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); fill(dark); }
   ctx.beginPath(); ctx.ellipse(8.8, -3.2, 5.2, 3.3, 0.1, 0, Math.PI * 2); fill(light);       // snout
+  if (o.lick) { ctx.beginPath(); ctx.ellipse(12, 0.4 + Math.sin(time * 16) * 1.2, 1.8, 3, -0.4, 0, Math.PI * 2); fill('#ff7a9a'); }   // tongue
   ctx.beginPath(); ctx.ellipse(13.4, -4.3, 1.9, 1.5, 0, 0, Math.PI * 2); fill('#1a1210');     // nose
-  ctx.beginPath(); ctx.arc(4.8, -7.4, 1.3, 0, Math.PI * 2); fill('#1a1210');                  // eye
+  if (L.eye) { ctx.beginPath(); ctx.arc(4.8, -7.4, 1.4, 0, Math.PI * 2); fill(L.eye); ctx.beginPath(); ctx.arc(5, -7.4, 0.7, 0, Math.PI * 2); fill('#1a1210'); }
+  else { ctx.beginPath(); ctx.arc(4.8, -7.4, 1.3, 0, Math.PI * 2); fill('#1a1210'); }         // eye
   ctx.beginPath(); ctx.arc(5.2, -7.9, 0.45, 0, Math.PI * 2); fill('#ffffff');
   ctx.beginPath(); ctx.ellipse(3.6, -9.3, 2, 0.7, -0.2, 0, Math.PI * 2); fill(dark);         // eyebrow
-  const flop = Math.sin(time * 6 + o.walk) * (o.moving ? 0.25 : 0.08);
-  ctx.save(); ctx.translate(0.5, -9.5); ctx.rotate(0.35 + flop);                               // floppy ear
-  ctx.beginPath(); ctx.moveTo(-1.5, 0); ctx.quadraticCurveTo(-5, 4, -3.5, 10); ctx.quadraticCurveTo(0, 9, 2.2, 1); ctx.closePath(); fill(dark);
-  ctx.restore();
+  const flop = o.shake ? Math.sin(time * 48 + 1) * 0.6 : Math.sin(time * 6 + o.walk) * (o.moving ? 0.25 : 0.08);
+  if (L.earUp) {                                                                               // pointy ear
+    ctx.save(); ctx.translate(1.2, -10); ctx.rotate(-0.15 + flop * 0.3);
+    ctx.beginPath(); ctx.moveTo(-2.6, 1.5); ctx.lineTo(0.2, -6.5); ctx.lineTo(3, 1.5); ctx.closePath(); fill(dark);
+    ctx.restore();
+  } else {
+    ctx.save(); ctx.translate(0.5, -9.5); ctx.rotate(0.35 + flop);                             // floppy ear
+    ctx.beginPath(); ctx.moveTo(-1.5, 0); ctx.quadraticCurveTo(-5, 4, -3.5, 10); ctx.quadraticCurveTo(0, 9, 2.2, 1); ctx.closePath(); fill(dark);
+    ctx.restore();
+  }
+  if (wear.head === 'partyhat') {
+    ctx.save(); ctx.translate(3.5, -11.2); ctx.rotate(0.15);
+    ctx.beginPath(); ctx.moveTo(-3.4, 0); ctx.lineTo(3.4, 0); ctx.lineTo(0, -9); ctx.closePath(); fill('#ff5fa2');
+    for (const [x, y] of [[-1, -2.5], [1.2, -4.5], [-0.2, -6.5]]) { ctx.beginPath(); ctx.arc(x, y, 0.6, 0, Math.PI * 2); fill('#ffffff'); }
+    ctx.beginPath(); ctx.arc(0, -9, 1.6, 0, Math.PI * 2); fill('#f2c94c');
+    ctx.restore();
+  } else if (wear.head === 'cowboy') {
+    ctx.beginPath(); ctx.roundRect(-1.5, -16.5, 9, 6.5, 2.5); fill('#8a5a2e');
+    ctx.beginPath(); ctx.ellipse(3, -10.6, 9.5, 2, -0.05, 0, Math.PI * 2); fill('#8a5a2e');
+    ctx.beginPath(); ctx.rect(-1.5, -12.4, 9, 1.3); fill('#3a2210');
+  } else if (wear.head === 'helmet') {
+    ctx.beginPath(); ctx.ellipse(3, -17, 1.8, 3.4, -0.3, 0, Math.PI * 2); fill('#c0392b');   // plume
+    ctx.beginPath(); ctx.arc(3, -8.6, 6.6, Math.PI, Math.PI * 2); fill('#b8c2cc');
+    ctx.beginPath(); ctx.rect(-3.6, -9.2, 13.2, 1.6); fill('#7f8a96');
+  }
   ctx.save(); ctx.translate(10, -1);
   if (o.eating) {
     ctx.beginPath(); ctx.roundRect(-1, -2, 6, 4, 1.2); fill('#e8b04a');
-  } else {
+  } else if (o.item) {
     let ia = 0;
     if (o.attack >= 0) ia = o.attack < 0.3 ? -0.5 : lerp(-0.5, 0.45, Math.min(1, (o.attack - 0.3) / 0.5));
     ctx.rotate(ia);
     drawDogItem(o.item, o.color, o.attack >= 0);
   }
+  ctx.restore();
+  ctx.restore();
+  ctx.restore();
+}
+
+// Watson flopped on his back for belly rubs: paws wiggling in the air, tongue out.
+function drawDogBellyUp(sx, sy, flip) {
+  const L = WATSON_LOOK, fur = L.fur, wig = Math.sin(time * 11);
+  ctx.save(); ctx.translate(sx, sy); ctx.scale(flip ? -DOG_SCALE : DOG_SCALE, DOG_SCALE);
+  ctx.save(); ctx.translate(-12, -3); ctx.rotate(Math.sin(time * 14) * 0.6 - 1.4);           // tail thumping
+  ctx.beginPath(); ctx.roundRect(-1.7, -10, 3.4, 11, 1.7); fill(fur); ctx.restore();
+  const legUp = (x, a, c) => {
+    ctx.save(); ctx.translate(x, -9); ctx.rotate(a);
+    ctx.beginPath(); ctx.roundRect(-1.9, -10, 3.8, 11, 1.9); fill(c);
+    ctx.beginPath(); ctx.ellipse(0, -10, 2.5, 1.7, 0, 0, Math.PI * 2); fill(darken(c, 0.15));
+    ctx.restore();
+  };
+  legUp(-7, -0.3 + wig * 0.2, L.dark); legUp(7, 0.3 - wig * 0.2, L.dark);
+  ctx.beginPath(); ctx.ellipse(0, -6, 13, 6.5, 0, 0, Math.PI * 2); fill(fur);
+  ctx.beginPath(); ctx.ellipse(0, -8.5, 9, 3.2, 0, 0, Math.PI * 2); fill(lighten(fur, 0.12));   // belly (same orange, catching the light)
+  legUp(-4, 0.2 - wig * 0.25, fur); legUp(4, -0.2 + wig * 0.25, fur);
+  // Head lying on its side, upside down and happy
+  ctx.save(); ctx.translate(14, -6); ctx.rotate(0.5);
+  ctx.beginPath(); ctx.roundRect(-5, -3, 6, 2.4, 1); fill('#c0392b');                          // collar
+  ctx.beginPath(); ctx.arc(2, 0, 6, 0, Math.PI * 2); fill(fur);
+  ctx.beginPath(); ctx.ellipse(7, 2.5, 4.6, 3, 0.4, 0, Math.PI * 2); fill(L.light);
+  ctx.beginPath(); ctx.ellipse(10, 5, 1.5, 2.8 + Math.sin(time * 9) * 0.4, -0.3, 0, Math.PI * 2); fill('#ff7a9a');   // tongue lolling
+  ctx.beginPath(); ctx.ellipse(11, 3.6, 1.7, 1.3, 0, 0, Math.PI * 2); fill('#1a1210');          // nose
+  ctx.strokeStyle = P('#1a1210'); ctx.lineWidth = 0.9;                                           // happy closed eye
+  ctx.beginPath(); ctx.arc(3.5, 1.5, 1.4, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); ctx.lineWidth = 1;
+  ctx.save(); ctx.translate(-1, 3); ctx.rotate(-0.6 + wig * 0.15);                                // ear flopped on the ground
+  ctx.beginPath(); ctx.moveTo(-1.5, 0); ctx.quadraticCurveTo(-5, 4, -3.5, 9); ctx.quadraticCurveTo(0, 8, 2.2, 1); ctx.closePath(); fill(L.dark);
   ctx.restore();
   ctx.restore();
   ctx.restore();
@@ -1135,7 +1669,7 @@ function drawPersonItem(type) {
   }
 }
 
-// o: { s, flip, back, walk, moving, armA (item-arm angle), look, seed }
+// o: { s, flip, back, walk, moving, armA (item-arm angle), look, seed, kneel (0..1), bend (lean forward, radians) }
 function drawPerson(sx, sy, o) {
   const L = LOOKS[o.look];
   ctx.save();
@@ -1143,7 +1677,8 @@ function drawPerson(sx, sy, o) {
   ctx.scale(o.flip ? -o.s : o.s, o.s);
   const sw = o.moving ? Math.sin(o.walk) : 0;
   const bob = o.moving ? Math.abs(Math.cos(o.walk)) * 1.3 : Math.sin(time * 2.2 + (o.seed || 0)) * 0.5;
-  const tw = 7 * L.wide, hipY = -14, shY = -26 - bob * 0.5;
+  const tw = 7 * L.wide, hipY = -14, shY = -26 - bob * 0.5, kneel = o.kneel || 0;
+  ctx.translate(0, 6 * kneel);   // kneeling: everything drops, legs fold
   const limb = (x, y, a, len, w, c, end) => {
     ctx.save(); ctx.translate(x, y); ctx.rotate(a);
     ctx.beginPath(); ctx.roundRect(-w, -w, w * 2, len + w, w); fill(c);
@@ -1153,9 +1688,10 @@ function drawPerson(sx, sy, o) {
   const shoe = () => { ctx.beginPath(); ctx.ellipse(1.2, 0.5, 3.2 * L.wide, 1.8, 0, 0, Math.PI * 2); fill(L.shoes); };
   const hand = () => { ctx.beginPath(); ctx.arc(0, 0.5, 2.1 * L.wide, 0, Math.PI * 2); fill(L.skin); };
 
+  limb(-1.5, hipY - bob, -sw * 0.55, 13 + bob - 6 * kneel, 2.4 * L.wide, darken(L.legs, 0.2), shoe);   // far leg
+  limb(1.5, hipY - bob, sw * 0.55, 13 + bob - 6 * kneel, 2.4 * L.wide, L.legs, shoe);                   // near leg
+  if (o.bend) { ctx.translate(0, hipY); ctx.rotate(o.bend); ctx.translate(0, -hipY); }   // lean over from the hips
   limb(-2, shY + 2, 0.35 - sw * 0.5, 10, 2 * L.wide, darken(L.sleeve, 0.2), hand);              // far arm
-  limb(-1.5, hipY - bob, -sw * 0.55, 13 + bob, 2.4 * L.wide, darken(L.legs, 0.2), shoe);        // far leg
-  limb(1.5, hipY - bob, sw * 0.55, 13 + bob, 2.4 * L.wide, L.legs, shoe);                        // near leg
 
   // Torso
   ctx.beginPath(); ctx.roundRect(-tw, shY, tw * 2, hipY - shY + 2 - bob, 3 * L.wide); fill(L.body);
@@ -1229,8 +1765,14 @@ const LOOKS = {
 function drawJackie() {
   const p = player, s = toScreen(JACKIE.x, JACKIE.y);
   shadow(JACKIE.x, JACKIE.y, 0.25);
-  const near = Math.hypot(p.x - JACKIE.x, p.y - JACKIE.y) < 3.5;
+  const near = Math.hypot(p.x - JACKIE.x, p.y - JACKIE.y) < 3.5, sc = p.scene;
   const { flip } = screenFacing(p.x - JACKIE.x, p.y - JACKIE.y);
+  if (sc) {   // kneeling down for Watson: laughing at his kisses, then rubbing his belly
+    const rub = sc.t > SCENE_LICK;
+    drawPerson(s.x, s.y, { s: 1.4, flip, back: false, walk: 0, moving: false, seed: 2, look: 'jackie',
+      kneel: Math.min(1, sc.t * 4), bend: rub ? 0.5 : 0.12, armA: rub ? -1.05 + Math.sin(time * 11) * 0.3 : -1.7 + Math.sin(time * 5) * 0.15 });
+    return;
+  }
   drawPerson(s.x, s.y, { s: 1.4, flip, back: false, walk: 0, moving: false, seed: 2,
     armA: near ? -2.9 + Math.sin(time * 8) * 0.35 : -0.3, look: 'jackie' });
 }
@@ -1421,39 +1963,19 @@ function drawPlant(sx, sy, e, pose) {
   ctx.restore();
 }
 
-// Purple pollution glow under bosses.
-function drawTaintAura(e) {
-  const pulse = 0.5 + Math.sin(time * 3 + e.seed) * 0.2;
-  ctx.fillStyle = `rgba(177,76,255,${0.25 * pulse + 0.1})`;
-  groundEllipse(e.x, e.y, e.r + 0.45); ctx.fill();
-  const s = toScreen(e.x, e.y);
-  for (let i = 0; i < 4; i++) {
-    const t = (time * 0.6 + i / 4 + e.seed) % 1;
-    ctx.globalAlpha = 0.7 * (1 - t);
-    ctx.fillStyle = TOXIC;
-    ctx.beginPath(); ctx.arc(s.x + Math.sin(i * 2.3 + time) * 14 * e.s, s.y - t * e.h, 2 + i % 2, 0, Math.PI * 2); ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-}
-
-
 function drawEnemy(e) {
   shadow(e.x, e.y, e.r);
-  if (e.boss) drawTaintAura(e);
   const s = toScreen(e.x, e.y);
-  paintMode = e.flash > 0 ? 'flash' : e.state === 'windup' && Math.floor(time * 12) % 2 ? 'tint' : null;
-  const { flip, back } = screenFacing(e.fx, e.fy);
+  paintMode = e.flash > 0 ? 'flash' : e.frozen > 0 ? 'ice' : e.state === 'windup' && Math.floor(time * 12) % 2 ? 'tint' : null;
+  const { flip } = screenFacing(e.fx, e.fy);
   const prog = e.state === 'windup' ? Math.min(1, (1 - e.t / e.tMax) * 1.6) : 0;
   const slump = e.state === 'recover' && e.punishable;
-  if (e.boss) {
-    let armA = e.moving ? -0.45 + Math.sin(e.walk) * 0.3 : -0.5;
-    if (prog > 0) armA = lerp(-0.5, -3.5, prog);   // item raised overhead
-    else if (slump) armA = -0.2;                   // swung down, off balance
-    drawPerson(s.x, s.y, { s: e.s, flip, back, walk: e.walk, moving: e.moving, seed: e.seed, armA, look: e.look, tainted: true });
-  } else {
-    drawPlant(s.x, s.y, e, { flip, prog, slump });
-  }
+  drawPlant(s.x, s.y, e, { flip, prog, slump });
   paintMode = null;
+  if (e.frozen > 0) {   // ice crystals
+    ctx.fillStyle = 'rgba(200,235,255,.8)';
+    for (let k = 0; k < 3; k++) { const a = k * 2.1 + e.seed; ctx.beginPath(); ctx.arc(s.x + Math.cos(a) * 10 * e.s, s.y - e.h * 0.5 + Math.sin(a) * 8, 2, 0, Math.PI * 2); ctx.fill(); }
+  }
   const top = s.y - e.h - 8;
   if (e.hp < e.maxHp || e === target) {
     ctx.fillStyle = '#300'; ctx.fillRect(s.x - 18, top - 2, 36, 4);
@@ -1476,15 +1998,64 @@ function drawPlayer() {
     ctx.beginPath(); ctx.ellipse(-5, -6, 2.5, 5, 0.6, 0, Math.PI * 2); fill('#8e4c1a');
     ctx.beginPath(); ctx.rect(-8, 3, 6, 2.2); fill('#c0392b');
     ctx.restore();
+  } else if (p.scene && p.scene.t > SCENE_LICK) {
+    drawDogBellyUp(s.x, s.y, screenFacing(p.face.x, p.face.y).flip);
   } else {
     let { flip } = screenFacing(p.face.x, p.face.y);
     if (p.whirl > 0) flip = Math.floor(p.whirl * 20) % 2 === 0;   // zoomies: spinning in circles
     const wpn = WEAPONS[p.weapon];
-    drawDog(s.x, s.y, { flip, walk: p.walk, moving: p.moving || p.whirl > 0, running: p.running || p.whirl > 0,
-      attack: p.swing > 0 ? 1 - p.swing / p.swingMax : -1, item: wpn.type, color: wpn.color, eating: p.drink > 0 });
+    const dog = y => drawDog(s.x, y, { flip, walk: p.walk, moving: p.moving || p.whirl > 0, running: p.running || p.whirl > 0,
+      attack: p.chew ? (time * 3) % 1 : p.swing > 0 ? 1 - p.swing / p.swingMax : -1, item: wpn.type, color: wpn.color, eating: p.drink > 0,
+      wear: p.wear, shake: p.shake > 0, lick: !!p.scene, pee: p.pee && trail.length > 0 && !p.swimming });
+    if (p.swimming) swimming(s, dog); else dog(s.y);
+    if (p.shake > 0) {   // water droplets flying off his head
+      const hx = s.x + (flip ? -17 : 17), hy = s.y - 34;
+      ctx.fillStyle = '#9fd4ff';
+      for (let k = 0; k < 6; k++) {
+        const a = k * 1.05 + time * 3, r = 6 + ((time * 40 + k * 4) % 12);
+        ctx.beginPath(); ctx.arc(hx + Math.cos(a) * r, hy + Math.sin(a) * r * 0.6, 1.6, 0, Math.PI * 2); ctx.fill();
+      }
+    }
   }
   paintMode = null;
   ctx.globalAlpha = 1;
+}
+// Swimming: only the top half shows above the water, with a ripple around it.
+function swimming(s, draw) {
+  ctx.save();
+  ctx.beginPath(); ctx.rect(s.x - 80, s.y - 120, 160, 120); ctx.clip();
+  draw(s.y + 10);
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(220,240,255,.75)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.ellipse(s.x, s.y, 20 + Math.sin(time * 5) * 2, 6, 0, 0, Math.PI * 2); ctx.stroke();
+  ctx.lineWidth = 1;
+}
+
+// Dog friends: lost ones sit tangled in polluted vines; saved ones follow Watson or lounge in the yard.
+function drawFriend(f) {
+  const s = toScreen(f.x, f.y), lost = !saved.has(f.id);
+  shadow(f.x, f.y, 0.3 * f.look.s);
+  const { flip } = screenFacing(f.fx, f.fy);
+  const a = f.act;
+  const dog = y => drawDog(s.x, y - (f.z || 0), { flip, walk: f.walk, moving: f.moving, running: f.moving && player.running,
+    attack: a && a.type === 'throw' ? a.t / a.max : -1, look: f.look, howl: (a && a.type === 'howl') || (lost && Math.sin(time * 1.3 + f.ox) > 0.85) });
+  if (inWater(f.x, f.y) && !f.z) swimming(s, dog); else dog(s.y);
+  if (!lost) return;
+  // Thorny purple vines wrapped around them
+  ctx.lineWidth = 2.5; ctx.strokeStyle = '#5d3a7a';
+  for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.ellipse(s.x, s.y - 10 - k * 8, 19 - k * 2, 5, (k - 1) * 0.25, 0, Math.PI * 2); ctx.stroke(); }
+  ctx.lineWidth = 1;
+  for (let k = 0; k < 8; k++) {
+    const an = k * 0.8, x = s.x + Math.cos(an) * 18, y = s.y - 12 - (k % 3) * 8 + Math.sin(an) * 4;
+    ctx.fillStyle = k % 2 ? '#c9a0dc' : '#4a7a34';
+    ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x, y - 4); ctx.lineTo(x + 2, y); ctx.fill();
+  }
+  // Freeing progress
+  if (player.chew && player.chew.f === f) {
+    ctx.strokeStyle = '#9be37a'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(s.x, s.y - 52, 8, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - player.chew.t / 1.1)); ctx.stroke();
+    ctx.lineWidth = 1;
+  }
 }
 
 // Watson's doghouse: the safe spot in the middle of town.
@@ -1558,22 +2129,30 @@ function drawHUDInner() {
   // HP and stamina bars grow as you level those stats.
   bar(18, 18, maxHp() * 2.4, 14, p.hp / maxHp(), '#b3191c');
   bar(18, 40, maxSta() * 2.4, 8, p.sta / maxSta(), '#3fae5a');
+  bar(18, 54, maxPee() * 4, 5, p.bladder / maxPee(), p.pee ? '#ffe066' : '#c9a83a');   // pee left
   ctx.font = 'bold 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.fillStyle = '#fff';
   ctx.fillText(`${Math.ceil(p.hp)} / ${maxHp()}`, 24, 29);
 
   ctx.font = 'bold 14px system-ui, sans-serif';
-  ctx.fillStyle = '#e8e4e0'; ctx.fillText(`Lv ${p.level}`, 18, 70);
+  ctx.fillStyle = '#e8e4e0'; ctx.fillText(`Lv ${p.level}`, 18, 78);
   const lw = ctx.measureText(`Lv ${p.level}`).width;
-  ctx.fillStyle = '#f2c94c'; ctx.fillText(`${p.xp} XP`, 28 + lw, 70);
-  // Bosses beaten: one purple pip per boss
-  BOSSES.forEach((b, i) => {
-    ctx.beginPath(); ctx.arc(24 + i * 14, 84, 4.5, 0, Math.PI * 2);
-    if (defeated.has(b.name)) { ctx.fillStyle = '#b14cff'; ctx.fill(); } else { ctx.strokeStyle = 'rgba(214,168,255,.6)'; ctx.lineWidth = 1.5; ctx.stroke(); ctx.lineWidth = 1; }
+  ctx.fillStyle = '#f2c94c'; ctx.fillText(`${p.xp} XP`, 28 + lw, 78);
+  // Turf claimed, then one pip per dog friend (filled once saved)
+  ctx.font = 'bold 12px system-ui, sans-serif'; ctx.fillStyle = '#9be37a';
+  const tt = `Turf ${Math.floor(turfFrac() * 100)}%`;
+  ctx.fillText(tt, 18, 97);
+  const px = 30 + ctx.measureText(tt).width;
+  FRIENDS.forEach((f, i) => {
+    ctx.beginPath(); ctx.arc(px + i * 13, 93, 4.5, 0, Math.PI * 2);
+    if (saved.has(f.id)) { ctx.fillStyle = f.look.fur; ctx.fill(); ctx.strokeStyle = p.buddy === f.id ? '#ffffff' : 'rgba(0,0,0,.5)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+    else { ctx.strokeStyle = 'rgba(230,220,200,.5)'; ctx.lineWidth = 1.5; ctx.stroke(); }
+    ctx.lineWidth = 1;
   });
   // Dropped XP still out there: a little bone and the amount
   if (bloodstain) {
-    ctx.save(); ctx.translate(90, 84); ctx.rotate(-0.3); paintMode = null; drawBone(-4, 4, '#cfe9b4'); ctx.restore();
-    ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = '#ffb4a0'; ctx.fillText(`${bloodstain.xp}`, 102, 88);
+    const bx = px + FRIENDS.length * 13 + 8;
+    ctx.save(); ctx.translate(bx, 93); ctx.rotate(-0.3); paintMode = null; drawBone(-4, 4, '#cfe9b4'); ctx.restore();
+    ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = '#ffb4a0'; ctx.fillText(`${bloodstain.xp}`, bx + 12, 97);
   }
 
   drawHint();
@@ -1581,11 +2160,11 @@ function drawHUDInner() {
 
   // Locked-on target, top centre.
   if (target) {
-    const bw = Math.min(target.boss ? 460 : 300, W - 60);
-    const ty = W < 760 ? 120 : 26;   // narrow (phone) screens: below the stats so they don't overlap
-    ctx.textAlign = 'center'; ctx.fillStyle = target.boss ? '#e3b8ff' : '#e8e4e0'; ctx.font = (target.boss ? '18px' : '14px') + ' Georgia, serif';
+    const bw = Math.min(300, W - 60);
+    const ty = W < 760 ? 128 : 26;   // narrow (phone) screens: below the stats so they don't overlap
+    ctx.textAlign = 'center'; ctx.fillStyle = '#e8e4e0'; ctx.font = '14px Georgia, serif';
     ctx.fillText(`${target.name}  ·  Lv ${target.lvl}`, W / 2, ty);
-    bar(W / 2 - bw / 2, ty + 8, bw, target.boss ? 10 : 8, target.hp / target.maxHp, target.boss ? '#8e44ad' : '#b3191c');
+    bar(W / 2 - bw / 2, ty + 8, bw, 8, target.hp / target.maxHp, '#b3191c');
   }
 
   if (isTouch) { drawJoystick(); return; }   // phones use on-screen buttons instead
@@ -1597,7 +2176,10 @@ function drawHUDInner() {
     { key: 'Q', label: `Biscuit ${p.flasks}/${p.maxFlasks}`, owned: p.flasks > 0, cd: 0 },
     { key: 'Space', label: 'Roll', owned: true, cd: 0 },
     { key: 'Shift', label: 'Run', owned: true, cd: 0 },
+    { key: 'P', label: p.pee ? 'Peeing' : 'Pee', owned: p.bladder > 0, cd: 0 },
   ];
+  const b = buddy();
+  if (b && b.kind === 'attack') slots.push({ key: 'F', label: b.moveName, owned: true, cd: b.cd / b.cdBase });
   const size = 62, gap = 8, total = slots.length * size + (slots.length - 1) * gap;
   const x0 = (W - total) / 2, y0 = H - size - 16;
   slots.forEach((s, i) => {
@@ -1620,7 +2202,7 @@ function drawHUDInner() {
 function drawInteract() {
   const it = interactTarget();
   if (!it || paused || isTouch) return;   // phones: the big button itself changes to REST / TRADE
-  const label = it === 'fred' ? 'Trade with Fred' : 'Rest';
+  const label = it === 'fred' ? 'Trade with Fred' : it === 'free' ? 'Free the dog' : 'Rest';
   const key = 'Click';
   ctx.font = 'bold 14px system-ui, sans-serif';
   const kw = ctx.measureText(key).width + 14, w = kw + ctx.measureText(label).width + 30;
@@ -1629,6 +2211,7 @@ function drawInteract() {
   ctx.fillStyle = 'rgba(20,14,12,.85)';
   ctx.beginPath(); ctx.roundRect(x, y, w, 30, 15); ctx.fill();
   ctx.strokeStyle = it === 'fred' ? '#f08a24' : '#d08a45'; ctx.lineWidth = 2; ctx.stroke(); ctx.lineWidth = 1;
+  if (player.chew || player.scene) return;
   ctx.fillStyle = it === 'fred' ? '#f08a24' : '#d08a45';
   ctx.beginPath(); ctx.roundRect(x + 6, y + 5, kw, 20, 10); ctx.fill();
   ctx.textAlign = 'left'; ctx.fillStyle = '#1a120e'; ctx.fillText(key, x + 13, y + 20);
@@ -1649,6 +2232,7 @@ function draw() {
   ctx.fillStyle = '#0b0a0c';
   ctx.fillRect(0, 0, W, H);
   drawTiles();
+  drawTrail();
   if (bloodstain) drawBloodstain();
   for (const e of enemies) {
     if (e.state === 'windup') drawTelegraph(e);
@@ -1667,11 +2251,19 @@ function draw() {
     { d: CENTER * 2, f: drawDoghouse },
     { d: JACKIE.x + JACKIE.y, f: drawJackie },
     { d: FRED.x + FRED.y, f: drawFred },
+    ...FRIENDS.map(fr => ({ d: fr.x + fr.y, f: () => drawFriend(fr) })),
     ...enemies.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
-      // Mega Bark: a flying bundle of sound waves.
       shadow(pr.x, pr.y, 0.12);
       const s = toScreen(pr.x, pr.y), a = Math.atan2(pr.vy * 0.5 + pr.vx * 0.5, pr.vx - pr.vy);
+      if (pr.kind === 'fire') {   // Ember's flaming ball
+        ctx.save(); ctx.shadowColor = '#ff7a1a'; ctx.shadowBlur = 14;
+        ctx.fillStyle = '#ff9a3a'; ctx.beginPath(); ctx.arc(s.x, s.y - 14, 6, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#ffd25a'; ctx.beginPath(); ctx.arc(s.x, s.y - 15, 3.4, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+        return;
+      }
+      // Mega Bark: a flying bundle of sound waves.
       ctx.save(); ctx.translate(s.x, s.y - 16); ctx.rotate(a);
       ctx.strokeStyle = '#cfe8ff'; ctx.lineCap = 'round';
       ctx.shadowColor = '#9fd4ff'; ctx.shadowBlur = 10;
@@ -1705,19 +2297,28 @@ function draw() {
 // ---------- Learn-as-you-play hints ----------
 // No instruction screen: each hint pops up the first time it's useful and goes away
 // once you've done it (or after a few seconds for the ones that are just warnings).
-const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0, fred: 0, traded: 0 };
+const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0, fred: 0,
+  pal: 0, claims: 0, swaps: 0, swum: 0, shakes: 0, peeOn: 0 };
 const near = (e, d) => Math.hypot(e.x - player.x, e.y - player.y) < d;
 const HINTS = [   // earlier hints win when several apply at once
   { id: 'roll',   text: 'SPACE  to roll out of the red circle', touch: 'Tap ROLL to get out of the red circle',            when: () => enemies.some(e => e.state === 'windup' && near(e, 3)),   done: () => tut.rolls > 0 },
   { id: 'heal',   text: 'Q  to eat a biscuit and heal', touch: 'Tap TREAT to eat a biscuit and heal',                    when: () => player.hp < maxHp() * 0.45 && player.flasks > 0,       done: () => tut.ate > 0 },
   { id: 'tired',  text: "Out of stamina! Back off and catch your breath",  when: () => player.sta <= 0,                                         limit: 4 },
   { id: 'crit',   text: "Yellow ring: they're off balance. Hit them now for a critical!", when: () => enemies.some(e => e.state === 'recover' && e.punishable && near(e, 3.5)), done: () => tut.crits > 0, limit: 8 },
-  { id: 'boss',   text: 'A tainted boss! Bosses chain attacks together, so wait for the yellow ring', when: () => enemies.some(e => e.boss && near(e, 5.5)), limit: 7 },
+  { id: 'water',  text: "Watson hates water! He won't go in", when: () => player.shake > 0 && !hasPower('swim'), limit: 3 },
+  { id: 'free',   text: 'A dog is stuck in polluted vines! Walk up and CLICK to free them', touch: 'A dog is stuck in polluted vines! Walk up and tap FREE',
+    when: () => FRIENDS.some(f => !saved.has(f.id) && near(f, 4.5)), done: () => saved.size > 0, limit: 10 },
+  { id: 'lost',   text: 'Got hit! The pee trail washed away. Start over', when: () => time - trailLostT < 2.5, limit: 6 },
   { id: 'attack', text: 'CLICK  to attack toward the mouse', touch: 'Tap the big button to attack',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
   { id: 'bone',   text: 'Your dropped XP glows like a bone. Go get it back!', when: () => !!bloodstain,                                       done: () => !bloodstain, limit: 8 },
-  { id: 'trophy', text: 'You got a boss trophy! Fred might trade something rare for it', touch: 'You got a boss trophy! Fred might trade something rare for it',
-    when: () => player.trophies.size > 0, done: () => tut.traded > 0, limit: 10 },
-  { id: 'fred',   text: 'Fred the cat sells gear and tricks. Walk up to Fred', touch: 'Fred the cat sells gear and tricks. Walk up to Fred',
+  { id: 'pee',    text: 'P to pee. Walk a loop back to your turf to claim it', touch: 'Tap PEE, then walk a loop back to your turf',
+    when: () => tut.playT > 25 && !player.pee && distC(player.x, player.y) < 9, done: () => tut.claims > 0, limit: 12 },
+  { id: 'peeing', text: 'Loop back to the yellow line to claim it. Don\'t get hit!', when: () => player.pee && trail.length > 3, done: () => tut.claims > 0, limit: 8 },
+  { id: 'swim',   text: 'Splash loves water! Now Watson can swim too', when: () => hasPower('swim'), done: () => tut.swum > 1, limit: 8 },
+  { id: 'palmove', text: () => `F for ${buddy().name}'s ${buddy().moveName}`, touch: () => `Tap ${buddy().verb} for ${buddy().name}'s ${buddy().moveName}`,
+    when: () => { const b = buddy(); return !!b && b.kind === 'attack' && enemies.some(e => near(e, 4)); }, done: () => tut.pal > 0 },
+  { id: 'swap',   text: 'Swap dog friends at the doghouse', when: () => saved.size >= 2 && distC(player.x, player.y) < 6, done: () => tut.swaps > 0, limit: 8 },
+  { id: 'fred',   text: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred', touch: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred',
     when: () => player.xp >= WEAPONS[1].cost && distC(player.x, player.y) < 5 && !nearFred(), done: () => tut.fred > 0, limit: 12 },
   { id: 'spend',  text: 'Enough XP to level up! Head home to the doghouse', when: () => player.xp >= levelCost(player.level) && distC(player.x, player.y) >= SAFE_R, done: () => tut.shop > 0, limit: 10 },
   { id: 'whirl',  text: '2  for Zoomies', touch: 'Tap ZOOM for Zoomies',                                  when: () => player.skills.has('whirl') && !paused,                  done: () => tut.whirl > 0 },
@@ -1740,8 +2341,9 @@ function updateHints(dt) {
 }
 function drawHint() {
   if (!hint || paused) return;
-  const y = isTouch ? (W < 760 ? 170 : 90) : H - (interactTarget() ? 162 : 112);
-  const text = isTouch && hint.touch ? hint.touch : hint.text;
+  const y = isTouch ? (W < 760 ? 178 : 90) : H - (interactTarget() ? 162 : 112);
+  let text = isTouch && hint.touch ? hint.touch : hint.text;
+  if (typeof text === 'function') text = text();
   ctx.font = 'bold 16px system-ui, sans-serif';
   const w = ctx.measureText(text).width + 36;
   ctx.globalAlpha = hintFade * (0.85 + Math.sin(performance.now() / 250) * 0.15);
