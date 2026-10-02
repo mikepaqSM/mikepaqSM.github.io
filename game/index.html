@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Watson Dog">
+<meta name="theme-color" content="#0b0a0c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Watson Dog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +31,7 @@
   .tbtn.off { opacity: .35; }
   .tbtn.cool { background: rgba(10,8,8,.75); }
   .tbtn:active { background: rgba(208,138,69,.5); }
+  #tChomp.act { background: rgba(208,138,69,.85); color: #1a120e; }
   #tChomp { width: 86px; height: 86px; right: calc(22px + env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); font-size: 14px; }
   #tRoll  { width: 64px; height: 64px; right: calc(120px + env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); }
   #tZoom  { width: 54px; height: 54px; right: calc(118px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); }
@@ -126,7 +133,14 @@ let W, H;
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 let VIEW = 1;   // < 1 zooms out on small (phone) screens
+// Notch / rounded-corner insets, so the HUD isn't hidden in landscape full screen.
+const safeProbe = document.createElement('div');
+safeProbe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)';
+document.body.appendChild(safeProbe);
+const SAFE = { l: 0, t: 0 };
 function resize() {
+  const cs = getComputedStyle(safeProbe);
+  SAFE.l = parseFloat(cs.paddingLeft) || 0; SAFE.t = parseFloat(cs.paddingTop) || 0;
   VIEW = clamp(Math.min(innerWidth, innerHeight * 1.6) / 950, 0.62, 1);
   W = canvas.width = Math.round(innerWidth / VIEW); H = canvas.height = Math.round(innerHeight / VIEW);
   canvas.style.width = innerWidth + 'px'; canvas.style.height = innerHeight + 'px';
@@ -138,16 +152,16 @@ const distC = (x, y) => Math.hypot(x - CENTER, y - CENTER);
 
 // ---------- Game data (tweak these to balance the game) ----------
 const WEAPONS = [
-  { name: 'Puppy Teeth',   dmg: 10, cost: 0,    color: '#ffffff', type: 'bite',      desc: 'Just your own chompers' },
-  { name: 'Fetch Stick',   dmg: 18, cost: 40,   color: '#8a5a2e', type: 'stick',     desc: 'A really good stick' },
-  { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#c8ccd4', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
-  { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', type: 'frisbee',   desc: 'A frisbee with a serrated edge' },
-  { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', type: 'flamebone', desc: 'A legendary bone that never stops burning' },
-  { name: 'Moon Bone',     dmg: 95, cost: 0,    color: '#cfe8ff', type: 'moonbone',  desc: 'A glowing bone from Fred\'s secret stash', rare: true },
+  { name: 'Puppy Teeth',   dmg: 10, cost: 0,    color: '#ffffff', verb: 'BITE', type: 'bite',      desc: 'Just your own chompers' },
+  { name: 'Fetch Stick',   dmg: 18, cost: 40,   color: '#8a5a2e', verb: 'WHACK', type: 'stick',     desc: 'A really good stick' },
+  { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#c8ccd4', verb: 'BONK', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
+  { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', verb: 'SLASH', type: 'frisbee',   desc: 'A frisbee with a serrated edge' },
+  { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', verb: 'SCORCH', type: 'flamebone', desc: 'A legendary bone that never stops burning' },
+  { name: 'Moon Bone',     dmg: 95, cost: 0,    color: '#cfe8ff', verb: 'SMITE', type: 'moonbone',  desc: 'A glowing bone from Fred\'s secret stash', rare: true },
 ];
 
 const SKILLS = [
-  { id: 'strike',   key: '1', name: 'Chomp',     cost: 0,   cd: 0.75, sta: 20, lock: 0.35, desc: 'Chomp or swing your fetch gear toward the mouse (click) or at the locked-on enemy (1 / J).' },
+  { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.75, sta: 20, lock: 0.35, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
   { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
   { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, cd: 1.6,  sta: 25, lock: 0.4,  desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
@@ -313,7 +327,12 @@ function updateTouchButtons() {
     const el = tb(id); el.classList.toggle('off', off); el.classList.toggle('cool', cool);
     if (sub !== undefined) el.querySelector('small').textContent = sub;
   };
-  set('tChomp', false, cooldowns.strike > 0);
+  // The big button says what it will do: REST / TRADE at home, otherwise your weapon's verb.
+  const it = interactTarget(), label = it === 'fred' ? 'TRADE' : it === 'rest' ? 'REST' : WEAPONS[p.weapon].verb;
+  const btn = tb('tChomp');
+  if (btn.textContent !== label) btn.textContent = label;
+  btn.classList.toggle('act', !!it);
+  set('tChomp', false, !it && cooldowns.strike > 0);
   set('tRoll', p.sta <= 0, false);
   set('tZoom', !p.skills.has('whirl'), cooldowns.whirl > 0, p.skills.has('whirl') ? '' : '80 XP');
   set('tBark', !p.skills.has('fireball'), cooldowns.fireball > 0, p.skills.has('fireball') ? '' : '200 XP');
@@ -340,6 +359,20 @@ function openOverlay(id) {
     else { tut.fred++; speak('fred', pick(FRED_LINES)); }
   }
 }
+// Phones: go full screen (hides the browser's tab bar) when the player taps, where the browser allows it.
+// iPhones don't allow this in Safari; adding the game to the Home Screen opens it full screen instead.
+function goFullscreen() {
+  const el = document.documentElement;
+  if (!isTouch || document.fullscreenElement || document.webkitFullscreenElement) return;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!req) return;
+  try {
+    const pr = req.call(el, { navigationUI: 'hide' });
+    if (pr && pr.then) pr.then(() => screen.orientation && screen.orientation.lock && screen.orientation.lock('landscape').catch(() => {})).catch(() => {});
+  } catch (e) {}
+}
+addEventListener('pointerup', () => { if (innerWidth > innerHeight) goFullscreen(); });
+
 function closeOverlays() {
   if (player.dead) return;
   ['title', 'shop', 'win'].forEach(o => overlay(o).classList.remove('open'));
@@ -1466,6 +1499,11 @@ function bar(x, y, w, h, frac, color) {
 }
 
 function drawHUD() {
+  ctx.save(); ctx.translate(SAFE.l / VIEW, SAFE.t / VIEW);
+  drawHUDInner();
+  ctx.restore();
+}
+function drawHUDInner() {
   const p = player;
   // HP and stamina bars grow as you level those stats.
   bar(18, 18, maxHp() * 2.4, 14, p.hp / maxHp(), '#b3191c');
@@ -1504,7 +1542,7 @@ function drawHUD() {
 
   // Action bar
   const slots = [
-    ...SKILLS.map(s => ({ key: s.key === '1' ? 'Click' : s.key, label: p.skills.has(s.id) ? s.name : `${s.cost} XP`,
+    ...SKILLS.map(s => ({ key: s.key === '1' ? 'Click' : s.key, label: !p.skills.has(s.id) ? `${s.cost} XP` : s.id === 'strike' ? WEAPONS[p.weapon].verb[0] + WEAPONS[p.weapon].verb.slice(1).toLowerCase() : s.name,
       owned: p.skills.has(s.id), cd: cooldowns[s.id] / s.cd })),
     { key: 'Q', label: `Biscuit ${p.flasks}/${p.maxFlasks}`, owned: p.flasks > 0, cd: 0 },
     { key: 'Space', label: 'Roll', owned: true, cd: 0 },
@@ -1531,9 +1569,9 @@ function drawHUD() {
 // Small bubble at the bottom when Watson can talk to Fred or rest. The attack button activates it.
 function drawInteract() {
   const it = interactTarget();
-  if (!it || paused) return;
+  if (!it || paused || isTouch) return;   // phones: the big button itself changes to REST / TRADE
   const label = it === 'fred' ? 'Trade with Fred' : 'Rest';
-  const key = isTouch ? 'CHOMP' : 'Click';
+  const key = 'Click';
   ctx.font = 'bold 14px system-ui, sans-serif';
   const kw = ctx.measureText(key).width + 14, w = kw + ctx.measureText(label).width + 30;
   // Phones: bottom centre between the stick and the buttons (portrait: above the buttons)
@@ -1625,7 +1663,7 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'tired',  text: "Out of stamina! Back off and catch your breath",  when: () => player.sta <= 0,                                         limit: 4 },
   { id: 'crit',   text: "Yellow ring: they're off balance. Hit them now for a critical!", when: () => enemies.some(e => e.state === 'recover' && e.punishable && near(e, 3.5)), done: () => tut.crits > 0, limit: 8 },
   { id: 'boss',   text: 'A tainted boss! Bosses chain attacks together, so wait for the yellow ring', when: () => enemies.some(e => e.boss && near(e, 5.5)), limit: 7 },
-  { id: 'attack', text: 'CLICK  to chomp toward the mouse', touch: 'Tap CHOMP, or tap where you want to bite',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
+  { id: 'attack', text: 'CLICK  to attack toward the mouse', touch: 'Tap the big button to attack, or tap where you want to strike',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
   { id: 'bone',   text: 'Your dropped XP glows like a bone. Go get it back!', when: () => !!bloodstain,                                       done: () => !bloodstain, limit: 8 },
   { id: 'trophy', text: 'You got a boss trophy! Fred might trade something rare for it', touch: 'You got a boss trophy! Fred might trade something rare for it',
     when: () => player.trophies.size > 0, done: () => tut.traded > 0, limit: 10 },
