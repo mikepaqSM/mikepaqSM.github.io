@@ -57,11 +57,37 @@
   button:hover:not(:disabled) { background: #b83334; }
   button:disabled { background: #352b2d; color: #7d7072; cursor: default; }
   .xp { color: #f2c94c; font-weight: 600; }
-  .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+  .shopHead { display: flex; align-items: center; gap: 12px; }
   kbd { background: #2c2427; border: 1px solid #54424a; border-radius: 4px; padding: 1px 6px; font-size: 12px; }
   .title { font-size: 34px !important; line-height: 1.15; color: #f0d9c8; }
   .died { font-family: Georgia, 'Times New Roman', serif; font-size: 64px; color: #b3191c; letter-spacing: .12em; margin: 0 0 10px; }
   #death .panel { background: none; border: 0; box-shadow: none; text-align: center; }
+  /* Shop menus: compact on small screens so everything fits and stays readable */
+  #shop .panel { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  @media (max-width: 760px), (max-height: 520px) {
+    #shop .panel { width: calc(100vw - 24px - env(safe-area-inset-left) - env(safe-area-inset-right)); max-height: calc(100vh - 16px);
+      padding: 10px 12px; border-radius: 8px; box-sizing: border-box; }
+    #shop .panel h1 { font-size: 18px; margin: 0; }
+    #shop .panel h2 { margin: 5px 0 3px; font-size: 10px; }
+    #shopSub { display: none; }
+    #shop .xp { font-size: 13px; }
+    #shop .row { padding: 4px 8px; gap: 8px; margin-bottom: 4px; }
+    #shop .row .name { font-size: 13px; }
+    #shop .row .desc { font-size: 11px; line-height: 1.25; }
+    #shop .row .val { font-size: 12px; min-width: 18px; }
+    #shop button { font-size: 12px; padding: 5px 10px; }
+    #shop kbd { font-size: 10px; padding: 0 4px; }
+  }
+  /* Phones held sideways: two columns of items so you scroll less */
+  @media (max-height: 520px) and (orientation: landscape) {
+    #shopBody { display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; align-items: start; }
+    #shopBody h2 { grid-column: 1 / -1; }
+    #shopBody .row { margin-bottom: 3px; padding: 3px 8px; }
+    #shop .row .desc { font-size: 10.5px; }
+    #shop .panel h2 { margin: 4px 0 2px; }
+    #shop .panel { padding: 8px 12px; }
+  }
   #title { background: radial-gradient(ellipse at center, rgba(20,12,8,.55) 0%, rgba(8,6,6,.92) 75%); cursor: pointer; }
   .logo { display: flex; flex-direction: column; align-items: center; user-select: none; }
   #logoDog { width: min(360px, 70vw); height: auto; margin-bottom: -18px; }
@@ -96,10 +122,9 @@
 
 <div class="overlay" id="shop">
   <div class="panel">
-    <div class="top"><h1 id="shopTitle">Watson's Doghouse</h1><span class="xp" id="shopXp"></span></div>
+    <div class="top"><h1 id="shopTitle">Watson's Doghouse</h1><span class="shopHead"><span class="xp" id="shopXp"></span><button id="closeShop">Leave</button></span></div>
     <p id="shopSub"></p>
     <div id="shopBody"></div>
-    <p style="margin-top:14px"><button id="closeShop">Leave</button></p>
   </div>
 </div>
 
@@ -163,8 +188,8 @@ const WEAPONS = [
 
 const SKILLS = [
   { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.7,  sta: 16, lock: 0.32, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
-  { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
-  { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, cd: 1.6,  sta: 25, lock: 0.4,  desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
+  { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'Spin attack that hits everyone around you', desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
+  { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
 const CRIT_MULT = 2;   // damage bonus for hitting an enemy right after it attacks
 const ROLL_STA = 22;
@@ -475,7 +500,7 @@ function renderFredWares(section, row) {
   WEAPONS.forEach((w, i) => {
     if (i === 0 || w.rare) return;
     const owned = p.weapon >= i;
-    body.appendChild(row(w.name, `${w.desc}. ${w.dmg} base damage per hit`,
+    body.appendChild(row(w.name, `${w.dmg} damage · ${w.desc}`,
       owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : `${w.cost} XP`,
       !owned && p.xp >= w.cost,
       () => { p.xp -= w.cost; p.weapon = i; }));
@@ -485,7 +510,7 @@ function renderFredWares(section, row) {
   SKILLS.forEach(s => {
     if (s.cost === 0) return;
     const owned = p.skills.has(s.id);
-    body.appendChild(row(`${s.name} <kbd>${s.key}</kbd>`, `${s.desc} (${s.sta} stamina, ${s.cd}s cooldown)`,
+    body.appendChild(row(`${s.name} <kbd>${s.key}</kbd>`, `${s.short} · ${s.sta} stamina`,
       owned ? 'Learned' : `${s.cost} XP`,
       !owned && p.xp >= s.cost,
       () => { p.xp -= s.cost; p.skills.add(s.id); }));
@@ -494,15 +519,15 @@ function renderFredWares(section, row) {
   section('Treats');
   const fc = flaskCost();
   const maxed = p.maxFlasks >= 8;
-  body.appendChild(row('Golden Biscuit', `Carry one more healing biscuit (you have ${p.maxFlasks})`,
+  body.appendChild(row('Golden Biscuit', `+1 healing biscuit (you have ${p.maxFlasks})`,
     maxed ? 'Max' : `${fc} XP`, !maxed && p.xp >= fc,
     () => { p.xp -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; }));
 
   section('Rare trades (boss trophies)');
   RARES.forEach(rr => {
     const owned = p.relics.has(rr.id), has = p.trophies.has(rr.trophy);
-    body.appendChild(row(rr.name, owned ? rr.desc : `${rr.desc} Fred wants the ${rr.trophy}${has ? '.' : ` (beat the ${rr.boss}).`}`,
-      owned ? 'Yours' : has ? `Trade ${rr.trophy}` : 'Need trophy', !owned && has,
+    body.appendChild(row(rr.name, owned || has ? rr.desc : `${rr.desc} Needs the ${rr.trophy}.`,
+      owned ? 'Yours' : has ? 'Trade' : 'Need trophy', !owned && has,
       () => {
         p.trophies.delete(rr.trophy); p.relics.add(rr.id); tut.traded++;
         if (rr.id === 'moonbone') p.weapon = WEAPONS.findIndex(w => w.type === 'moonbone');
