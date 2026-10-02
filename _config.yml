@@ -1,0 +1,3 @@
+# Keep the Claude notes file out of the published website
+exclude:
+  - CLAUDE.md
