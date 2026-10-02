@@ -47,15 +47,13 @@
   #tPause svg { width: 40%; height: 40%; margin: 0; }
   #tChomp { width: 86px; height: 86px; right: calc(22px + env(safe-area-inset-right)); bottom: calc(26px + env(safe-area-inset-bottom)); font-size: 14px; }
   #tRoll  { width: 64px; height: 64px; right: calc(120px + env(safe-area-inset-right)); bottom: calc(20px + env(safe-area-inset-bottom)); }
-  #tZoom  { width: 54px; height: 54px; right: calc(118px + env(safe-area-inset-right)); bottom: calc(96px + env(safe-area-inset-bottom)); }
-  #tBark  { width: 54px; height: 54px; right: calc(56px + env(safe-area-inset-right)); bottom: calc(124px + env(safe-area-inset-bottom)); }
-  #tTreat { width: 54px; height: 54px; right: calc(4px + env(safe-area-inset-right)); bottom: calc(124px + env(safe-area-inset-bottom)); }
   #tPee   { width: 54px; height: 54px; right: calc(194px + env(safe-area-inset-right)); bottom: calc(24px + env(safe-area-inset-bottom)); }
-  #tPal   { width: 54px; height: 54px; right: calc(180px + env(safe-area-inset-right)); bottom: calc(100px + env(safe-area-inset-bottom)); }
   #tPee { color: #ffe27a; }
   #tPee.on { color: #2a170c; border-color: #fff0a0; text-shadow: none; background: radial-gradient(circle at 38% 28%, #fff4b8, #f2c94c 60%, #b98a1a 100%); }
   #tPal { color: #bfe6ff; }
-  #tPal.hide { display: none; }
+  /* Ability slots: filled in order with whatever Watson can do right now (see layoutAbilityButtons) */
+  #tZoom, #tBark, #tTreat, #tPal { width: 54px; height: 54px; }
+  .tbtn.hide { display: none; }
   #tPause { width: 40px; height: 40px; right: calc(10px + env(safe-area-inset-right)); top: calc(10px + env(safe-area-inset-top)); font-size: 14px; }
   .overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: rgba(0, 0, 0, .7); }
@@ -128,8 +126,8 @@
 <div id="touch">
   <button class="tbtn" id="tChomp"><svg viewBox="0 0 24 24"></svg><b></b></button>
   <button class="tbtn" id="tRoll"><svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 1 1-7.4 5H2l3.5-4.5L9 9H6.8A6 6 0 1 0 12 6z"/></svg><b>ROLL</b></button>
-  <button class="tbtn" id="tZoom"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 1-9 9h2.5A6.5 6.5 0 1 0 12 5.5zM12 8a4 4 0 1 1-4 4h2.2A1.8 1.8 0 1 0 12 10.2z"/></svg><b>ZOOM</b><small></small></button>
-  <button class="tbtn" id="tBark"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><path d="M10 7.5a6 6 0 0 1 0 9l-1.4-1.4a4 4 0 0 0 0-6.2zM14 4a10.5 10.5 0 0 1 0 16l-1.4-1.4a8.5 8.5 0 0 0 0-13.2zM18 1a14.5 14.5 0 0 1 0 22l-1.4-1.4a12.5 12.5 0 0 0 0-19.2z"/></svg><b>BARK</b><small></small></button>
+  <button class="tbtn hide" id="tZoom"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 1-9 9h2.5A6.5 6.5 0 1 0 12 5.5zM12 8a4 4 0 1 1-4 4h2.2A1.8 1.8 0 1 0 12 10.2z"/></svg><b>ZOOM</b><small></small></button>
+  <button class="tbtn hide" id="tBark"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><path d="M10 7.5a6 6 0 0 1 0 9l-1.4-1.4a4 4 0 0 0 0-6.2zM14 4a10.5 10.5 0 0 1 0 16l-1.4-1.4a8.5 8.5 0 0 0 0-13.2zM18 1a14.5 14.5 0 0 1 0 22l-1.4-1.4a12.5 12.5 0 0 0 0-19.2z"/></svg><b>BARK</b><small></small></button>
   <button class="tbtn" id="tTreat"><svg viewBox="0 0 24 24"><path d="M7 9.5h10a2.6 2.6 0 1 1 2.5 3.3V13a2.6 2.6 0 1 1-2.5 2.5H7A2.6 2.6 0 1 1 4.5 13v-.2A2.6 2.6 0 1 1 7 9.5z"/></svg><b>TREAT</b><small></small></button>
   <button class="tbtn" id="tPee"><svg viewBox="0 0 24 24"><path d="M12 2.5S5 10.5 5 15a7 7 0 0 0 14 0c0-4.5-7-12.5-7-12.5zm-3 12.5a1.2 1.2 0 0 1 1.2 1.2 2.2 2.2 0 0 0 2.2 2.2 1.2 1.2 0 0 1 0 2.4 4.6 4.6 0 0 1-4.6-4.6A1.2 1.2 0 0 1 9 15z"/></svg><b>PEE</b><small></small></button>
   <button class="tbtn hide" id="tPal"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="16" rx="5" ry="4.2"/><ellipse cx="5.5" cy="10.5" rx="2.2" ry="2.8"/><ellipse cx="18.5" cy="10.5" rx="2.2" ry="2.8"/><ellipse cx="9" cy="5.8" rx="2.1" ry="2.7"/><ellipse cx="15" cy="5.8" rx="2.1" ry="2.7"/></svg><span>PAL</span><small></small></button>
@@ -506,6 +504,19 @@ touchButton('tPause', () => openOverlay('title'));
 // Icons for the big button: it bites, rests, trades or frees depending on what's nearby.
 const BIG_ICONS = { bite: '<path d="M3 6h18v4l-2.25 4-2.25-4-2.25 4L12 10l-2.25 4-2.25-4-2.25 4L3 10z"/><path d="M3 18h18v-1.5l-2.25-3-2.25 3-2.25-3L12 16.5l-2.25-3-2.25 3-2.25-3L3 16.5z" opacity=".75"/>', rest: '<path d="M12 21s-8.5-5.3-8.5-11A4.8 4.8 0 0 1 12 7.2 4.8 4.8 0 0 1 20.5 10c0 5.7-8.5 11-8.5 11z"/>',
   fred: '<path d="M2 12c3-5 9-6 13-3l5-3v12l-5-3c-4 3-10 2-13-3z"/><circle cx="7" cy="11" r="1.2" fill="#2a170c"/>', free: '<ellipse cx="12" cy="16" rx="5" ry="4.2"/><ellipse cx="5.5" cy="10.5" rx="2.2" ry="2.8"/><ellipse cx="18.5" cy="10.5" rx="2.2" ry="2.8"/><ellipse cx="9" cy="5.8" rx="2.1" ry="2.7"/><ellipse cx="15" cy="5.8" rx="2.1" ry="2.7"/>' };
+// The small ability buttons only appear once Watson has that ability, and fill these spots in order.
+const ABILITY_SLOTS = [[4, 124], [56, 124], [118, 96], [180, 100]];   // [right, bottom] in px
+let abilityLayout = '';
+function layoutAbilityButtons(list) {
+  const shown = list.filter(([, on]) => on).map(([id]) => id), key = shown.join();
+  if (key === abilityLayout) return;
+  abilityLayout = key;
+  for (const [id] of list) tb(id).classList.toggle('hide', !shown.includes(id));
+  shown.forEach((id, i) => {
+    const [r, b] = ABILITY_SLOTS[i], el = tb(id);
+    el.style.right = `calc(${r}px + env(safe-area-inset-right))`; el.style.bottom = `calc(${b}px + env(safe-area-inset-bottom))`;
+  });
+}
 function updateTouchButtons() {
   if (!isTouch) return;
   const p = player, set = (id, off, cool, sub) => {
@@ -526,13 +537,13 @@ function updateTouchButtons() {
   sweep('tBark', cooldowns.fireball / SKILLS[2].cd);
   set('tChomp', false, false);
   set('tRoll', p.sta <= 0, false);
-  set('tZoom', !p.skills.has('whirl'), cooldowns.whirl > 0, p.skills.has('whirl') ? '' : '80 XP');
-  set('tBark', !p.skills.has('fireball'), cooldowns.fireball > 0, p.skills.has('fireball') ? '' : '200 XP');
+  set('tZoom', false, cooldowns.whirl > 0, '');
+  set('tBark', false, cooldowns.fireball > 0, '');
   set('tTreat', p.flasks <= 0, p.drink > 0, `${p.flasks}/${p.maxFlasks}`);
   tb('tPee').classList.toggle('on', p.pee);
   set('tPee', p.bladder <= 0, false, `${Math.ceil(p.bladder)}`);
   const b = buddy(), pal = tb('tPal'), hasMove = !!b && b.kind === 'attack';
-  pal.classList.toggle('hide', !hasMove);
+  layoutAbilityButtons([['tTreat', true], ['tZoom', p.skills.has('whirl')], ['tBark', p.skills.has('fireball')], ['tPal', hasMove]]);
   if (hasMove) {
     const span = pal.querySelector('span');
     if (span.textContent !== b.verb) span.textContent = b.verb;
@@ -2399,7 +2410,7 @@ function drawHUDInner() {
 
   // Action bar
   const slots = [
-    ...SKILLS.map(s => ({ key: s.key === '1' ? 'Click' : s.key, label: !p.skills.has(s.id) ? `${s.cost} XP` : s.id === 'strike' ? WEAPONS[p.weapon].verb[0] + WEAPONS[p.weapon].verb.slice(1).toLowerCase() : s.name,
+    ...SKILLS.filter(s => p.skills.has(s.id)).map(s => ({ key: s.key === '1' ? 'Click' : s.key, label: !p.skills.has(s.id) ? `${s.cost} XP` : s.id === 'strike' ? WEAPONS[p.weapon].verb[0] + WEAPONS[p.weapon].verb.slice(1).toLowerCase() : s.name,
       owned: p.skills.has(s.id), cd: cooldowns[s.id] / s.cd })),
     { key: 'Q', label: `Biscuit ${p.flasks}/${p.maxFlasks}`, owned: p.flasks > 0, cd: 0 },
     { key: 'Space', label: 'Roll', owned: true, cd: 0 },

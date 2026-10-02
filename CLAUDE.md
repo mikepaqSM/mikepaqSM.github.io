@@ -71,7 +71,7 @@ in `game/`.
 - Start screen is just the Watson Dog logo.
 - Phone first. Landscape, joystick on the left half, buttons on the right. Only the buttons
   attack or interact (wooden/brass round buttons with SVG icons; a dark wedge sweeps while a move
-  recharges); the big action button shows REST / TRADE near the doghouse / Fred, otherwise
+  recharges; small ability buttons only appear once earned and fill `ABILITY_SLOTS` in order); the big action button shows REST / TRADE near the doghouse / Fred, otherwise
   the gear's verb (BITE, WHACK, BONK...). No zooming. Desktop: WASD, click attacks toward the
   mouse, Space rolls, Shift runs.
 - **Audio: the owner will make all SFX and music themselves. Never generate or add placeholder
