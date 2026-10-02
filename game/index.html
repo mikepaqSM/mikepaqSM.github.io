@@ -105,6 +105,8 @@
   @keyframes blink { 50% { opacity: .2; } }
   .iosTip { display: none; margin-top: 18px; font: 13px system-ui, sans-serif; color: #c4b8b6; text-align: center; max-width: 80vw; }
   .iosTip.show { display: block; }
+  .newGame { display: none; margin-top: 22px; background: none; border: 1px solid rgba(242,230,200,.35); color: rgba(242,230,200,.7); font-size: 12px; padding: 5px 12px; }
+  .newGame.show { display: inline-block; }
 </style>
 </head>
 <body>
@@ -127,6 +129,7 @@
     <div class="logo-text">Watson<span>Dog</span></div>
     <div class="press">press any key</div>
     <div class="iosTip" id="iosTip"></div>
+    <button class="newGame" id="newGame">New game</button>
   </div>
 </div>
 
@@ -816,7 +819,7 @@ function useSkill(id, aim) {
   tut[id]++;
   p.attackLock = s.lock;   // you're committed until the swing finishes
   if (id === 'strike') {
-    const range = 1.3, ang = Math.atan2(p.face.y, p.face.x);
+    const range = 1.75, ang = Math.atan2(p.face.y, p.face.x);   // generous reach so bites land
     p.swing = p.swingMax;
     effects.push({ type: 'arc', x: p.x, y: p.y, ang, range, t: 0.15, max: 0.15, color: WEAPONS[p.weapon].color });
     for (const e of enemies) {
@@ -824,7 +827,7 @@ function useSkill(id, aim) {
       if (d > range + e.r) continue;
       let diff = Math.abs(Math.atan2(dy, dx) - ang);
       if (diff > Math.PI) diff = 2 * Math.PI - diff;
-      if (diff < Math.PI / 3 || d < 0.4) hurtEnemy(e, weaponDmg());
+      if (diff < Math.PI * 0.42 || d < 0.7) hurtEnemy(e, weaponDmg());
     }
   } else if (id === 'whirl') {
     const range = 1.9;
@@ -2300,7 +2303,7 @@ function drawEffect(f) {
   ctx.beginPath();
   if (f.type === 'arc') {
     for (let k = 0; k <= 12; k++) {
-      const an = f.ang - Math.PI / 3 + (k / 12) * (Math.PI * 2 / 3);
+      const an = f.ang - Math.PI * 0.42 + (k / 12) * (Math.PI * 0.84);
       const s = toScreen(f.x + Math.cos(an) * f.range, f.y + Math.sin(an) * f.range);
       k ? ctx.lineTo(s.x, s.y - 14) : ctx.moveTo(s.x, s.y - 14);
     }
@@ -2604,6 +2607,58 @@ function drawLogoDog() {
   drawDog(58, 68, { flip: false, walk: time * 7, moving: true, running: false, attack: -1, item: 'bone', color: '#cfe9b4', eating: false });
   ctx = main;
 }
+
+// ---------- Save game ----------
+// The game saves itself in the browser every few seconds (and when the app is closed).
+// Loading puts Watson back at the doghouse with everything he's earned.
+const SAVE_KEY = 'watsonDogSave1';
+function packTurf() {   // run lengths of 0s and 1s, so the save stays small
+  const runs = []; let cur = 0, n = 0;
+  for (let c = 0; c < N * N; c++) { if (turf[c] === cur) n++; else { runs.push(n); cur = turf[c]; n = 1; } }
+  runs.push(n);
+  return runs;
+}
+let noSave = false;
+function saveGame() {
+  if (player.dead || noSave) return;
+  const p = player;
+  const data = { v: 1,
+    p: { level: p.level, stats: p.stats, xp: p.xp, weapon: p.weapon, skills: [...p.skills], outfits: [...p.outfits], wear: p.wear,
+         buddy: p.buddy, maxFlasks: p.maxFlasks },
+    saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
+    turf: packTurf(), bloodstain, tut, hints: [...hintDone] };
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
+}
+function loadGame() {
+  let d;
+  try { d = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) {}
+  if (!d || d.v !== 1) return false;
+  const p = player;
+  Object.assign(p, { level: d.p.level, stats: { ...p.stats, ...d.p.stats }, xp: d.p.xp, weapon: d.p.weapon, skills: new Set(d.p.skills),
+    outfits: new Set(d.p.outfits), wear: d.p.wear, buddy: d.p.buddy, maxFlasks: d.p.maxFlasks });
+  d.saved.forEach(id => saved.add(id)); Object.assign(bondKills, d.bondKills);
+  d.found.forEach(id => found.add(id)); d.built.forEach(id => built.add(id));
+  for (const o of OBSTACLES) o.gone = d.gone.includes(o.hides);
+  let c = 0, v = 0; turfCount = 0;
+  for (const n of d.turf) { turf.fill(v, c, c + n); if (v) turfCount += n; c += n; v = 1 - v; }
+  dirtyChunks();
+  bloodstain = d.bloodstain; Object.assign(tut, d.tut); d.hints.forEach(h => hintDone.add(h));
+  Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks, bladder: maxPee() });
+  for (const f of FRIENDS) if (saved.has(f.id)) { f.x = CENTER + f.home[0]; f.y = CENTER + f.home[1]; }
+  populate();
+  return true;
+}
+if (loadGame()) overlay('newGame').classList.add('show');
+setInterval(saveGame, 10000);
+addEventListener('pagehide', saveGame);
+document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
+overlay('newGame').addEventListener('click', e => {
+  e.stopPropagation();
+  if (!confirm('Start a new game? Your saved progress will be erased.')) return;
+  noSave = true;
+  try { localStorage.removeItem(SAVE_KEY); } catch (err) {}
+  location.reload();
+});
 
 // ---------- Main loop ----------
 let last = performance.now();
