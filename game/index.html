@@ -155,7 +155,7 @@ const distC = (x, y) => Math.hypot(x - CENTER, y - CENTER);
 const WEAPONS = [
   { name: 'Puppy Teeth',   dmg: 10, cost: 0,    color: '#ffffff', verb: 'BITE', type: 'bite',      desc: 'Just your own chompers' },
   { name: 'Fetch Stick',   dmg: 18, cost: 40,   color: '#8a5a2e', verb: 'WHACK', type: 'stick',     desc: 'A really good stick' },
-  { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#c8ccd4', verb: 'BONK', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
+  { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#a9cc9c', verb: 'BONK', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
   { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', verb: 'SLASH', type: 'frisbee',   desc: 'A frisbee with a serrated edge' },
   { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', verb: 'SCORCH', type: 'flamebone', desc: 'A legendary bone that never stops burning' },
   { name: 'Moon Bone',     dmg: 95, cost: 0,    color: '#cfe8ff', verb: 'SMITE', type: 'moonbone',  desc: 'A glowing bone from Fred\'s secret stash', rare: true },
@@ -1195,7 +1195,7 @@ function drawFred() {
   ctx.fillStyle = '#7a5028'; for (const y of [-10, -5]) ctx.fillRect(-11, y, 18, 1.2);
   ctx.fillStyle = '#b07a45'; ctx.fillRect(-11, -15.5, 18, 2.2);
   ctx.save(); ctx.translate(-6, -15); ctx.rotate(-0.5); ctx.fillStyle = '#8a5a2e'; ctx.fillRect(0, -1, 13, 2.2); ctx.restore();   // a stick
-  ctx.save(); ctx.translate(1, -17); ctx.rotate(0.35); paintMode = null; drawBone(-3, 4, '#f2e6c8'); ctx.restore();                 // a bone
+  ctx.save(); ctx.translate(1, -17); ctx.rotate(0.35); paintMode = null; drawBone(-3, 4, '#cfe9b4'); ctx.restore();                 // a bone
   ctx.fillStyle = '#2ec4b6'; ctx.beginPath(); ctx.ellipse(-8, -16, 4, 1.4, 0, 0, Math.PI * 2); ctx.fill();                      // a frisbee
   ctx.fillStyle = '#f2e6c8'; ctx.font = 'bold 5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText("FRED'S", -2, -6.5);
   ctx.restore();
@@ -1463,12 +1463,12 @@ function drawDoghouse() {
 
 function drawBloodstain() {
   const b = bloodstain, pulse = 0.6 + Math.sin(time * 4) * 0.25;
-  ctx.fillStyle = `rgba(242,201,76,${pulse * 0.4})`;
+  ctx.fillStyle = `rgba(127,212,106,${pulse * 0.4})`;
   groundEllipse(b.x, b.y, 0.5); ctx.fill();
   const s = toScreen(b.x, b.y);
   ctx.save(); ctx.translate(s.x, s.y - 10 - Math.sin(time * 3) * 2); ctx.rotate(-0.4);
-  ctx.globalAlpha = 0.6 + pulse * 0.4; ctx.shadowColor = '#f2c94c'; ctx.shadowBlur = 12;
-  drawBone(-6, 6, '#fff3c4');
+  ctx.globalAlpha = 0.6 + pulse * 0.4; ctx.shadowColor = '#7fd46a'; ctx.shadowBlur = 12;
+  drawBone(-6, 6, '#cfe9b4');
   ctx.restore(); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
 
@@ -1523,7 +1523,7 @@ function drawHUDInner() {
   });
   // Dropped XP still out there: a little bone and the amount
   if (bloodstain) {
-    ctx.save(); ctx.translate(90, 84); ctx.rotate(-0.3); paintMode = null; drawBone(-4, 4, '#fff3c4'); ctx.restore();
+    ctx.save(); ctx.translate(90, 84); ctx.rotate(-0.3); paintMode = null; drawBone(-4, 4, '#cfe9b4'); ctx.restore();
     ctx.font = '12px system-ui, sans-serif'; ctx.fillStyle = '#ffb4a0'; ctx.fillText(`${bloodstain.xp}`, 102, 88);
   }
 
@@ -1714,7 +1714,7 @@ function drawLogoDog() {
   ctx.setTransform(6, 0, 0, 6, 0, 0);
   ctx.fillStyle = 'rgba(0,0,0,.35)';
   ctx.beginPath(); ctx.ellipse(60, 68, 22, 4, 0, 0, Math.PI * 2); ctx.fill();
-  drawDog(58, 68, { flip: false, walk: time * 7, moving: true, running: false, attack: -1, item: 'bone', color: '#f2e6c8', eating: false });
+  drawDog(58, 68, { flip: false, walk: time * 7, moving: true, running: false, attack: -1, item: 'bone', color: '#cfe9b4', eating: false });
   ctx = main;
 }
 
