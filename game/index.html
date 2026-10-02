@@ -7,10 +7,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Watson Dog">
 <meta name="theme-color" content="#0b0a0c">
-<link rel="manifest" href="/game/manifest.webmanifest?v=3">
-<link rel="apple-touch-icon" sizes="180x180" href="/game/icon-180.png?v=2">
-<link rel="apple-touch-icon-precomposed" sizes="180x180" href="/game/icon-180.png?v=2">
-<link rel="icon" type="image/png" sizes="192x192" href="/game/icon-192.png?v=2">
+<link rel="manifest" href="/game/manifest.webmanifest?v=4">
+<link rel="apple-touch-icon" sizes="180x180" href="/game/icon-180.png?v=3">
+<link rel="apple-touch-icon-precomposed" sizes="180x180" href="/game/icon-180.png?v=3">
+<link rel="icon" type="image/png" sizes="192x192" href="/game/icon-192.png?v=3">
 <meta name="mobile-web-app-capable" content="yes">
 <title>Watson Dog</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1693,7 +1693,7 @@ function drawDogItem(type, color, biting) {
 
 // How a dog looks: fur colours, saddle patch (undefined = Watson's small patch, null = none),
 // spots, pointy ears, body width (bw), leg length (leg), eye colour, light belly, collar colour, size (s).
-const WATSON_LOOK = { fur: '#cc7a2e', light: '#e8b47c', dark: '#8e4c1a', collar: '#c0392b', s: 1 };
+const WATSON_LOOK = { fur: '#cc7a2e', light: '#e8b47c', dark: '#8e4c1a', collar: '#c0392b', saddle: null, chest: '#fff6ea', s: 1 };   // all orange, tiny white chest patch
 const COLLARS = { redcollar: '#c0392b', expresscollar: '#2e86de', spikecollar: '#2a2a2e', bandana: '#2e6fd8' };
 const COATS = { raincoat: ['#f4c20d', '#d9a800'], thorncoat: ['#3d5a3a', '#7a5028'], knight: ['#b8c2cc', '#7f8a96'] };
 
@@ -1775,6 +1775,7 @@ function drawDog(sx, sy, o) {
   ctx.translate(10 * bw + lunge, by - 5);
   ctx.rotate(tilt);
   ctx.beginPath(); ctx.ellipse(0, 0, 5, 6, 0.3, 0, Math.PI * 2); fill(fur);                   // neck
+  if (L.chest) { ctx.beginPath(); ctx.ellipse(3, 7.2, 2.2, 1.9, 0.3, 0, Math.PI * 2); fill(L.chest); }   // little white chest patch
   const neck = o.wear ? wear.neck : 'redcollar', cc = o.wear ? COLLARS[neck] : L.collar;
   if (neck) {
     ctx.beginPath(); ctx.roundRect(-3.5, 1, 7, 2.6, 1.2); fill(cc);                            // collar
@@ -1854,6 +1855,7 @@ function drawDogBellyUp(sx, sy, flip) {
   legUp(-7, -0.3 + wig * 0.2, L.dark); legUp(7, 0.3 - wig * 0.2, L.dark);
   ctx.beginPath(); ctx.ellipse(0, -6, 13, 6.5, 0, 0, Math.PI * 2); fill(fur);
   ctx.beginPath(); ctx.ellipse(0, -8.5, 9, 3.2, 0, 0, Math.PI * 2); fill(lighten(fur, 0.12));   // belly (same orange, catching the light)
+  ctx.beginPath(); ctx.ellipse(10, -8, 2.5, 2, 0.4, 0, Math.PI * 2); fill(L.chest);   // white chest patch
   legUp(-4, 0.2 - wig * 0.25, fur); legUp(4, -0.2 + wig * 0.25, fur);
   // Head lying on its side, upside down and happy
   ctx.save(); ctx.translate(14, -6); ctx.rotate(0.5);
@@ -2231,7 +2233,6 @@ function drawPlayer() {
     const a = (0.4 - p.roll.t) * 18 * (screenFacing(p.roll.x, p.roll.y).flip ? -1 : 1);
     ctx.save(); ctx.translate(s.x, s.y - 13); ctx.scale(DOG_SCALE, DOG_SCALE); ctx.rotate(a);
     ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); fill('#cc7a2e');
-    ctx.beginPath(); ctx.arc(2, 2, 6, 0, Math.PI * 2); fill('#b86a24');
     ctx.beginPath(); ctx.ellipse(-5, -6, 2.5, 5, 0.6, 0, Math.PI * 2); fill('#8e4c1a');
     ctx.beginPath(); ctx.rect(-8, 3, 6, 2.2); fill('#c0392b');
     ctx.restore();

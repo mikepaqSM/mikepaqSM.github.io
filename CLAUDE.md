@@ -21,7 +21,7 @@ in `game/`.
   `?v=N` cache-buster; bump it when they change.
 
 ### Story and characters
-- **Watson**: orange dog (belly the same orange). The player. Nicknames: **Lovebug**, **Lovie**.
+- **Watson**: all-orange dog (no brown spots or saddle; belly the same orange) with a tiny white chest patch. The player. Nicknames: **Lovebug**, **Lovie**.
 - **Jackie**: Watson's owner, a woman with chin-length blond hair, teal top. Stands by the doghouse.
   Warm and affectionate; uses the nicknames ("Good work, Lovebug!").
 - **Fred**: small orange tabby who sells gear from a crate next to the doghouse. Aloof and
