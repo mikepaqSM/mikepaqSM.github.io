@@ -55,8 +55,10 @@ in `game/`.
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
   some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
-- **Save game**: autosaves to `localStorage` (`SAVE_KEY`) every 10s and when the app is hidden;
-  loads on start with Watson at the doghouse. A small "New game" button on the title screen wipes it.
+- **Save game**: 3 slots in `localStorage` (`slotKey(n)`, active slot in `watsonDogActive`). Autosaves the
+  active slot every 10s and when the app is hidden; loads on start with Watson at the doghouse. The
+  pause button (or Esc) opens a pause menu: Resume, Save, Save here / Load / New per slot (switching
+  reloads the page into that slot, skipping the title). "New game" on the title wipes the active slot.
   When adding new progress state, add it to `saveGame`/`loadGame`.
 - **Resting**: Watson licks Jackie, then rolls over for belly rubs (`startRest`/`updateScene`,
   `drawDogBellyUp`, Jackie `kneel`/`bend`), then the doghouse menu opens.

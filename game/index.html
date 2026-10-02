@@ -78,6 +78,15 @@
   kbd { background: #2c2427; border: 1px solid #54424a; border-radius: 4px; padding: 1px 6px; font-size: 12px; }
   .title { font-size: 34px !important; line-height: 1.15; color: #f0d9c8; }
   .died { font-family: Georgia, 'Times New Roman', serif; font-size: 64px; color: #b3191c; letter-spacing: .12em; margin: 0 0 10px; }
+  #pause .panel { width: min(520px, 92vw); }
+  .slot { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 8px; background: #241d20; margin-top: 8px; border: 1px solid transparent; }
+  .slot.cur { border-color: #c98a48; }
+  .slot .info { flex: 1; min-width: 0; }
+  .slot .name { font-weight: 600; }
+  .slot .desc { font-size: 12px; color: #a89c9c; }
+  .slot button { padding: 6px 12px; }
+  .slot button.alt { background: #3a2f33; }
+  @media (max-height: 520px) { #pause .panel { padding: 10px 14px; } #pause h1 { font-size: 20px; margin: 0; } .slot { padding: 6px 10px; margin-top: 6px; } }
   #death .panel { background: none; border: 0; box-shadow: none; text-align: center; }
   /* Shop menus: compact on small screens so everything fits and stays readable */
   #shop .panel { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
@@ -149,6 +158,13 @@
     <div class="top"><h1 id="shopTitle">Watson's Doghouse</h1><span class="shopHead"><span class="xp" id="shopXp"></span><button id="closeShop">Leave</button></span></div>
     <p id="shopSub"></p>
     <div id="shopBody"></div>
+  </div>
+</div>
+
+<div class="overlay" id="pause">
+  <div class="panel">
+    <div class="top"><h1>Paused</h1><button id="resume">Resume</button></div>
+    <div id="slots"></div>
   </div>
 </div>
 
@@ -442,7 +458,7 @@ addEventListener('keydown', e => {
   if (overlay('title').classList.contains('open')) { if (!e.repeat) closeOverlays(); return; }
   if (k === 'b') { if (overlay('shop').classList.contains('open')) closeOverlays(); else if (!paused && distC(player.x, player.y) < SAFE_R) startRest(); return; }
   if (k === 'e') { toggleShop('fred'); return; }
-  if (k === 'escape') { if (paused) closeOverlays(); else openOverlay('title'); return; }
+  if (k === 'escape') { if (paused) closeOverlays(); else openPause(); return; }
   if (k === 'r' && player.dead) { respawn(); return; }
   if (paused || e.repeat) return;
   if (k === '1' || k === 'j') useSkill('strike');
@@ -500,7 +516,7 @@ touchButton('tTreat', () => drinkFlask());
 touchButton('tPee', () => setPee(true));   // hold to pee
 for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) tb('tPee').addEventListener(ev, () => setPee(false));
 touchButton('tPal', () => palMove());
-touchButton('tPause', () => openOverlay('title'));
+touchButton('tPause', () => { if (overlay('pause').classList.contains('open')) closeOverlays(); else openPause(); });
 // Icons for the big button: it bites, rests, trades or frees depending on what's nearby.
 const BIG_ICONS = { bite: '<path d="M3 6h18v4l-2.25 4-2.25-4-2.25 4L12 10l-2.25 4-2.25-4-2.25 4L3 10z"/><path d="M3 18h18v-1.5l-2.25-3-2.25 3-2.25-3L12 16.5l-2.25-3-2.25 3-2.25-3L3 16.5z" opacity=".75"/>', rest: '<path d="M12 21s-8.5-5.3-8.5-11A4.8 4.8 0 0 1 12 7.2 4.8 4.8 0 0 1 20.5 10c0 5.7-8.5 11-8.5 11z"/>',
   fred: '<path d="M2 12c3-5 9-6 13-3l5-3v12l-5-3c-4 3-10 2-13-3z"/><circle cx="7" cy="11" r="1.2" fill="#2a170c"/>', free: '<ellipse cx="12" cy="16" rx="5" ry="4.2"/><ellipse cx="5.5" cy="10.5" rx="2.2" ry="2.8"/><ellipse cx="18.5" cy="10.5" rx="2.2" ry="2.8"/><ellipse cx="9" cy="5.8" rx="2.1" ry="2.7"/><ellipse cx="15" cy="5.8" rx="2.1" ry="2.7"/>' };
@@ -563,7 +579,7 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 const overlay = id => document.getElementById(id);
 function openOverlay(id) {
   if (player.dead && id !== 'death') return;
-  ['title', 'shop', 'death'].forEach(o => overlay(o).classList.toggle('open', o === id));
+  ['title', 'shop', 'death', 'pause'].forEach(o => overlay(o).classList.toggle('open', o === id));
   paused = true;
   if (id === 'title') titleOpenedAt = performance.now();
   if (id === 'shop') {
@@ -588,7 +604,7 @@ addEventListener('pointerup', () => { if (innerWidth > innerHeight) goFullscreen
 
 function closeOverlays() {
   if (player.dead) return;
-  ['title', 'shop'].forEach(o => overlay(o).classList.remove('open'));
+  ['title', 'shop', 'pause'].forEach(o => overlay(o).classList.remove('open'));
   paused = false;
   for (const k in keys) keys[k] = false;
 }
@@ -2644,9 +2660,18 @@ function drawLogoDog() {
 }
 
 // ---------- Save game ----------
-// The game saves itself in the browser every few seconds (and when the app is closed).
-// Loading puts Watson back at the doghouse with everything he's earned.
-const SAVE_KEY = 'watsonDogSave1';
+// Three save slots. The game autosaves into the slot you're playing every few seconds (and when the
+// app is closed). The pause menu lets you save into another slot or load one. Loading puts Watson
+// back at the doghouse with everything he's earned.
+const SLOTS = 3, slotKey = n => `watsonDogSlot${n}`;
+let activeSlot = 1;
+try {
+  activeSlot = +localStorage.getItem('watsonDogActive') || 1;
+  const old = localStorage.getItem('watsonDogSave1');   // older single save -> slot 1
+  if (old && !localStorage.getItem(slotKey(1))) localStorage.setItem(slotKey(1), old);
+  if (old) localStorage.removeItem('watsonDogSave1');
+} catch (e) {}
+const setActive = n => { activeSlot = n; try { localStorage.setItem('watsonDogActive', n); } catch (e) {} };
 function packTurf() {   // run lengths of 0s and 1s, so the save stays small
   const runs = []; let cur = 0, n = 0;
   for (let c = 0; c < N * N; c++) { if (turf[c] === cur) n++; else { runs.push(n); cur = turf[c]; n = 1; } }
@@ -2654,20 +2679,20 @@ function packTurf() {   // run lengths of 0s and 1s, so the save stays small
   return runs;
 }
 let noSave = false;
-function saveGame() {
+function saveGame(slot = activeSlot) {
   if (player.dead || noSave) return;
   const p = player;
-  const data = { v: 1,
+  const data = { v: 1, when: Date.now(), summary: { level: p.level, xp: p.xp, friends: saved.size, turf: Math.floor(turfFrac() * 100), finds: found.size },
     p: { level: p.level, stats: p.stats, xp: p.xp, weapon: p.weapon, skills: [...p.skills], outfits: [...p.outfits], wear: p.wear,
          buddy: p.buddy, maxFlasks: p.maxFlasks },
     saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
     turf: packTurf(), bloodstain, tut, hints: [...hintDone] };
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch (e) {}
+  try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); } catch (e) {}
 }
+const readSlot = n => { try { const d = JSON.parse(localStorage.getItem(slotKey(n))); return d && d.v === 1 ? d : null; } catch (e) { return null; } };
 function loadGame() {
-  let d;
-  try { d = JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) {}
-  if (!d || d.v !== 1) return false;
+  const d = readSlot(activeSlot);
+  if (!d) return false;
   const p = player;
   Object.assign(p, { level: d.p.level, stats: { ...p.stats, ...d.p.stats }, xp: d.p.xp, weapon: d.p.weapon, skills: new Set(d.p.skills),
     outfits: new Set(d.p.outfits), wear: d.p.wear, buddy: d.p.buddy, maxFlasks: d.p.maxFlasks });
@@ -2683,17 +2708,63 @@ function loadGame() {
   populate();
   return true;
 }
+// Switching games reloads the page into the chosen slot, straight into play (no title screen).
+function switchToSlot(n) {
+  noSave = true;
+  setActive(n);
+  try { sessionStorage.setItem('watsonSkipTitle', '1'); } catch (e) {}
+  location.reload();
+}
 if (loadGame()) overlay('newGame').classList.add('show');
-setInterval(saveGame, 10000);
-addEventListener('pagehide', saveGame);
+try { if (sessionStorage.getItem('watsonSkipTitle')) { sessionStorage.removeItem('watsonSkipTitle'); closeOverlays(); } } catch (e) {}
+setInterval(() => { if (!paused) saveGame(); }, 10000);
+addEventListener('pagehide', () => saveGame());
 document.addEventListener('visibilitychange', () => { if (document.hidden) saveGame(); });
 overlay('newGame').addEventListener('click', e => {
   e.stopPropagation();
-  if (!confirm('Start a new game? Your saved progress will be erased.')) return;
+  if (!confirm(`Start a new game? Slot ${activeSlot} will be erased.`)) return;
   noSave = true;
-  try { localStorage.removeItem(SAVE_KEY); } catch (err) {}
+  try { localStorage.removeItem(slotKey(activeSlot)); } catch (err) {}
   location.reload();
 });
+
+// Pause menu: resume, and save / load / start fresh in any of the slots.
+let pauseOpenedAt = 0;
+function openPause() {
+  if (player.dead || player.scene) return;
+  saveGame();
+  openOverlay('pause');
+  pauseOpenedAt = performance.now();
+  renderSlots();
+}
+function renderSlots() {
+  const box = overlay('slots');
+  box.innerHTML = '';
+  for (let n = 1; n <= SLOTS; n++) {
+    const d = readSlot(n), cur = n === activeSlot, div = document.createElement('div');
+    div.className = 'slot' + (cur ? ' cur' : '');
+    const when = d ? new Date(d.when || 0).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+    const sm = d && d.summary;
+    div.innerHTML = `<div class="info"><div class="name">Slot ${n}${cur ? ' · playing now' : ''}</div><div class="desc">${
+      sm ? `Lv ${sm.level} · ${sm.xp} XP · ${sm.friends} friends · Turf ${sm.turf}% · ${when}` : 'Empty'}</div></div>`;
+    const btn = (label, fn, alt) => {
+      const b = document.createElement('button'); b.textContent = label; if (alt) b.className = 'alt';
+      b.onclick = () => { if (performance.now() - pauseOpenedAt > 350) fn(); };
+      div.appendChild(b);
+    };
+    if (cur) btn('Save', () => { saveGame(); renderSlots(); });
+    else {
+      btn('Save here', () => {
+        if (d && !confirm(`Save over slot ${n}?`)) return;
+        saveGame(n); setActive(n); renderSlots();
+      }, true);
+      if (d) btn('Load', () => { saveGame(); switchToSlot(n); });
+      else btn('New', () => { saveGame(); try { localStorage.removeItem(slotKey(n)); } catch (e) {} switchToSlot(n); });
+    }
+    box.appendChild(div);
+  }
+}
+overlay('resume').onclick = () => { if (performance.now() - pauseOpenedAt > 350) closeOverlays(); };
 
 // ---------- Main loop ----------
 let last = performance.now();
