@@ -85,7 +85,7 @@
   .slot .name { font-weight: 600; }
   .slot .desc { font-size: 12px; color: #a89c9c; }
   .slot button { padding: 6px 12px; }
-  .slot button.alt { background: #3a2f33; }
+  .slot button.alt, #mute { background: #3a2f33; }
   @media (max-height: 520px) { #pause .panel { padding: 10px 14px; } #pause h1 { font-size: 20px; margin: 0; } .slot { padding: 6px 10px; margin-top: 6px; } }
   #death .panel { background: none; border: 0; box-shadow: none; text-align: center; }
   /* Shop menus: compact on small screens so everything fits and stays readable */
@@ -163,7 +163,7 @@
 
 <div class="overlay" id="pause">
   <div class="panel">
-    <div class="top"><h1>Paused</h1><button id="resume">Resume</button></div>
+    <div class="top"><h1>Paused</h1><span class="shopHead"><button id="mute" class="alt">Sound: On</button><button id="resume">Resume</button></span></div>
     <div id="slots"></div>
   </div>
 </div>
@@ -637,7 +637,7 @@ const JACKIE_LICK = ['Ha! Kisses! Thank you, Lovebug!', 'Aww, Lovie, you big lic
 const JACKIE_RUB = ['Belly rubs for my Lovebug!', "Who's a good boy? You are!", 'Look at that belly, Lovie!', 'Rest up, Lovebug.'];
 const JACKIE_TURF = ['Good work, Lovebug!', "That's my Lovie!", 'Lovebug! Look at you go!'];
 const pick = a => a[Math.floor(Math.random() * a.length)];
-let fredChatT = 3, awayFromHome = false;
+let fredChatT = 3, awayFromHome = false, wasByFred = false;
 // Speech bubbles over Jackie, Fred and the dog friends. A new line replaces the old one.
 const speech = {};
 function speak(who, text) { speech[who] = { text, t: 2.6 + text.length * 0.03 }; }
@@ -875,19 +875,23 @@ function useSkill(id, aim) {
     const range = 1.75, ang = Math.atan2(p.face.y, p.face.x);   // generous reach so bites land
     p.swing = p.swingMax;
     effects.push({ type: 'arc', x: p.x, y: p.y, ang, range, t: 0.15, max: 0.15, color: WEAPONS[p.weapon].color });
+    let hit = false;
     for (const e of enemies) {
       const dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy);
       if (d > range + e.r) continue;
       let diff = Math.abs(Math.atan2(dy, dx) - ang);
       if (diff > Math.PI) diff = 2 * Math.PI - diff;
-      if (diff < Math.PI * 0.42 || d < 0.7) hurtEnemy(e, weaponDmg());
+      if (diff < Math.PI * 0.42 || d < 0.7) { hurtEnemy(e, weaponDmg()); hit = true; }
     }
+    if (hit) sfx('attack');
   } else if (id === 'whirl') {
     const range = 1.9;
     p.whirl = 0.4;
     effects.push({ type: 'ring', x: p.x, y: p.y, range, t: 0.3, max: 0.3, color: '#9fd4ff' });
+    let hit = false;
     for (const e of enemies)
-      if (Math.hypot(e.x - p.x, e.y - p.y) < range + e.r) hurtEnemy(e, Math.round(weaponDmg() * 1.3));
+      if (Math.hypot(e.x - p.x, e.y - p.y) < range + e.r) { hurtEnemy(e, Math.round(weaponDmg() * 1.3)); hit = true; }
+    if (hit) sfx('attack');
   } else if (id === 'fireball') {
     projectiles.push({ x: p.x + p.face.x * 0.4, y: p.y + p.face.y * 0.4, vx: p.face.x * 8, vy: p.face.y * 8, life: 1.3 });
   }
@@ -1132,6 +1136,7 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
   e.kx += dx / d * kb; e.ky += dy / d * kb;
   floatText(e.x, e.y, crit ? `${dmg}!` : dmg, crit ? '#ffd25a' : '#fff', crit ? 1.1 : 0.8);
   if (e.hp <= 0) {
+    sfx('death');
     player.xp += e.xp;
     kills++;
     floatText(e.x, e.y, `+${e.xp} XP`, '#f2c94c', 1.2);
@@ -1153,6 +1158,7 @@ function hurtPlayer(dmg, fromX, fromY) {
   p.chew = null;      // getting hit stops Watson chewing a friend free
   if (p.pee) loseTrail();   // and washes away the pee trail
   p.hp -= dmg;
+  sfx('bark');
   p.flash = 0.15;
   p.hitstun = 0.3;
   p.grace = 0.35;
@@ -1317,6 +1323,10 @@ function update(dt) {
   // Jackie greets Watson when he gets back from an outing.
   if (distC(p.x, p.y) > SAFE_R + 4) awayFromHome = true;
   if (atHome && awayFromHome) { awayFromHome = false; speak('jackie', pick(JACKIE_HOME)); }
+  // Fred makes his sound when Watson walks up to him.
+  const byFred = Math.hypot(p.x - FRED.x, p.y - FRED.y) < 2.2;
+  if (byFred && !wasByFred) sfx('fred');
+  wasByFred = byFred;
   // Fred mutters to himself when Watson is nearby. He perks up for anything warm.
   fredChatT -= dt;
   if (fredChatT <= 0 && Math.hypot(p.x - FRED.x, p.y - FRED.y) < 2.8) {
@@ -1924,7 +1934,7 @@ const LOOKS = {
                 shoes: '#5a3a20', hat: 'straw', hatColor: '#d8b45a', grumpy: true, mustache: '#9a9a9a', item: 'rake' },
   dogcatcher: { wide: 1.35, headR: 5.2, skin: '#d8a07a', hair: '#3a2a1a', body: '#8a7a4a', sleeve: '#8a7a4a', legs: '#5a5038',
                 shoes: '#2a2218', hat: 'uniform', hatColor: '#4a4230', grumpy: true, mustache: '#3a2a1a', belly: true, badge: true, item: 'net' },
-  jackie:     { wide: 0.88, headR: 5.6, skin: '#f3cfae', hair: '#f2d06b', longHair: true, lips: '#c4566a', body: '#2bb3a3', sleeve: '#2bb3a3', legs: '#3a4a6a',
+  jackie:     { wide: 0.7, headR: 5.4, skin: '#f3cfae', hair: '#f2d06b', longHair: true, lips: '#c4566a', body: '#2bb3a3', sleeve: '#2bb3a3', legs: '#3a4a6a',
                 shoes: '#f0f0f0', item: 'none' },
 };
 
@@ -2670,6 +2680,69 @@ function drawLogoDog() {
   drawDog(58, 68, { flip: false, walk: time * 7, moving: true, running: false, attack: -1, item: 'bone', color: '#cfe9b4', eating: false });
   ctx = main;
 }
+
+// ---------- Audio ----------
+// All sounds and music are the owner's own recordings, in game/audio/. Each sound can have several
+// takes that play in turn (take 1, then 2, then 3, then 1 again...). Missing files are just skipped.
+const SOUNDS = {
+  attack: ['attack1', 'attack2', 'attack3'],   // Watson's bite/swing lands on a plant
+  death:  ['death1', 'death2', 'death3'],      // a plant is knocked out
+  bark:   ['bark1', 'bark2', 'bark3'],         // Watson gets hit
+  fred:   ['fred1', 'fred2', 'fred3'],         // walking up to Fred
+  click:  ['click1', 'click2'],                // menu buttons
+};
+const MUSIC = 'music';                          // loops forever in the background
+const audioFile = name => `audio/${name}.mp3`;
+let actx = null, sfxGain = null, musicGain = null, muted = false;
+const buffers = {}, nextTake = {};
+try { muted = localStorage.getItem('watsonMute') === '1'; } catch (e) {}
+function loadBuffer(name) {
+  if (buffers[name] !== undefined) return;
+  buffers[name] = null;
+  fetch(audioFile(name)).then(r => r.ok ? r.arrayBuffer() : Promise.reject())
+    .then(b => actx.decodeAudioData(b)).then(buf => { buffers[name] = buf; if (name === MUSIC) startMusic(); }).catch(() => {});
+}
+// Phones only allow sound after the player taps, so everything starts on the first tap or key.
+function unlockAudio() {
+  if (actx) { if (actx.state === 'suspended') actx.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return;
+  actx = new AC();
+  sfxGain = actx.createGain(); sfxGain.connect(actx.destination);
+  musicGain = actx.createGain(); musicGain.gain.value = 0.5; musicGain.connect(actx.destination);
+  applyMute();
+  loadBuffer(MUSIC);
+  for (const list of Object.values(SOUNDS)) list.forEach(loadBuffer);
+}
+for (const ev of ['pointerdown', 'keydown', 'touchend']) addEventListener(ev, unlockAudio, { capture: true });
+let musicSrc = null;
+function startMusic() {
+  if (!actx || musicSrc || !buffers[MUSIC]) return;
+  musicSrc = actx.createBufferSource();
+  musicSrc.buffer = buffers[MUSIC]; musicSrc.loop = true;
+  musicSrc.connect(musicGain); musicSrc.start();
+}
+function sfx(kind) {
+  const list = SOUNDS[kind];
+  if (!actx || muted || !list) return;
+  const k = nextTake[kind] || 0;
+  nextTake[kind] = (k + 1) % list.length;
+  const buf = buffers[list[k]];
+  if (!buf) return;
+  const src = actx.createBufferSource();
+  src.buffer = buf; src.connect(sfxGain); src.start();
+}
+function applyMute() {
+  if (sfxGain) sfxGain.gain.value = muted ? 0 : 1;
+  if (musicGain) musicGain.gain.value = muted ? 0 : 0.5;
+  overlay('mute').textContent = muted ? 'Sound: Off' : 'Sound: On';
+}
+overlay('mute').onclick = () => { muted = !muted; try { localStorage.setItem('watsonMute', muted ? '1' : '0'); } catch (e) {} applyMute(); };
+applyMute();
+// Menu buttons click.
+document.addEventListener('click', e => { if (e.target.closest('.panel button, #newGame')) sfx('click'); }, true);
+// Pause the music while the app is in the background.
+document.addEventListener('visibilitychange', () => { if (actx) document.hidden ? actx.suspend() : actx.resume(); });
 
 // ---------- Save game ----------
 // Three save slots. The game autosaves into the slot you're playing every few seconds (and when the

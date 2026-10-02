@@ -77,9 +77,12 @@ in `game/`.
   recharges; small ability buttons only appear once earned and fill `ABILITY_SLOTS` in order); the big action button shows REST / TRADE near the doghouse / Fred, otherwise
   the gear's verb (BITE, WHACK, BONK...). No zooming. Desktop: WASD, click attacks toward the
   mouse, Space rolls, Shift runs.
-- **Audio: the owner will make all SFX and music themselves. Never generate or add placeholder
-  sounds.** When files arrive (planned: `game/audio/`, MP3), wire them in: unlock on first tap,
-  mute toggle, crossfade music by zone or boss.
+- **Audio: the owner makes all SFX and music themselves. Never generate or add placeholder
+  sounds.** The **Audio** section (`SOUNDS`, `MUSIC`) loads `game/audio/<name>.mp3` with Web Audio,
+  unlocking on the first tap. Each sound has several takes played round robin (`sfx(kind)`): attack
+  (Watson's hit lands), death (plant knocked out), bark (Watson gets hit), fred (walking up to Fred),
+  click (menu buttons, 2 takes). `music` loops. Missing files are skipped silently. Mute toggle in the
+  pause menu (`watsonMute`). Later: more music, crossfade by island.
 
 ### Code map (`game/index.html`)
 Sections are marked with `// ---------- Name ----------` comments:
