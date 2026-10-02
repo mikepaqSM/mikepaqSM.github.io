@@ -71,7 +71,9 @@ in `game/`.
   enemies die in few hits, and Watson can't take many either. Difficulty has been eased twice,
   so lean forgiving. XP was slowed down once (plants give half, levels and upgrades cost more).
 - **Minimal on-screen text.** No instruction screens; players learn through one-time hints
-  (`HINTS` list). The HUD is compact. Jackie and Fred speak in speech bubbles via `speak()`.
+  (`HINTS` list). The HUD is compact. Ready-to-spend is shown by pulsing HUD badges, not hint text:
+  a gold up-arrow by "Lv" (`canLevelUp`), a glow on the house icon (`canBuildUpgrade`), and a pulsing
+  gold home dot on the minimap. Jackie and Fred speak in speech bubbles via `speak()`.
 - Start screen is just the Watson Dog logo.
 - Phone first. Landscape, joystick on the left half, buttons on the right. Only the buttons
   attack or interact (wooden/brass round buttons with SVG icons; a dark wedge sweeps while a move

@@ -2440,6 +2440,8 @@ function drawHUD() {
   drawHUDInner();
   ctx.restore();
 }
+const canLevelUp = () => player.xp >= levelCost(player.level);
+const canBuildUpgrade = () => UPGRADES.some(u => !built.has(u.id) && found.has(u.needs) && (!u.after || built.has(u.after)) && homeXp >= u.cost);
 function drawHUDInner() {
   const p = player;
   // HP and stamina bars grow as you level those stats.
@@ -2451,9 +2453,25 @@ function drawHUDInner() {
 
   ctx.font = 'bold 14px system-ui, sans-serif';
   ctx.fillStyle = '#e8e4e0'; ctx.fillText(`Lv ${p.level}`, 18, 78);
-  const lw = ctx.measureText(`Lv ${p.level}`).width;
+  let lw = ctx.measureText(`Lv ${p.level}`).width;
+  // Gentle pulsing badges: a gold up-arrow when Watson can level up, a glow on the house when an upgrade can be built.
+  const pulse = 0.6 + Math.sin(time * 4) * 0.4;
+  if (canLevelUp()) {
+    const bx = 30 + lw, by = 73;
+    ctx.save();
+    ctx.shadowColor = '#ffd25a'; ctx.shadowBlur = 8 * pulse;
+    ctx.fillStyle = '#f2c94c'; ctx.beginPath(); ctx.arc(bx, by, 7.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.fillStyle = '#3a2210'; ctx.beginPath(); ctx.moveTo(bx, by - 4.5); ctx.lineTo(bx + 4, by + 0.5); ctx.lineTo(bx + 1.5, by + 0.5);
+    ctx.lineTo(bx + 1.5, by + 4); ctx.lineTo(bx - 1.5, by + 4); ctx.lineTo(bx - 1.5, by + 0.5); ctx.lineTo(bx - 4, by + 0.5); ctx.closePath(); ctx.fill();
+    lw += 20;
+  }
   ctx.fillStyle = '#f2c94c'; ctx.fillText(`${p.xp} XP`, 28 + lw, 78);
   const hx = 40 + lw + ctx.measureText(`${p.xp} XP`).width;   // Doghouse XP: a little house and the amount
+  if (canBuildUpgrade()) {
+    ctx.save(); ctx.fillStyle = `rgba(255,179,107,${0.35 * pulse})`; ctx.shadowColor = '#ffb36b'; ctx.shadowBlur = 10 * pulse;
+    ctx.beginPath(); ctx.arc(hx + 6.5, 72.5, 10, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+  }
   ctx.fillStyle = '#ffb36b';
   ctx.beginPath(); ctx.moveTo(hx, 73); ctx.lineTo(hx + 6.5, 66.5); ctx.lineTo(hx + 13, 73); ctx.fill();
   ctx.fillRect(hx + 2, 72, 9, 6);
@@ -2539,7 +2557,7 @@ function drawMinimap() {
   const x0 = W - MINI_W - (isTouch ? 64 / VIEW : 16), y0 = 12;
   ctx.drawImage(mini, x0, y0);
   const dot = (x, y, r, c) => { const m = miniPt(x, y); ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0 + m.x, y0 + m.y, r, 0, Math.PI * 2); ctx.fill(); };
-  dot(CENTER, CENTER, 2.5, '#c0392b');
+  dot(CENTER, CENTER, canLevelUp() || canBuildUpgrade() ? 2.5 + Math.sin(time * 4) + 1 : 2.5, canLevelUp() || canBuildUpgrade() ? '#ffd25a' : '#c0392b');
   for (const o of OUTPOSTS) if (isTurf(o.x, o.y)) dot(o.x, o.y, 2, '#5ab4ff');
   for (const f of FRIENDS) if (!saved.has(f.id)) dot(f.x, f.y, 2 + Math.sin(time * 5) * 0.8, '#ffffff');
   dot(player.x, player.y, 3, '#ff9a3a');
@@ -2679,7 +2697,6 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'swap',   text: 'Swap dog friends at the doghouse', when: () => saved.size >= 2 && distC(player.x, player.y) < 6, done: () => tut.swaps > 0, limit: 8 },
   { id: 'fred',   text: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred', touch: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred',
     when: () => player.xp >= WEAPONS[1].cost && distC(player.x, player.y) < 5 && !nearFred(), done: () => tut.fred > 0, limit: 12 },
-  { id: 'spend',  text: 'Enough XP to level up! Head home to the doghouse', when: () => player.xp >= levelCost(player.level) && distC(player.x, player.y) >= SAFE_R, done: () => tut.shop > 0, limit: 10 },
   { id: 'whirl',  text: '2  for Zoomies', touch: 'Tap ZOOM for Zoomies',                                  when: () => player.skills.has('whirl') && !paused,                  done: () => tut.whirl > 0 },
   { id: 'bark',   text: '3  for Mega Bark', touch: 'Tap BARK for Mega Bark',                                when: () => player.skills.has('fireball') && !paused,               done: () => tut.fireball > 0 },
   { id: 'run',    text: 'Hold SHIFT to run', touch: 'Push the stick all the way to run',                               when: () => tut.moved > 4 && tut.playT > 15,                         done: () => tut.ran > 0.4 },
