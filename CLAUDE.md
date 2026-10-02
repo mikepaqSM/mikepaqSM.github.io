@@ -44,7 +44,8 @@ in `game/`.
   turf are purified; fewer plants spawn as turf grows.
 - **Open world, no winning.** Progress = exploring, freeing friends, finding rare items.
 - **Rare finds** (`TREASURES`, one per big island, glowing beam) unlock **doghouse upgrades**
-  (`UPGRADES`, built from the doghouse menu with XP): Big Water Bowl, Fred's Shop Stall, Comfy Bed,
+  (`UPGRADES`, built from the doghouse menu with **Home XP** (`homeXp`): 1 per tile of land claimed
+  with pee, shown with a little house in the HUD; regular XP is for levels and Fred): Big Water Bowl, Fred's Shop Stall, Comfy Bed,
   Cozy Fireplace, Bigger Doghouse, Fred's Shop, Doghouse Tower (`after` = needs another upgrade
   first). Some finds sit under `OBSTACLES`: boulders (smashed only by Boomer's Ground Pound) and
   brambles (burned only by Ember's Fire Fetch). Fred's stock starts tiny; items tagged
