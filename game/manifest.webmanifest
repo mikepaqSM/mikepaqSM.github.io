@@ -1,14 +1,29 @@
 {
   "name": "Watson Dog",
   "short_name": "Watson Dog",
-  "start_url": "./",
-  "scope": "./",
+  "start_url": "/game/",
+  "scope": "/game/",
   "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#0b0a0c",
   "theme_color": "#0b0a0c",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ]
+    {
+      "src": "/game/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/game/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/game/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "id": "/game/"
 }
