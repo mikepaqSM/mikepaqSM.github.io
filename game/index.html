@@ -138,14 +138,6 @@
   </div>
 </div>
 
-<div class="overlay" id="win">
-  <div class="panel" style="text-align:center">
-    <h1 class="title">The pollution is lifting!</h1>
-    <p>Watson's turf covers the islands, and the plant folk are friendly again. Good boy, Lovebug.</p>
-    <p style="margin-top:16px"><button id="keepPlaying">Keep playing</button></p>
-  </div>
-</div>
-
 <div class="overlay" id="death">
   <div class="panel">
     <div class="died">KNOCKED OUT</div>
@@ -191,19 +183,19 @@ const WEAPONS = [
   { name: 'Puppy Teeth',   dmg: 10, cost: 0,    color: '#ffffff', verb: 'BITE', type: 'bite',      desc: 'Just your own chompers' },
   { name: 'Fetch Stick',   dmg: 18, cost: 40,   color: '#8a5a2e', verb: 'WHACK', type: 'stick',     desc: 'A really good stick' },
   { name: 'Iron Bone',     dmg: 28, cost: 150,  color: '#a9cc9c', verb: 'BONK', type: 'bone',      desc: 'Heavy, shiny, and great for bonking' },
-  { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', verb: 'SLASH', type: 'frisbee',   desc: 'A frisbee with a serrated edge' },
-  { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', verb: 'SCORCH', type: 'flamebone', desc: 'A legendary bone that never stops burning' },
-  { name: 'Moon Bone',     dmg: 95, cost: 2500, color: '#cfe8ff', verb: 'SMITE', type: 'moonbone',  desc: 'A glowing bone from Fred\'s secret stash' },
+  { name: 'Razor Frisbee', dmg: 44, cost: 450,  color: '#2ec4b6', verb: 'SLASH', type: 'frisbee',   shop: 'stall', desc: 'A frisbee with a serrated edge' },
+  { name: 'Inferno Bone',  dmg: 68, cost: 1200, color: '#ff7a3a', verb: 'SCORCH', type: 'flamebone', shop: 'fire', desc: 'A legendary bone that never stops burning' },
+  { name: 'Moon Bone',     dmg: 95, cost: 2500, color: '#cfe8ff', verb: 'SMITE', type: 'moonbone',  shop: 'fire', desc: 'A glowing bone from Fred\'s secret stash' },
 ];
 
 const SKILLS = [
   { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.7,  sta: 16, lock: 0.32, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
   { id: 'whirl',    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'Spin attack that hits everyone around you', desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
-  { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
+  { id: 'fireball', key: '3', name: 'Mega Bark', cost: 200, shop: 'stall', cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
 const CRIT_MULT = 2;   // damage bonus for hitting an enemy right after it attacks
 const ROLL_STA = 22;
-const RUN_MULT = 1.75, RUN_STA = 22;   // run speed multiplier, stamina per second while running
+const RUN_MULT = 1.75;   // run speed multiplier (running costs no stamina)
 
 // Stats you raise when you level up.
 const STATS = [
@@ -243,7 +235,7 @@ const FRIENDS = [
     moveName: 'Frost Howl', cd: 9, dmg: 12, short: 'A chilly howl that freezes nearby plants (free critical hits)', thanks: 'Awooo! You found me!',
     look: { fur: '#8d96a3', light: '#f1f3f6', dark: '#4f5763', saddle: '#6f7885', belly: true, earUp: true, eye: '#5ab4ff', collar: '#e74c3c', s: 1.05 } },
   { id: 'zip', name: 'Zip', breed: 'Greyhound', ox: -12, oy: 30, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
-    short: 'Run as long as you like, and a bit faster', thanks: 'Zoom zoom! Race you home!',
+    short: 'Watson runs faster, and rolls cost half the stamina', thanks: 'Zoom zoom! Race you home!',
     look: { fur: '#c9a27a', light: '#e6cfb2', dark: '#8a6a4a', saddle: null, bw: 0.9, leg: 1.25, collar: '#f39c12', s: 1.02 } },
   { id: 'ember', name: 'Ember', breed: 'Dalmatian', ox: -29, oy: -30, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
     moveName: 'Fire Fetch', cd: 4, dmg: 45, short: 'Throws a flaming ball. Fred likes her (she is warm)', thanks: "Phew! It's toasty out here. Thanks!",
@@ -274,23 +266,56 @@ const tierAt = (x, y) => { const isl = islandAt(x, y); return !isl ? 0 : isl ===
 // armor = damage taken reduced by this much, speed / roll / dmg = multipliers. No numbers = just for style.
 const OUTFITS = [
   { id: 'redcollar',     slot: 'neck', name: 'Red Collar',       cost: 0,    desc: "Watson's trusty collar" },
-  { id: 'bandana',       slot: 'neck', name: 'Blue Bandana',     cost: 60,   desc: 'Looks sharp. Just for style' },
-  { id: 'expresscollar', slot: 'neck', name: 'Express Collar',   cost: 220,  desc: 'Rolling costs 30% less stamina', roll: 0.7 },
-  { id: 'spikecollar',   slot: 'neck', name: 'Spiked Collar',    cost: 400,  desc: '+10% bite and gear damage', dmg: 1.1 },
-  { id: 'partyhat',      slot: 'head', name: 'Party Hat',        cost: 40,   desc: 'Just for style' },
-  { id: 'cowboy',        slot: 'head', name: 'Cowboy Hat',       cost: 120,  desc: 'Yeehaw. Just for style' },
-  { id: 'helmet',        slot: 'head', name: 'Knight Helmet',    cost: 350,  desc: 'Take 10% less damage', armor: 0.1 },
-  { id: 'raincoat',      slot: 'body', name: 'Raincoat',         cost: 90,   desc: "Still won't go in the water. Just for style" },
-  { id: 'cape',          slot: 'body', name: 'Hero Cape',        cost: 250,  desc: 'Move 8% faster', speed: 1.08 },
-  { id: 'thorncoat',     slot: 'body', name: 'Thornproof Coat',  cost: 500,  desc: 'Take 20% less damage', armor: 0.2 },
-  { id: 'knight',        slot: 'body', name: 'Knight Armor',     cost: 1100, desc: 'Take 35% less damage, but 10% slower', armor: 0.35, speed: 0.9 },
-  { id: 'rainboots',     slot: 'feet', name: 'Rain Boots',       cost: 70,   desc: 'Just for style' },
-  { id: 'sneakers',      slot: 'feet', name: 'Squeaky Sneakers', cost: 300,  desc: 'Move 15% faster', speed: 1.15 },
+  { id: 'bandana',       slot: 'neck', shop: 'stall', name: 'Blue Bandana',     cost: 60,   desc: 'Looks sharp. Just for style' },
+  { id: 'expresscollar', slot: 'neck', shop: 'stall', name: 'Express Collar',   cost: 220,  desc: 'Rolling costs 30% less stamina', roll: 0.7 },
+  { id: 'spikecollar',   slot: 'neck', shop: 'fire', name: 'Spiked Collar',    cost: 400,  desc: '+10% bite and gear damage', dmg: 1.1 },
+  { id: 'partyhat',      slot: 'head', shop: 'stall', name: 'Party Hat',        cost: 40,   desc: 'Just for style' },
+  { id: 'cowboy',        slot: 'head', shop: 'stall', name: 'Cowboy Hat',       cost: 120,  desc: 'Yeehaw. Just for style' },
+  { id: 'helmet',        slot: 'head', shop: 'stall', name: 'Knight Helmet',    cost: 350,  desc: 'Take 10% less damage', armor: 0.1 },
+  { id: 'raincoat',      slot: 'body', shop: 'stall', name: 'Raincoat',         cost: 90,   desc: "Still won't go in the water. Just for style" },
+  { id: 'cape',          slot: 'body', shop: 'stall', name: 'Hero Cape',        cost: 250,  desc: 'Move 8% faster', speed: 1.08 },
+  { id: 'royalcape',     slot: 'body', shop: 'shop', name: 'Royal Cape',        cost: 900,  desc: 'Move 12% faster, take 10% less damage', speed: 1.12, armor: 0.1 },
+  { id: 'crown',         slot: 'head', shop: 'shop', name: 'Golden Crown',      cost: 700,  desc: 'King of the islands. Just for style' },
+  { id: 'thorncoat',     slot: 'body', shop: 'stall', name: 'Thornproof Coat',  cost: 500,  desc: 'Take 20% less damage', armor: 0.2 },
+  { id: 'knight',        slot: 'body', shop: 'fire', name: 'Knight Armor',     cost: 1100, desc: 'Take 35% less damage, but 10% slower', armor: 0.35, speed: 0.9 },
+  { id: 'rainboots',     slot: 'feet', shop: 'stall', name: 'Rain Boots',       cost: 70,   desc: 'Just for style' },
+  { id: 'sneakers',      slot: 'feet', shop: 'stall', name: 'Squeaky Sneakers', cost: 300,  desc: 'Move 15% faster', speed: 1.15 },
 ];
 
+// Rare finds hidden around the islands. Bring them home to build doghouse upgrades.
+const TREASURES = [
+  { id: 'bowl',   name: 'Shiny Bowl',     ox: 11,  oy: -7,  color: '#5aa0ff' },   // Home Island, far side
+  { id: 'awning', name: 'Striped Awning', ox: 42,  oy: -2,  color: '#e74c3c' },   // Suburb Isle
+  { id: 'pillow', name: 'Feather Pillow', ox: -22, oy: 28,  color: '#f4f1ea' },   // Downtown Isle
+  { id: 'ember',  name: 'Ember Stone',    ox: -24, oy: -33, color: '#ff7a1a' },   // Pound Isle
+  // These are hidden under an obstacle that only a friend can clear (see OBSTACLES).
+  { id: 'planks',   name: 'Sturdy Planks',  ox: 6,   oy: 12,  color: '#b07a45', under: 'boulder' },   // Home Island (bring Boomer back)
+  { id: 'sign',     name: 'Shop Sign',      ox: -13, oy: 38,  color: '#2ec4b6', under: 'bramble' },   // Downtown Isle (needs Ember)
+  { id: 'shingles', name: 'Fancy Shingles', ox: 40,  oy: 26,  color: '#b3191c', under: 'bramble' },   // little islet (needs Ember)
+].map(t => ({ ...t, x: CENTER + t.ox, y: CENTER + t.oy }));
+// Things in the way. Boulders: only Boomer's Ground Pound smashes them. Brambles: only Ember's Fire Fetch burns them.
+const OBSTACLES = TREASURES.filter(t => t.under).map(t => ({ type: t.under, x: t.x, y: t.y, r: 0.85, hides: t.id, gone: false }));
+const obstacleAt = (x, y) => OBSTACLES.find(o => !o.gone && Math.hypot(x - o.x, y - o.y) < o.r);
+// Dry water bowls on the other islands. Claim the turf around one and Watson can refill his pee there.
+const OUTPOSTS = [
+  { ox: 33, oy: -10 },    // Suburb Isle
+  { ox: -15, oy: 29 },    // Downtown Isle
+  { ox: -22, oy: -24 },   // Pound Isle
+].map(o => ({ x: CENTER + o.ox, y: CENTER + o.oy }));
+// Doghouse upgrades: each needs a rare find plus some XP. 'stall' and 'fire' open more of Fred's shop.
+const UPGRADES = [
+  { id: 'bowl',  needs: 'bowl',   cost: 100, name: 'Big Water Bowl',    desc: '+16 pee, for bigger turf loops' },
+  { id: 'stall', needs: 'awning', cost: 250, name: "Fred's Shop Stall", desc: 'Fred opens a real shop: outfits, Mega Bark and better gear' },
+  { id: 'bed',   needs: 'pillow', cost: 400, name: 'Comfy Bed',         desc: '+2 healing biscuits' },
+  { id: 'fire',  needs: 'ember',  cost: 800, name: 'Cozy Fireplace',    desc: "Fred finally warms up and brings out his rare stock" },
+  { id: 'house2', needs: 'planks', cost: 500, name: 'Bigger Doghouse',  desc: '+25 max HP' },
+  { id: 'shop',  needs: 'sign',   cost: 600, name: "Fred's Shop",       desc: 'Fred moves into a real shop and sells his fanciest things', after: 'stall' },
+  { id: 'house3', needs: 'shingles', cost: 900, name: 'Doghouse Tower', desc: '+25 max stamina', after: 'house2' },
+];
+// Fred's stock: things with shop: 'stall' or 'fire' only appear once that upgrade is built.
+
 // Turf: Watson claims ground by peeing a trail that loops back to his turf (or closes on itself).
-const PEE_BASE = 24, PEE_PER = 8;   // trail length (tiles) you can pee, + per Bladder level
-const WIN_TURF = 0.4;               // claim this much of all the land to win
+const PEE_BASE = 40, PEE_PER = 8;   // trail length (tiles) you can pee, + per Bladder level. Refills only at the doghouse.
 const PEE_SPEED = 0.85;             // walk a little slower while peeing
 
 // ---------- State ----------
@@ -310,9 +335,9 @@ const player = {
   chew: null,               // chewing a friend free of vines
   scene: null,              // resting with Jackie: licks, then belly rubs
 };
-const maxHp = () => 100 + 12 * player.stats.vig;
-const maxSta = () => 80 + 10 * player.stats.end;
-const maxPee = () => PEE_BASE + PEE_PER * player.stats.bla;
+const maxHp = () => 100 + 12 * player.stats.vig + (built.has('house2') ? 25 : 0);
+const maxSta = () => 80 + 10 * player.stats.end + (built.has('house3') ? 25 : 0);
+const maxPee = () => PEE_BASE + PEE_PER * player.stats.bla + (built.has('bowl') ? 16 : 0);
 const gearOn = () => Object.values(player.wear).filter(Boolean).map(id => OUTFITS.find(o => o.id === id));
 const gearMult = k => gearOn().reduce((m, o) => m * (o[k] || 1), 1);
 const armorMult = () => Math.max(0.4, 1 - gearOn().reduce((s, o) => s + (o.armor || 0), 0));
@@ -321,6 +346,9 @@ const fireballDmg = () => Math.round(35 * (1 + 0.1 * player.stats.arc));
 
 // Dog friends
 const saved = new Set();          // ids of friends you've freed
+const found = new Set(), built = new Set();   // rare finds picked up / doghouse upgrades built
+const inShop = it => !it.shop || built.has(it.shop);
+let peeEmptyT = -99;
 const bondKills = {};             // plants knocked out together, per friend
 const buddy = () => player.buddy ? FRIENDS.find(f => f.id === player.buddy) : null;
 const hasPower = pw => { const b = buddy(); return !!b && b.power === pw; };
@@ -346,7 +374,7 @@ for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
 
 const cooldowns = { strike: 0, whirl: 0, fireball: 0 };
 let enemies = [], projectiles = [], effects = [], floaters = [];
-let target = null, bloodstain = null, won = false;
+let target = null, bloodstain = null;
 const JACKIE = { x: CENTER + 1.4, y: CENTER - 0.2 };
 const FRED = { x: CENTER - 1.9, y: CENTER + 0.7 };   // Fred the cat's shop, beside the doghouse
 const nearFred = () => Math.hypot(player.x - FRED.x, player.y - FRED.y) < 1.7;
@@ -496,13 +524,13 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 const overlay = id => document.getElementById(id);
 function openOverlay(id) {
   if (player.dead && id !== 'death') return;
-  ['title', 'shop', 'death', 'win'].forEach(o => overlay(o).classList.toggle('open', o === id));
+  ['title', 'shop', 'death'].forEach(o => overlay(o).classList.toggle('open', o === id));
   paused = true;
   if (id === 'title') titleOpenedAt = performance.now();
   if (id === 'shop') {
     renderShop();
     if (shopMode === 'rest') tut.shop++;
-    else { tut.fred++; speak('fred', pick(FRED_LINES)); }
+    else { tut.fred++; speak('fred', pick(built.has('stall') ? FRED_LINES : FRED_POOR)); }
   }
 }
 // Phones: go full screen (hides the browser's tab bar) when the player taps, where the browser allows it.
@@ -521,7 +549,7 @@ addEventListener('pointerup', () => { if (innerWidth > innerHeight) goFullscreen
 
 function closeOverlays() {
   if (player.dead) return;
-  ['title', 'shop', 'win'].forEach(o => overlay(o).classList.remove('open'));
+  ['title', 'shop'].forEach(o => overlay(o).classList.remove('open'));
   paused = false;
   for (const k in keys) keys[k] = false;
 }
@@ -540,7 +568,9 @@ const FRED_LINES = ["...Oh. It's you. Whatever.", "Buy something or don't. I'm n
   "I was napping. Make it quick.", "Is it cold, or is it just me? ...It's me. I'm cold.", "Your doghouse looks warm. Not that I care."];
 const FRED_IDLE = ['*shivers*', 'Brr.', 'Got a blanket? No? Figures.', "Don't look at me.", 'Block the wind if you\'re going to stand there.',
   '*yawns*', 'Mrrp.', "I'm not cold. I'm just... vibrating.", 'Sun went behind a cloud. Rude.'];
+const FRED_WARMED = ['That fireplace... not bad.', '*purrs* ...Ignore that.', 'Warm. Finally.'];
 const FRED_WARM = ['...Is that bone on fire? Stand there. Closer.', 'Ooh. Warm bone. Don\'t move.', "Finally, a dog who's useful."];
+const FRED_POOR = ["This is all I've got. A cat needs a proper stall.", 'If I had a nice awning, I could sell more. Just saying.', "It's a crate. Don't judge."];
 const FRED_SOLD = ['Fine. Take it.', 'Pleasure doing business. I guess.', "I'd say thanks, but I'm cold.", "Looks... okay. Whatever."];
 // Jackie's nicknames for Watson are Lovebug and Lovie.
 const JACKIE_REST = ['Good boy, Watson!', 'Good work, Lovebug!', "That's my Lovie!", "Who's my brave boy? You are, Lovebug!", 'Rest up, Lovie.', 'Lovebug! Look at you go!'];
@@ -575,7 +605,6 @@ let titleOpenedAt = 0;
 overlay('title').onclick = () => { if (performance.now() - titleOpenedAt > 350) closeOverlays(); };
 overlay('closeShop').onclick = () => { if (performance.now() - shopOpenedAt > 400) closeOverlays(); };
 overlay('respawn').onclick = respawn;
-overlay('keepPlaying').onclick = closeOverlays;
 
 const flaskCost = () => 120 * 2 ** (player.maxFlasks - 4);
 
@@ -617,6 +646,24 @@ function renderShop() {
     }, p.stats[s.id]));
   });
 
+  section('Doghouse upgrades');
+  UPGRADES.forEach(u => {
+    const t = TREASURES.find(t => t.id === u.needs), has = found.has(u.needs), done = built.has(u.id);
+    if (!has && !done) { body.appendChild(row('???', 'Find something rare out on the islands', 'Need item', false, () => {})); return; }
+    const pre = u.after && !built.has(u.after) ? UPGRADES.find(x => x.id === u.after).name : null;
+    body.appendChild(row(u.name, pre ? `${u.desc} · build the ${pre} first` : `${u.desc} · uses the ${t.name}`,
+      done ? 'Built' : pre ? 'Later' : `${u.cost} XP`, !done && !pre && p.xp >= u.cost,
+      () => {
+        p.xp -= u.cost; built.add(u.id); tut.built++;
+        if (u.id === 'bowl') p.bladder = maxPee();
+        if (u.id === 'bed') { p.maxFlasks += 2; p.flasks = p.maxFlasks; }
+        if (u.id === 'stall') speak('fred', 'Hm. A stall. ...Fine, it\'s nice. Come see.');
+        if (u.id === 'fire') speak('fred', 'Oh. Oh, that\'s warm. ...Okay, I like you now.');
+        if (u.id === 'shop') speak('fred', 'A real shop. With a sign. ...I might cry. I won\'t.');
+        if (u.id === 'house2' || u.id === 'house3') { p.hp = maxHp(); p.sta = maxSta(); speak('jackie', 'Look at our house, Lovebug!'); }
+      }));
+  });
+
   if (saved.size) {
     section('Dog friends (bring one along)');
     FRIENDS.forEach(f => {
@@ -641,7 +688,7 @@ function renderFredWares(section, row) {
   const p = player, body = overlay('shopBody');
   section('Fetch gear (held in your mouth)');
   WEAPONS.forEach((w, i) => {
-    if (i === 0 || w.rare) return;
+    if (i === 0 || !inShop(w)) return;
     const owned = p.weapon >= i;
     body.appendChild(row(w.name, `${w.dmg} damage · ${w.desc}`,
       owned ? (p.weapon === i ? 'Equipped' : 'Outclassed') : `${w.cost} XP`,
@@ -651,7 +698,7 @@ function renderFredWares(section, row) {
 
   section('Tricks');
   SKILLS.forEach(s => {
-    if (s.cost === 0) return;
+    if (s.cost === 0 || !inShop(s)) return;
     const owned = p.skills.has(s.id);
     body.appendChild(row(`${s.name} <kbd>${s.key}</kbd>`, `${s.short} · ${s.sta} stamina`,
       owned ? 'Learned' : `${s.cost} XP`,
@@ -661,14 +708,15 @@ function renderFredWares(section, row) {
 
   section('Treats');
   const fc = flaskCost();
-  const maxed = p.maxFlasks >= 8;
+  const maxed = p.maxFlasks >= 6 + (built.has('stall') ? 2 : 0) + (built.has('shop') ? 2 : 0) + (built.has('bed') ? 2 : 0);
   body.appendChild(row('Golden Biscuit', `+1 healing biscuit (you have ${p.maxFlasks})`,
     maxed ? 'Max' : `${fc} XP`, !maxed && p.xp >= fc,
     () => { p.xp -= fc; p.maxFlasks++; p.flasks = p.maxFlasks; }));
 
+  if (!built.has('stall')) return;
   section('Outfits and armor');
   OUTFITS.forEach(o => {
-    if (o.cost === 0) return;
+    if (o.cost === 0 || !inShop(o)) return;
     const owned = p.outfits.has(o.id);
     body.appendChild(row(o.name, o.desc, owned ? 'Owned' : `${o.cost} XP`, !owned && p.xp >= o.cost,
       () => { p.xp -= o.cost; p.outfits.add(o.id); p.wear[o.slot] = o.id; speak('fred', pick(FRED_SOLD)); }));
@@ -736,12 +784,12 @@ function moveDir() {
 }
 
 function startRoll() {
-  if (!canAct() || !spendSta(ROLL_STA * gearMult('roll'))) return;
+  if (!canAct() || !spendSta(ROLL_STA * gearMult('roll') * (hasPower('zoom') ? 0.5 : 1))) return;
   const d = moveDir() || player.face;
   player.roll = { t: 0.4, x: d.x, y: d.y };
   tut.rolls++;
 }
-const invulnerable = () => (player.roll && player.roll.t > 0.05 && player.roll.t < 0.38) || player.grace > 0;
+const invulnerable = () => !!player.roll || player.grace > 0;   // untouchable for the whole roll
 
 function drinkFlask() {
   if (!canAct() || player.flasks <= 0) return;
@@ -845,7 +893,6 @@ function tryClaim(force) {
   if (purified) floatText(player.x, player.y - 0.6, purified > 1 ? `${purified} plants purified` : 'Plant purified', '#9be37a', 2);
   effects.push({ type: 'ring', x: player.x, y: player.y, range: 1.6, t: 0.6, max: 0.6, color: '#f2c94c', fill: true });
   if (Math.random() < 0.5) speak('jackie', pick(JACKIE_TURF));
-  if (turfFrac() >= WIN_TURF && !won) { won = true; setTimeout(() => openOverlay('win'), 1200); }
 }
 function loseTrail() {
   if (!trail.length) return;
@@ -855,14 +902,10 @@ function loseTrail() {
 }
 function updatePee(dt, moved) {
   const p = player;
-  if (!p.pee) {   // the bladder refills slowly, faster on your own turf
-    p.bladder = Math.min(maxPee(), p.bladder + (isTurf(p.x, p.y) ? 4 : 1) * dt);
-    return;
-  }
+  if (!p.pee) return;   // (the bladder only refills at the doghouse)
   if (isTurf(p.x, p.y)) {
     if (trail.length) { addTrailPoint(p.x, p.y); tryClaim(true); }
     lastTurfPt = { x: p.x, y: p.y };
-    p.bladder = Math.min(maxPee(), p.bladder + 4 * dt);
     return;
   }
   if (p.swimming) {   // the water washes the trail away
@@ -876,6 +919,7 @@ function updatePee(dt, moved) {
     p.bladder = 0; p.pee = false;
     loseTrail();
     floatText(p.x, p.y, 'Out of pee!', '#f2c94c', 1.4);
+    peeEmptyT = time;
   }
 }
 
@@ -936,6 +980,7 @@ function updateFriends(dt) {
           if (k >= 1) {   // belly flop!
             f.z = 0;
             effects.push({ type: 'ring', x: f.x, y: f.y, range: 1.6, t: 0.45, max: 0.45, color: '#e8c37a', fill: true });
+            clearObstacles('boulder', f.x, f.y, 1.6);
             for (const e of enemies) if (Math.hypot(e.x - f.x, e.y - f.y) < 1.6 + e.r) {
               hurtEnemy(e, f.act.dmg, f.x, f.y);
               if (e.hp > 0 && !e.frozen) Object.assign(e, { state: 'recover', t: 1.1, punishable: true });
@@ -993,8 +1038,17 @@ function updateScene(dt) {
 }
 
 // ---------- Combat ----------
+// A friend's move clears an obstacle of the matching type, revealing what's under it.
+function clearObstacles(type, x, y, range) {
+  for (const o of OBSTACLES) if (!o.gone && o.type === type && Math.hypot(o.x - x, o.y - y) < range + o.r) {
+    o.gone = true;
+    effects.push({ type: 'ring', x: o.x, y: o.y, range: 1.6, t: 0.7, max: 0.7, color: type === 'boulder' ? '#b8b0a4' : '#ff9a3a', fill: true });
+    floatText(o.x, o.y, type === 'boulder' ? 'Smashed!' : 'Burned away!', '#ffd25a', 1.6);
+  }
+}
 function explode(pr) {
   const fire = pr.kind === 'fire', range = fire ? 1.3 : 1.2, { x, y } = pr;
+  if (fire) clearObstacles('bramble', x, y, range);
   effects.push({ type: 'ring', x, y, range, t: 0.35, max: 0.35, color: fire ? '#ff9a3a' : '#9fd4ff', fill: true });
   for (const e of enemies) if (Math.hypot(e.x - x, e.y - y) < range + e.r) hurtEnemy(e, fire ? pr.dmg : fireballDmg(), x, y);
 }
@@ -1107,11 +1161,12 @@ function faceTarget() {
 // Move a body by (dx, dy), but stop at the water's edge (sliding along it) unless it can swim.
 // Returns true if water got in the way.
 function moveBody(o, dx, dy, swim) {
-  const wet = (x, y, ax, ay) => { const l = Math.hypot(ax, ay) || 1; return inWater(x + ax / l * 0.22, y + ay / l * 0.22); };
-  if (swim || inWater(o.x, o.y) || !wet(o.x + dx, o.y + dy, dx, dy)) { o.x += dx; o.y += dy; return false; }
+  const probe = (x, y, ax, ay) => { const l = Math.hypot(ax, ay) || 1; return [x + ax / l * 0.22, y + ay / l * 0.22]; };
+  const wet = (x, y, ax, ay) => { const [px, py] = probe(x, y, ax, ay); return (!swim && !inWater(o.x, o.y) && inWater(px, py)) || !!obstacleAt(px, py); };
+  if (!wet(o.x + dx, o.y + dy, dx, dy)) { o.x += dx; o.y += dy; return false; }
   if (dx && !wet(o.x + dx, o.y, dx, 0)) o.x += dx;
   else if (dy && !wet(o.x, o.y + dy, 0, dy)) o.y += dy;
-  return true;
+  return !obstacleAt(...probe(o.x + dx, o.y + dy, dx, dy));   // true = bumped into water (not a rock)
 }
 
 function update(dt) {
@@ -1145,11 +1200,11 @@ function update(dt) {
     if (p.swimming) spd *= swimMult();
     const zoom = hasPower('zoom');
     if (zoom) spd *= zoomMult();
-    if ((keys.shift || joy.mag > 0.92) && p.sta > 0 && p.drink <= 0 && p.attackLock <= 0) {   // phones: push the stick all the way
+    if ((keys.shift || joy.mag > 0.92) && p.drink <= 0 && p.attackLock <= 0) {   // phones: push the stick all the way
       p.running = true;
       tut.ran += dt;
       spd *= RUN_MULT;
-      if (!zoom) { p.sta = Math.max(0, p.sta - RUN_STA * dt); p.staDelay = 0.5; }
+      // Running is free; only rolling and attacking cost stamina.
       if (!target && p.aimT <= 0) p.face = md;
     }
     bumped = moveBody(p, md.x * spd * dt, md.y * spd * dt, swim);
@@ -1199,8 +1254,19 @@ function update(dt) {
   // Fred mutters to himself when Watson is nearby. He perks up for anything warm.
   fredChatT -= dt;
   if (fredChatT <= 0 && Math.hypot(p.x - FRED.x, p.y - FRED.y) < 2.8) {
-    speak('fred', pick(WEAPONS[p.weapon].type === 'flamebone' || p.buddy === 'ember' ? FRED_WARM : FRED_IDLE));
+    speak('fred', pick(built.has('fire') ? FRED_WARMED : WEAPONS[p.weapon].type === 'flamebone' || p.buddy === 'ember' ? FRED_WARM : FRED_IDLE));
     fredChatT = rand(20, 30);
+  }
+
+  // Pick up rare finds.
+  for (const o of OUTPOSTS) if (isTurf(o.x, o.y) && Math.hypot(o.x - p.x, o.y - p.y) < 1.2 && p.bladder < maxPee()) {
+    p.bladder = maxPee();
+    effects.push({ type: 'ring', x: o.x, y: o.y, range: 0.9, t: 0.5, max: 0.5, color: '#9fd4ff', fill: true });
+  }
+  for (const t of TREASURES) if (!found.has(t.id) && !obstacleAt(t.x, t.y) && Math.hypot(t.x - p.x, t.y - p.y) < 1.1) {
+    found.add(t.id);
+    floatText(t.x, t.y, `Found the ${t.name}!`, '#ffd25a', 2.6);
+    effects.push({ type: 'ring', x: t.x, y: t.y, range: 1.5, t: 0.8, max: 0.8, color: '#ffd25a', fill: true });
   }
 
   // Recover your lost XP.
@@ -1281,7 +1347,7 @@ function update(dt) {
   // Projectiles
   for (const pr of projectiles) {
     pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.life -= dt;
-    const hit = enemies.some(e => e.hp > 0 && Math.hypot(e.x - pr.x, e.y - pr.y) < e.r + 0.15);
+    const hit = enemies.some(e => e.hp > 0 && Math.hypot(e.x - pr.x, e.y - pr.y) < e.r + 0.15) || !!obstacleAt(pr.x, pr.y);
     if (hit || pr.life <= 0 || pr.x < 0 || pr.y < 0 || pr.x > MAP || pr.y > MAP) { explode(pr); pr.life = -1; }
   }
   projectiles = projectiles.filter(pr => pr.life > 0);
@@ -1534,10 +1600,11 @@ function drawDog(sx, sy, o) {
   };
 
   // Hero cape flutters behind everything.
-  if (wear.body === 'cape') {
-    const fl = Math.sin(time * 9 + o.walk) * 1.5;
+  if (wear.body === 'cape' || wear.body === 'royalcape') {
+    const fl = Math.sin(time * 9 + o.walk) * 1.5, royal = wear.body === 'royalcape';
     ctx.beginPath(); ctx.moveTo(8, by - 6); ctx.quadraticCurveTo(-4, by - 9 + fl, -16, by - 2 + fl);
-    ctx.lineTo(-13, by + 5 - fl); ctx.quadraticCurveTo(-2, by + 1, 7, by - 2); ctx.closePath(); fill('#c0392b');
+    ctx.lineTo(-13, by + 5 - fl); ctx.quadraticCurveTo(-2, by + 1, 7, by - 2); ctx.closePath(); fill(royal ? '#6a2a9a' : '#c0392b');
+    if (royal) { ctx.beginPath(); ctx.moveTo(8, by - 6); ctx.quadraticCurveTo(-4, by - 9 + fl, -16, by - 2 + fl); ctx.lineTo(-15.5, by - 0.5 + fl); ctx.quadraticCurveTo(-4, by - 7 + fl, 8, by - 4.5); ctx.closePath(); fill('#f4f1ea'); }
   }
 
   // Tail wags faster when moving.
@@ -1628,6 +1695,9 @@ function drawDog(sx, sy, o) {
     ctx.beginPath(); ctx.roundRect(-1.5, -16.5, 9, 6.5, 2.5); fill('#8a5a2e');
     ctx.beginPath(); ctx.ellipse(3, -10.6, 9.5, 2, -0.05, 0, Math.PI * 2); fill('#8a5a2e');
     ctx.beginPath(); ctx.rect(-1.5, -12.4, 9, 1.3); fill('#3a2210');
+  } else if (wear.head === 'crown') {
+    ctx.beginPath(); ctx.moveTo(-1.5, -10.5); ctx.lineTo(-1.5, -16); ctx.lineTo(1, -13); ctx.lineTo(3.5, -17); ctx.lineTo(6, -13); ctx.lineTo(8.5, -16); ctx.lineTo(8.5, -10.5); ctx.closePath(); fill('#f2c94c');
+    for (const [x, c] of [[0.8, '#e74c3c'], [3.5, '#2e86de'], [6.2, '#27ae60']]) { ctx.beginPath(); ctx.arc(x, -12, 0.9, 0, Math.PI * 2); fill(c); }
   } else if (wear.head === 'helmet') {
     ctx.beginPath(); ctx.ellipse(3, -17, 1.8, 3.4, -0.3, 0, Math.PI * 2); fill('#c0392b');   // plume
     ctx.beginPath(); ctx.arc(3, -8.6, 6.6, Math.PI, Math.PI * 2); fill('#b8c2cc');
@@ -1811,6 +1881,15 @@ function drawJackie() {
 function drawFred() {
   const p = player, s = toScreen(FRED.x, FRED.y);
   shadow(FRED.x, FRED.y, 0.45);
+  if (built.has('shop')) {   // a real little shop behind Fred
+    const bx = s.x - 22, by = s.y - 4;
+    ctx.fillStyle = '#d9b07a'; ctx.fillRect(bx - 20, by - 34, 40, 34);
+    ctx.fillStyle = '#b88a56'; ctx.fillRect(bx - 20, by - 6, 40, 6);
+    ctx.fillStyle = '#7fc4e8'; ctx.fillRect(bx - 14, by - 26, 12, 10); ctx.fillRect(bx + 2, by - 26, 12, 10);
+    for (let k = 0; k < 7; k++) { ctx.fillStyle = k % 2 ? '#ffffff' : '#2ec4b6'; ctx.fillRect(bx - 23 + k * 6.6, by - 42, 6.6, 9); }
+    ctx.fillStyle = '#2ec4b6'; ctx.fillRect(bx - 16, by - 54, 32, 11);
+    ctx.fillStyle = '#ffffff'; ctx.font = 'bold 8px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText("FRED'S", bx, by - 45.5);
+  }
   // The crate of wares (not mirrored)
   ctx.save(); ctx.translate(s.x - 14, s.y); ctx.scale(0.8, 0.8);
   ctx.fillStyle = '#9a6a3a'; ctx.fillRect(-11, -14, 18, 14);
@@ -1822,10 +1901,15 @@ function drawFred() {
   ctx.fillStyle = '#f2e6c8'; ctx.font = 'bold 5px system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.fillText("FRED'S", -2, -6.5);
   ctx.restore();
 
+  if (built.has('stall') && !built.has('shop')) {   // striped awning on two posts
+    ctx.fillStyle = '#7a5028'; ctx.fillRect(s.x - 30, s.y - 44, 2.5, 44); ctx.fillRect(s.x + 14, s.y - 44, 2.5, 44);
+    for (let k = 0; k < 8; k++) { ctx.fillStyle = k % 2 ? '#ffffff' : '#e74c3c'; ctx.fillRect(s.x - 34 + k * 6.5, s.y - 50, 6.5, 9); }
+    for (let k = 0; k < 8; k++) { ctx.fillStyle = k % 2 ? '#ffffff' : '#e74c3c'; ctx.beginPath(); ctx.arc(s.x - 30.75 + k * 6.5, s.y - 41, 3.25, 0, Math.PI); ctx.fill(); }
+  }
   // The cat
   const { flip } = screenFacing(p.x - FRED.x, p.y - FRED.y);
   const orange = '#f08a24', stripe = '#c4621a', white = '#fbf3e6';
-  const shiver = (time % 7) < 1.3 ? Math.sin(time * 70) * 0.5 : 0;   // he gets the shivers now and then
+  const shiver = !built.has('fire') && (time % 7) < 1.3 ? Math.sin(time * 70) * 0.5 : 0;   // he gets the shivers now and then (until the fireplace)
   ctx.save(); ctx.translate(s.x + shiver, s.y); ctx.scale(flip ? -0.85 : 0.85, 0.85);
   const swish = Math.sin(time * 2.2) * 0.35;
   ctx.save(); ctx.translate(-7, -3); ctx.rotate(-1.1 + swish);                                                  // tail
@@ -2092,8 +2176,17 @@ function drawFriend(f) {
 // Watson's doghouse: the safe spot in the middle of town.
 function drawDoghouse() {
   const s = toScreen(CENTER, CENTER);
-  shadow(CENTER, CENTER, 0.75);
+  const hs = built.has('house2') ? 1.3 : 1;   // the doghouse grows when upgraded
+  shadow(CENTER, CENTER, 0.75 * hs);
   const x = s.x, y = s.y;
+  ctx.save(); ctx.translate(x, y); ctx.scale(hs, hs); ctx.translate(-x, -y);
+  if (built.has('house3')) {   // a little tower on top, with a flag
+    ctx.fillStyle = '#c47e44'; ctx.fillRect(x - 8, y - 66, 12, 18);
+    ctx.fillStyle = '#2a1a12'; ctx.beginPath(); ctx.arc(x - 2, y - 58, 3, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#b3191c'; ctx.beginPath(); ctx.moveTo(x - 10, y - 66); ctx.lineTo(x - 2, y - 76); ctx.lineTo(x + 6, y - 66); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#5a3a20'; ctx.fillRect(x - 2.5, y - 90, 1.5, 15);
+    ctx.fillStyle = '#f2c94c'; ctx.beginPath(); ctx.moveTo(x - 1, y - 90); ctx.lineTo(x + 9 + Math.sin(time * 6) * 1.5, y - 86); ctx.lineTo(x - 1, y - 82); ctx.closePath(); ctx.fill();
+  }
   ctx.fillStyle = '#b5703a';                                                                  // walls
   ctx.beginPath(); ctx.moveTo(x - 24, y - 6); ctx.lineTo(x, y + 6); ctx.lineTo(x + 24, y - 6); ctx.lineTo(x + 24, y - 30); ctx.lineTo(x, y - 18); ctx.lineTo(x - 24, y - 30); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#9a5c2e';
@@ -2106,10 +2199,80 @@ function drawDoghouse() {
   ctx.beginPath(); ctx.moveTo(x - 2, y - 52); ctx.lineTo(x + 28, y - 28); ctx.lineTo(x + 4, y - 15); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#f2e6c8'; ctx.font = 'bold 8px system-ui, sans-serif'; ctx.textAlign = 'center';
   ctx.save(); ctx.translate(x - 12, y - 23); ctx.transform(1, 0.45, 0, 1, 0, 0); ctx.fillText('WATSON', 0, 0); ctx.restore();
-  // Food bowl
-  const b = toScreen(CENTER + 0.9, CENTER + 0.3);
-  ctx.fillStyle = '#3a6fd8'; ctx.beginPath(); ctx.ellipse(b.x, b.y, 7, 3.5, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#a0622d'; ctx.beginPath(); ctx.ellipse(b.x, b.y - 1, 5, 2, 0, 0, Math.PI * 2); ctx.fill();
+  if (built.has('fire')) {   // brick chimney with smoke
+    ctx.fillStyle = '#8a3a2a'; ctx.fillRect(x + 10, y - 48, 8, 16);
+    ctx.fillStyle = '#6a2a1e'; ctx.fillRect(x + 9, y - 50, 10, 3);
+    for (let i = 0; i < 3; i++) {
+      const t = (time * 0.4 + i / 3) % 1;
+      ctx.globalAlpha = 0.5 * (1 - t); ctx.fillStyle = '#d8d0c8';
+      ctx.beginPath(); ctx.arc(x + 14 + Math.sin(t * 5 + i) * 4, y - 54 - t * 26, 3 + t * 5, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = `rgba(255,150,60,${0.5 + Math.sin(time * 9) * 0.15})`;   // glow in the doorway
+    ctx.beginPath(); ctx.moveTo(x - 15, y - 3); ctx.lineTo(x - 7, y + 1); ctx.lineTo(x - 7, y - 9); ctx.quadraticCurveTo(x - 11, y - 17, x - 15, y - 12); ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+  if (built.has('bed')) {   // comfy cushion beside the doghouse
+    const c = toScreen(CENTER - 0.7, CENTER + 0.9);
+    ctx.fillStyle = '#7a4a8a'; ctx.beginPath(); ctx.ellipse(c.x, c.y, 15, 7, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#b48ac4'; ctx.beginPath(); ctx.ellipse(c.x, c.y - 1.5, 10.5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+  }
+  // Water bowl (bigger once upgraded)
+  const b = toScreen(CENTER + 0.9, CENTER + 0.3), big = built.has('bowl') ? 1.7 : 1;
+  ctx.fillStyle = big > 1 ? '#c9d3dc' : '#3a6fd8'; ctx.beginPath(); ctx.ellipse(b.x, b.y, 7 * big, 3.5 * big, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#4aa8e8'; ctx.beginPath(); ctx.ellipse(b.x, b.y - 1, 5 * big, 2 * big, 0, 0, Math.PI * 2); ctx.fill();
+}
+
+// Boulders and brambles sitting on top of rare finds (a faint glint shows something is underneath).
+function drawObstacle(o) {
+  const s = toScreen(o.x, o.y);
+  shadow(o.x, o.y, o.r);
+  if (o.type === 'boulder') {
+    ctx.fillStyle = '#8a8478'; ctx.beginPath(); ctx.ellipse(s.x, s.y - 16, 30, 22, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#a49e92'; ctx.beginPath(); ctx.ellipse(s.x - 6, s.y - 24, 18, 11, -0.3, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#5e594f'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(s.x + 6, s.y - 34); ctx.lineTo(s.x + 2, s.y - 22); ctx.lineTo(s.x + 10, s.y - 12); ctx.stroke(); ctx.lineWidth = 1;
+  } else {
+    for (let k = 0; k < 9; k++) {
+      const a = k * 0.7, x = s.x + Math.cos(a * 2.3) * 18, y = s.y - 14 + Math.sin(a * 3.1) * 9;
+      ctx.fillStyle = k % 2 ? '#3a2a4a' : '#4e3a62'; ctx.beginPath(); ctx.arc(x, y, 12, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = '#c9a0dc';
+    for (let k = 0; k < 14; k++) {
+      const a = k * 0.45, x = s.x + Math.cos(a) * 26, y = s.y - 14 + Math.sin(a) * 14;
+      ctx.beginPath(); ctx.moveTo(x - 2, y); ctx.lineTo(x + Math.cos(a) * 5, y + Math.sin(a) * 4 - 1); ctx.lineTo(x + 2, y); ctx.fill();
+    }
+  }
+  if (Math.sin(time * 2 + o.x) > 0.6) { ctx.fillStyle = '#fff6c8'; ctx.beginPath(); ctx.arc(s.x + 8, s.y - 26, 2, 0, Math.PI * 2); ctx.fill(); }
+}
+// Water bowls on far islands: dry and dusty until they're inside Watson's turf.
+function drawOutpost(o) {
+  const s = toScreen(o.x, o.y), on = isTurf(o.x, o.y);
+  ctx.fillStyle = on ? '#3a6fd8' : '#7a7068'; ctx.beginPath(); ctx.ellipse(s.x, s.y, 12, 6, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = on ? '#4aa8e8' : '#9a8e80'; ctx.beginPath(); ctx.ellipse(s.x, s.y - 1.5, 8.5, 3.5, 0, 0, Math.PI * 2); ctx.fill();
+  if (on) { ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillRect(s.x - 3 + Math.sin(time * 2) * 2, s.y - 2.5, 4, 1); }
+}
+
+// Rare finds: a glowing item with a beam of light so you can spot it from far away.
+function drawTreasure(t) {
+  const s = toScreen(t.x, t.y), bob = Math.sin(time * 3) * 3;
+  const grd = ctx.createLinearGradient(0, s.y - 120, 0, s.y);
+  grd.addColorStop(0, 'rgba(255,230,140,0)'); grd.addColorStop(1, 'rgba(255,230,140,.45)');
+  ctx.fillStyle = grd; ctx.fillRect(s.x - 6, s.y - 120, 12, 120);
+  ctx.save(); ctx.translate(s.x, s.y - 14 + bob);
+  ctx.shadowColor = '#ffe9a0'; ctx.shadowBlur = 14; ctx.fillStyle = t.color;
+  if (t.id === 'bowl') { ctx.beginPath(); ctx.ellipse(0, 0, 10, 5, 0, 0, Math.PI); ctx.fill(); ctx.fillStyle = '#cfe6ff'; ctx.beginPath(); ctx.ellipse(0, 0, 10, 3, 0, 0, Math.PI * 2); ctx.fill(); }
+  else if (t.id === 'awning') { for (let k = 0; k < 5; k++) { ctx.fillStyle = k % 2 ? '#ffffff' : t.color; ctx.fillRect(-10 + k * 4, -6, 4, 10); } }
+  else if (t.id === 'pillow') { ctx.beginPath(); ctx.roundRect(-10, -5, 20, 10, 5); ctx.fill(); }
+  else if (t.id === 'planks') { for (let k = 0; k < 3; k++) { ctx.fillStyle = k % 2 ? '#9a6a3a' : t.color; ctx.fillRect(-12, -6 + k * 4, 24, 3.5); } }
+  else if (t.id === 'sign') { ctx.fillRect(-11, -7, 22, 10); ctx.fillStyle = '#ffffff'; ctx.fillRect(-7, -3, 14, 2); }
+  else if (t.id === 'shingles') { for (let k = 0; k < 3; k++) { ctx.beginPath(); ctx.arc(-7 + k * 7, -2, 4, 0, Math.PI); ctx.fill(); } }
+  else { ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(7, 0); ctx.lineTo(0, 8); ctx.lineTo(-7, 0); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  for (let k = 0; k < 3; k++) {   // sparkles
+    const a = time * 2 + k * 2.1;
+    ctx.fillStyle = '#fff6c8'; ctx.beginPath(); ctx.arc(s.x + Math.cos(a) * 14, s.y - 16 + Math.sin(a) * 8, 1.5, 0, Math.PI * 2); ctx.fill();
+  }
 }
 
 function drawBloodstain() {
@@ -2250,6 +2413,7 @@ function drawMinimap() {
   ctx.drawImage(mini, x0, y0);
   const dot = (x, y, r, c) => { const m = miniPt(x, y); ctx.fillStyle = c; ctx.beginPath(); ctx.arc(x0 + m.x, y0 + m.y, r, 0, Math.PI * 2); ctx.fill(); };
   dot(CENTER, CENTER, 2.5, '#c0392b');
+  for (const o of OUTPOSTS) if (isTurf(o.x, o.y)) dot(o.x, o.y, 2, '#5ab4ff');
   for (const f of FRIENDS) if (!saved.has(f.id)) dot(f.x, f.y, 2 + Math.sin(time * 5) * 0.8, '#ffffff');
   dot(player.x, player.y, 3, '#ff9a3a');
 }
@@ -2309,6 +2473,9 @@ function draw() {
     { d: CENTER * 2, f: drawDoghouse },
     { d: JACKIE.x + JACKIE.y, f: drawJackie },
     { d: FRED.x + FRED.y, f: drawFred },
+    ...TREASURES.filter(t => !found.has(t.id) && !obstacleAt(t.x, t.y) && seen(t.x, t.y)).map(t => ({ d: t.x + t.y, f: () => drawTreasure(t) })),
+    ...OBSTACLES.filter(o => !o.gone && seen(o.x, o.y)).map(o => ({ d: o.x + o.y, f: () => drawObstacle(o) })),
+    ...OUTPOSTS.filter(o => seen(o.x, o.y)).map(o => ({ d: o.x + o.y - 0.5, f: () => drawOutpost(o) })),
     ...FRIENDS.filter(fr => seen(fr.x, fr.y)).map(fr => ({ d: fr.x + fr.y, f: () => drawFriend(fr) })),
     ...shown.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
@@ -2356,7 +2523,7 @@ function draw() {
 // No instruction screen: each hint pops up the first time it's useful and goes away
 // once you've done it (or after a few seconds for the ones that are just warnings).
 const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0, fred: 0,
-  pal: 0, claims: 0, swaps: 0, swum: 0, shakes: 0, peeOn: 0 };
+  pal: 0, claims: 0, swaps: 0, swum: 0, shakes: 0, peeOn: 0, built: 0 };
 const near = (e, d) => Math.hypot(e.x - player.x, e.y - player.y) < d;
 const HINTS = [   // earlier hints win when several apply at once
   { id: 'roll',   text: 'SPACE  to roll out of the red circle', touch: 'Tap ROLL to get out of the red circle',            when: () => enemies.some(e => e.state === 'windup' && near(e, 3)),   done: () => tut.rolls > 0 },
@@ -2366,6 +2533,11 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'water',  text: "Watson hates water! A friend who loves swimming might help", when: () => player.shake > 0 && !hasPower('swim'), limit: 4 },
   { id: 'free',   text: 'A dog is stuck in polluted vines! Walk up and CLICK to free them', touch: 'A dog is stuck in polluted vines! Walk up and tap FREE',
     when: () => FRIENDS.some(f => !saved.has(f.id) && near(f, 4.5)), done: () => saved.size > 0, limit: 10 },
+  { id: 'dry',    text: 'Out of pee! Head home to the doghouse to refill', when: () => time - peeEmptyT < 4 || (player.bladder <= 0 && distC(player.x, player.y) > SAFE_R), limit: 6 },
+  { id: 'boulder', text: 'Too big to move. A strong friend could smash it', when: () => OBSTACLES.some(o => !o.gone && o.type === 'boulder' && near(o, 2.5)) && player.buddy !== 'boomer', limit: 5 },
+  { id: 'bramble', text: 'Thick thorny brambles. Something hot could burn them', when: () => OBSTACLES.some(o => !o.gone && o.type === 'bramble' && near(o, 2.5)) && player.buddy !== 'ember', limit: 5 },
+  { id: 'outpost', text: 'A dry water bowl! Claim the turf around it to refill your pee here', when: () => OUTPOSTS.some(o => !isTurf(o.x, o.y) && near(o, 2.5)), limit: 6 },
+  { id: 'treasure', text: 'Something rare! Bring it home to upgrade the doghouse', when: () => found.size > built.size && distC(player.x, player.y) > SAFE_R, done: () => tut.built > 0, limit: 8 },
   { id: 'lost',   text: 'Got hit! The pee trail washed away. Start over', when: () => time - trailLostT < 2.5, limit: 6 },
   { id: 'attack', text: 'CLICK  to attack toward the mouse', touch: 'Tap the big button to attack',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
   { id: 'bone',   text: 'Your dropped XP glows like a bone. Go get it back!', when: () => !!bloodstain,                                       done: () => !bloodstain, limit: 8 },
