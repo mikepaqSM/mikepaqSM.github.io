@@ -38,7 +38,7 @@ in `game/`.
   Home Island; he hates water (shakes his head, won't go in) until he frees Splash there, then can swim
   to Suburb, Downtown and Pound Isles (plus small islets). Plant toughness comes from `tierAt`.
   A corner minimap shows islands, turf, Watson, home and lost dogs.
-- **Turf**: PEE button toggles peeing; a trail outside Watson's turf that loops back to the turf (or
+- **Turf**: hold the PEE button (or P) to pee; letting go loses an unfinished trail; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
   the trail (so does swimming). The pee meter refills **only at the doghouse**. Plants inside new
   turf are purified; fewer plants spawn as turf grows.
@@ -62,7 +62,7 @@ in `game/`.
 - Souls-like but fair: telegraphed attacks (red circle), dodge roll, stamina, punish window
   (yellow ring = 2x critical), XP dropped on knock-out and recoverable. **Not button-mashy**:
   enemies die in few hits, and Watson can't take many either. Difficulty has been eased twice,
-  so lean forgiving.
+  so lean forgiving. XP was slowed down once (plants give half, levels and upgrades cost more).
 - **Minimal on-screen text.** No instruction screens; players learn through one-time hints
   (`HINTS` list). The HUD is compact. Jackie and Fred speak in speech bubbles via `speak()`.
 - Start screen is just the Watson Dog logo.

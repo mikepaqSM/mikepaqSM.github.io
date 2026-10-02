@@ -205,16 +205,16 @@ const STATS = [
   { id: 'arc', name: 'Bark Power',   desc: '+10% Mega Bark damage' },
   { id: 'bla', name: 'Bladder',      desc: '+8 pee (bigger turf loops)' },
 ];
-const levelCost = lvl => Math.floor(30 * 1.16 ** (lvl - 1));
+const levelCost = lvl => Math.floor(40 * 1.2 ** (lvl - 1));
 
 // Regular enemies: friendly plant folk turned mean by pollution.
 // windup = seconds of warning before the hit, reach = size of the red danger circle,
 // staggers = whether your hits interrupt their attack. s = drawing scale, look = how they're drawn.
 const ENEMY_TYPES = [
-  { name: 'Sproutling',       lvl: 1,  hp: 10,  dmg: 14, speed: 1.6, xp: 6,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', tier: 0,  windup: 0.66, reach: 0.45, recover: 0.7, staggers: true,  aggro: 4.0 },
-  { name: 'Thornbush',        lvl: 3,  hp: 30,  dmg: 20, speed: 2.1, xp: 20,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', tier: 1,  windup: 0.54, reach: 0.6,  recover: 0.55, staggers: true, aggro: 5.0 },
-  { name: 'Toxic Toadstool',  lvl: 6,  hp: 55,  dmg: 30, speed: 1.8, xp: 60,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', tier: 2,  windup: 0.84,  reach: 0.85, recover: 0.8, staggers: false, aggro: 5.5 },
-  { name: 'Smog Oak',         lvl: 10, hp: 110, dmg: 50, speed: 1.3, xp: 180, r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', tier: 3,  windup: 1.2,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 6.0 },
+  { name: 'Sproutling',       lvl: 1,  hp: 10,  dmg: 14, speed: 1.6, xp: 3,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', tier: 0,  windup: 0.66, reach: 0.45, recover: 0.7, staggers: true,  aggro: 4.0 },
+  { name: 'Thornbush',        lvl: 3,  hp: 30,  dmg: 20, speed: 2.1, xp: 10,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', tier: 1,  windup: 0.54, reach: 0.6,  recover: 0.55, staggers: true, aggro: 5.0 },
+  { name: 'Toxic Toadstool',  lvl: 6,  hp: 55,  dmg: 30, speed: 1.8, xp: 30,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', tier: 2,  windup: 0.84,  reach: 0.85, recover: 0.8, staggers: false, aggro: 5.5 },
+  { name: 'Smog Oak',         lvl: 10, hp: 110, dmg: 50, speed: 1.3, xp: 90,  r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', tier: 3,  windup: 1.2,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 6.0 },
 ];
 
 // Dog friends: lost pups tangled in polluted vines around town. Free one and it joins you.
@@ -304,13 +304,13 @@ const OUTPOSTS = [
 ].map(o => ({ x: CENTER + o.ox, y: CENTER + o.oy }));
 // Doghouse upgrades: each needs a rare find plus some XP. 'stall' and 'fire' open more of Fred's shop.
 const UPGRADES = [
-  { id: 'bowl',  needs: 'bowl',   cost: 100, name: 'Big Water Bowl',    desc: '+16 pee, for bigger turf loops' },
-  { id: 'stall', needs: 'awning', cost: 250, name: "Fred's Shop Stall", desc: 'Fred opens a real shop: outfits, Mega Bark and better gear' },
-  { id: 'bed',   needs: 'pillow', cost: 400, name: 'Comfy Bed',         desc: '+2 healing biscuits' },
-  { id: 'fire',  needs: 'ember',  cost: 800, name: 'Cozy Fireplace',    desc: "Fred finally warms up and brings out his rare stock" },
-  { id: 'house2', needs: 'planks', cost: 500, name: 'Bigger Doghouse',  desc: '+25 max HP' },
-  { id: 'shop',  needs: 'sign',   cost: 600, name: "Fred's Shop",       desc: 'Fred moves into a real shop and sells his fanciest things', after: 'stall' },
-  { id: 'house3', needs: 'shingles', cost: 900, name: 'Doghouse Tower', desc: '+25 max stamina', after: 'house2' },
+  { id: 'bowl',  needs: 'bowl',   cost: 150, name: 'Big Water Bowl',    desc: '+16 pee, for bigger turf loops' },
+  { id: 'stall', needs: 'awning', cost: 375, name: "Fred's Shop Stall", desc: 'Fred opens a real shop: outfits, Mega Bark and better gear' },
+  { id: 'bed',   needs: 'pillow', cost: 600, name: 'Comfy Bed',         desc: '+2 healing biscuits' },
+  { id: 'fire',  needs: 'ember',  cost: 1200, name: 'Cozy Fireplace',    desc: "Fred finally warms up and brings out his rare stock" },
+  { id: 'house2', needs: 'planks', cost: 750, name: 'Bigger Doghouse',  desc: '+25 max HP' },
+  { id: 'shop',  needs: 'sign',   cost: 900, name: "Fred's Shop",       desc: 'Fred moves into a real shop and sells his fanciest things', after: 'stall' },
+  { id: 'house3', needs: 'shingles', cost: 1350, name: 'Doghouse Tower', desc: '+25 max stamina', after: 'house2' },
 ];
 // Fred's stock: things with shop: 'stall' or 'fire' only appear once that upgrade is built.
 
@@ -436,10 +436,10 @@ addEventListener('keydown', e => {
   if (k === '3') useSkill('fireball');
   if (k === 'q') drinkFlask();
   if (k === ' ') startRoll();
-  if (k === 'p') togglePee();
+  if (k === 'p') setPee(true);
   if (k === 'f') palMove();
 });
-addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+addEventListener('keyup', e => { const k = e.key.toLowerCase(); keys[k] = false; if (k === 'p') setPee(false); });
 const mouse = { x: 0, y: 0 };
 const joy = { id: null, ox: 0, oy: 0, dx: 0, dy: 0, mag: 0 };   // on-screen joystick (phones)
 const JOY_R = 60;
@@ -483,7 +483,8 @@ touchButton('tRoll', () => startRoll());
 touchButton('tZoom', () => useSkill('whirl'));
 touchButton('tBark', () => useSkill('fireball'));
 touchButton('tTreat', () => drinkFlask());
-touchButton('tPee', () => togglePee());
+touchButton('tPee', () => setPee(true));   // hold to pee
+for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) tb('tPee').addEventListener(ev, () => setPee(false));
 touchButton('tPal', () => palMove());
 touchButton('tPause', () => openOverlay('title'));
 function updateTouchButtons() {
@@ -836,13 +837,18 @@ function useSkill(id, aim) {
   }
 }
 
-// Peeing: toggle on, then walk. Outside your turf you leave a trail; loop back to your turf
-// (or close the loop on itself) and everything inside becomes yours. Get hit and the trail is lost.
-function togglePee() {
-  if (paused || player.dead || player.scene) return;
-  if (player.pee && trail.length) clearTrail();
-  player.pee = !player.pee && player.bladder > 0;
-  if (player.pee) tut.peeOn++;
+// Peeing: hold the button and walk. Outside your turf you leave a trail; loop back to your turf
+// (or close the loop on itself) and everything inside becomes yours. Let go, get hit, or swim
+// and the trail is lost.
+function setPee(on) {
+  if (on) {
+    if (paused || player.dead || player.scene || player.bladder <= 0) return;
+    if (!player.pee) tut.peeOn++;
+    player.pee = true;
+  } else {
+    if (player.pee && trail.length) { clearTrail(); floatText(player.x, player.y, 'Trail dried up', '#f2c94c', 1.2); }
+    player.pee = false;
+  }
 }
 function clearTrail() { trail = []; trailMark.fill(0); }
 // Add a point to the trail and mark the cells under it. Returns true if it covered a new cell.
@@ -883,7 +889,7 @@ function tryClaim(force) {
   if (gained < 3) return;
   tut.claims++;
   // Plants caught inside the new turf are purified.
-  let xp = Math.round(gained * 0.75), purified = 0;
+  let xp = Math.round(gained * 0.25), purified = 0;
   for (const e of enemies) if (e.hp > 0 && isTurf(e.x, e.y)) {
     xp += e.xp; e.hp = 0; purified++;
     effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2.5, t: 0.6, max: 0.6, color: '#9be37a', fill: true });
@@ -2541,7 +2547,7 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'lost',   text: 'Got hit! The pee trail washed away. Start over', when: () => time - trailLostT < 2.5, limit: 6 },
   { id: 'attack', text: 'CLICK  to attack toward the mouse', touch: 'Tap the big button to attack',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
   { id: 'bone',   text: 'Your dropped XP glows like a bone. Go get it back!', when: () => !!bloodstain,                                       done: () => !bloodstain, limit: 8 },
-  { id: 'pee',    text: 'P to pee. Walk a loop back to your turf to claim it', touch: 'Tap PEE, then walk a loop back to your turf',
+  { id: 'pee',    text: 'Hold P to pee. Walk a loop back to your turf to claim it', touch: 'Hold PEE and walk a loop back to your turf',
     when: () => tut.playT > 25 && !player.pee && distC(player.x, player.y) < 9, done: () => tut.claims > 0, limit: 12 },
   { id: 'peeing', text: 'Loop back to the yellow line to claim it. Don\'t get hit!', when: () => player.pee && trail.length > 3, done: () => tut.claims > 0, limit: 8 },
   { id: 'swim',   text: 'Splash loves water! Now Watson can swim too', when: () => hasPower('swim'), done: () => tut.swum > 1, limit: 8 },
