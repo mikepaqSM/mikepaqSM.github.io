@@ -329,6 +329,15 @@ const TREASURES = [
 ].map(t => ({ ...t, x: CENTER + t.ox, y: CENTER + t.oy }));
 // Plants very rarely drop a trinket when knocked out (tougher plants a bit more often).
 const DROP_CHANCE = [0.02, 0.035, 0.06, 0.1];   // by plant tier
+// Bosses: giant polluted plants, one per big island. They chain attacks (combo), don't stagger, stay
+// near home, and stay beaten. Each drops a pile of trinkets. look/s = drawn like that plant, but huge.
+const BOSSES = [
+  { id: 'bramble', name: 'Bramble King',     look: 'thorn',     ox: -6,  oy: -11, s: 2.2, hp: 180, dmg: 22, r: 0.7,  h: 70,  speed: 1.8, combo: 2, windup: 0.75, reach: 1.0, recover: 1.0, aggro: 5,   xp: 120, tier: 1, color: '#3f6e2e', loot: 3 },
+  { id: 'toad',    name: 'Mother Toadstool', look: 'toadstool', ox: 37,  oy: -1,  s: 2.2, hp: 320, dmg: 30, r: 0.8,  h: 100, speed: 1.4, combo: 2, windup: 0.9,  reach: 1.4, recover: 1.1, aggro: 5.5, xp: 250, tier: 2, color: '#8e3b9e', loot: 3 },
+  { id: 'titan',   name: 'Smog Titan',       look: 'oak',       ox: -18, oy: 40,  s: 2.0, hp: 520, dmg: 42, r: 0.9,  h: 140, speed: 1.1, combo: 3, windup: 1.15, reach: 1.6, recover: 1.2, aggro: 6,   xp: 450, tier: 3, color: '#6b4a2e', loot: 4 },
+  { id: 'giant',   name: 'Wilted Giant',     look: 'sprout',    ox: -31, oy: -22, s: 3.4, hp: 750, dmg: 50, r: 0.85, h: 110, speed: 1.3, combo: 3, windup: 1.0,  reach: 1.5, recover: 1.1, aggro: 6,   xp: 700, tier: 3, color: '#8fbf4f', loot: 5 },
+].map(b => ({ ...b, lvl: b.tier * 5 + 5, boss: true, staggers: false, homeX: CENTER + b.ox, homeY: CENTER + b.oy }));
+const bossesBeaten = new Set();
 let drops = [];   // trinkets lying where a plant dropped them: { id, x, y, kind }
 // Shiny trinkets: small glinting things scattered over the islands. Fred trades his wares for them
 // (cats love shiny things). Placed the same way every game; `tk` on an item = how many it costs.
@@ -838,6 +847,7 @@ function populate() {
       enemies.push(makeEnemy(pickType(tierAt(f.x, f.y)), x, y)); k++;
     }
   }
+  for (const b of BOSSES) if (!bossesBeaten.has(b.id)) enemies.push(makeEnemy(b, b.homeX, b.homeY));
   for (let i = 0; i < maxEnemies(); i++) spawnEnemy();
 }
 populate();
@@ -981,7 +991,7 @@ function tryClaim(force) {
   const home = Math.max(1, Math.round(gained / (G * G)));
   homeXp += home;
   let xp = 0, purified = 0;
-  for (const e of enemies) if (e.hp > 0 && isTurf(e.x, e.y)) {
+  for (const e of enemies) if (e.hp > 0 && !e.boss && isTurf(e.x, e.y)) {
     xp += e.xp; e.hp = 0; purified++;
     effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2.5, t: 0.6, max: 0.6, color: '#9be37a', fill: true });
   }
@@ -1167,7 +1177,13 @@ function hurtEnemy(e, dmg, fromX = player.x, fromY = player.y) {
   floatText(e.x, e.y, crit ? `${dmg}!` : dmg, crit ? '#ffd25a' : '#fff', crit ? 1.1 : 0.8);
   if (e.hp <= 0) {
     sfx('death');
-    if (Math.random() < DROP_CHANCE[e.tier]) drops.push({ id: 1000 + Math.floor(Math.random() * 1e6), x: e.x, y: e.y, kind: Math.floor(Math.random() * 4) });
+    if (e.boss) {
+      bossesBeaten.add(e.id);
+      sfx('special');
+      for (let k = 0; k < e.loot; k++) { const a = k / e.loot * Math.PI * 2; drops.push({ id: 1000 + Math.floor(Math.random() * 1e6), x: e.x + Math.cos(a) * 0.9, y: e.y + Math.sin(a) * 0.9, kind: k % 4 }); }
+      floatText(e.x, e.y - 0.8, `${e.name} is purified!`, '#e3b8ff', 3);
+      effects.push({ type: 'ring', x: e.x, y: e.y, range: 3, t: 1, max: 1, color: '#e3b8ff', fill: true });
+    } else if (Math.random() < DROP_CHANCE[e.tier]) drops.push({ id: 1000 + Math.floor(Math.random() * 1e6), x: e.x, y: e.y, kind: Math.floor(Math.random() * 4) });
     gainXp(e.xp);
     kills++;
     floatText(e.x, e.y, `+${e.xp} XP`, '#f2c94c', 1.2);
@@ -1411,6 +1427,7 @@ function update(dt) {
 
     if ((e.state === 'idle' || e.state === 'return') && !playerSafe && d < e.aggro) e.state = 'chase';
     if (e.state === 'chase' && (playerSafe || d > e.aggro * 1.8)) e.state = 'return';
+    if (e.boss && e.state === 'chase' && Math.hypot(e.x - e.homeX, e.y - e.homeY) > 8) e.state = 'return';   // bosses guard their patch
 
     let mx = 0, my = 0, spd = e.speed;
     if (e.state === 'chase') {
@@ -1479,7 +1496,7 @@ function update(dt) {
 
   // Slowly bring monsters back over time.
   spawnTimer -= dt;
-  if (spawnTimer <= 0 && enemies.length < maxEnemies()) { spawnEnemy(); spawnTimer = 8; }
+  if (spawnTimer <= 0 && enemies.filter(e => !e.boss).length < maxEnemies()) { spawnEnemy(); spawnTimer = 8; }
 
   for (const f of effects) f.t -= dt;
   effects = effects.filter(f => f.t > 0);
@@ -2258,6 +2275,11 @@ function drawEnemy(e) {
   const { flip } = screenFacing(e.fx, e.fy);
   const prog = e.state === 'windup' ? Math.min(1, (1 - e.t / e.tMax) * 1.6) : 0;
   const slump = e.state === 'recover' && e.punishable;
+  if (e.boss) {   // a pulsing purple pollution glow under bosses
+    const pulse = 0.5 + Math.sin(time * 3 + e.seed) * 0.2;
+    ctx.fillStyle = `rgba(177,76,255,${0.22 * pulse + 0.08})`;
+    groundEllipse(e.x, e.y, e.r + 0.5); ctx.fill();
+  }
   drawPlant(s.x, s.y, e, { flip, prog, slump });
   paintMode = null;
   if (e.frozen > 0) {   // ice crystals
@@ -2573,11 +2595,11 @@ function drawHUDInner() {
 
   // Locked-on target, top centre.
   if (target) {
-    const bw = Math.min(300, W - 60);
+    const boss = target.boss, bw = Math.min(boss ? 440 : 300, W - 60);
     const ty = W < 760 ? 128 : 26;   // narrow (phone) screens: below the stats so they don't overlap
-    ctx.textAlign = 'center'; ctx.fillStyle = '#e8e4e0'; ctx.font = '14px Georgia, serif';
+    ctx.textAlign = 'center'; ctx.fillStyle = boss ? '#e3b8ff' : '#e8e4e0'; ctx.font = (boss ? '18px' : '14px') + ' Georgia, serif';
     ctx.fillText(`${target.name}  ·  Lv ${target.lvl}`, W / 2, ty);
-    bar(W / 2 - bw / 2, ty + 8, bw, 8, target.hp / target.maxHp, '#b3191c');
+    bar(W / 2 - bw / 2, ty + 8, bw, boss ? 10 : 8, target.hp / target.maxHp, boss ? '#8e44ad' : '#b3191c');
   }
 
   if (isTouch) { drawJoystick(); return; }   // phones use on-screen buttons instead
@@ -2751,6 +2773,7 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'heal',   text: 'Q  to eat a biscuit and heal', touch: 'Tap TREAT to eat a biscuit and heal',                    when: () => player.hp < maxHp() * 0.45 && player.flasks > 0,       done: () => tut.ate > 0 },
   { id: 'tired',  text: "Out of stamina! Back off and catch your breath",  when: () => player.sta <= 0,                                         limit: 4 },
   { id: 'crit',   text: "Yellow ring: they're off balance. Hit them now for a critical!", when: () => enemies.some(e => e.state === 'recover' && e.punishable && near(e, 3.5)), done: () => tut.crits > 0, limit: 8 },
+  { id: 'boss',   text: 'A giant polluted plant! It chains attacks, so wait for the yellow ring', when: () => enemies.some(e => e.boss && near(e, 6)), limit: 7 },
   { id: 'water',  text: "Watson hates water! A friend who loves swimming might help", when: () => player.shake > 0 && !hasPower('swim'), limit: 4 },
   { id: 'free',   text: 'A dog is stuck in polluted vines! Walk up and CLICK to free them', touch: 'A dog is stuck in polluted vines! Walk up and tap FREE',
     when: () => FRIENDS.some(f => !saved.has(f.id) && near(f, 4.5)), done: () => saved.size > 0, limit: 10 },
@@ -2914,7 +2937,7 @@ function saveGame(slot = activeSlot) {
     p: { level: p.level, stats: p.stats, xp: p.xp, weapon: p.weapon, skills: [...p.skills], outfits: [...p.outfits], wear: p.wear,
          buddy: p.buddy, maxFlasks: p.maxFlasks },
     saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
-    turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp, trinkets, gotTrinket: [...gotTrinket], drops };
+    turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp, trinkets, gotTrinket: [...gotTrinket], drops, bosses: [...bossesBeaten] };
   try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); } catch (e) {}
 }
 const readSlot = n => { try { const d = JSON.parse(localStorage.getItem(slotKey(n))); return d && d.v === 1 ? d : null; } catch (e) { return null; } };
@@ -2931,7 +2954,7 @@ function loadGame() {
   for (const n of d.turf) { turf.fill(v, c, c + n); if (v) turfCount += n; c += n; v = 1 - v; }
   dirtyChunks();
   bloodstain = d.bloodstain; Object.assign(tut, d.tut); d.hints.forEach(h => hintDone.add(h));
-  trinkets = d.trinkets || 0; drops = d.drops || []; (d.gotTrinket || []).forEach(id => gotTrinket.add(id));
+  trinkets = d.trinkets || 0; drops = d.drops || []; (d.bosses || []).forEach(id => bossesBeaten.add(id)); (d.gotTrinket || []).forEach(id => gotTrinket.add(id));
   homeXp = d.homeXp !== undefined ? d.homeXp : Math.round(Math.max(0, turfCount - 25) / (G * G));   // older saves: credit claimed land
   Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks, bladder: maxPee() });
   for (const f of FRIENDS) if (saved.has(f.id)) { f.x = CENTER + f.home[0]; f.y = CENTER + f.home[1]; }

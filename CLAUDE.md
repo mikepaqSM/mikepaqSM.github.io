@@ -28,7 +28,7 @@ in `game/`.
   nonchalant, doesn't care about anything, always cold (red scarf, shivers), wants warmth, perks
   up only for the warm Inferno Bone.
 - Pollution has turned the town's friendly plant folk mean (enemies: Sproutling, Thornbush,
-  Toxic Toadstool, Smog Oak). **No dog-on-dog or dog-on-human violence**: the old human bosses were
+  Toxic Toadstool, Smog Oak; plus giant plant bosses). **No dog-on-dog or dog-on-human violence**: the old human bosses were
   removed (their `LOOKS` art is still there, unused). Only plants are ever attacked.
 - **Dog friends** (`FRIENDS`): lost dogs tangled in vines around town; Watson frees them (FREE
   button), brings one along (swap at the doghouse). Ability friends: Splash (swim), Scout (plants back
@@ -61,8 +61,11 @@ in `game/`.
 - **Fred trades only for shiny trinkets**, which are very rare: a handful hidden on the map
   (`TRINKETS`, ~1 per island near the shore, seeded positions, `gotTrinket` ids) plus rare plant drops
   (`DROP_CHANCE` by tier, 2-10%; `drops`, saved). Prices (`tk`) are 2-3 for small things, **5 for
-  powerful items**. Never XP. HUD shows a blue gem with the count. Owner wants bosses (none yet) to be
-  another source of rare items later.
+  powerful items**. Never XP. HUD shows a blue gem with the count. Bosses drop piles of them.
+- **Bosses** (`BOSSES`): giant polluted plants, one per big island (Bramble King, Mother Toadstool,
+  Smog Titan, Wilted Giant), drawn with `drawPlant` at large scale plus a purple glow. They chain
+  attacks, don't stagger, stay within 8 tiles of home, aren't purified by turf, and stay beaten
+  (`bossesBeaten`, saved). Each drops `loot` trinkets in a ring.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
   some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
 - **Save game**: 3 slots in `localStorage` (`slotKey(n)`, active slot in `watsonDogActive`). Autosaves the
