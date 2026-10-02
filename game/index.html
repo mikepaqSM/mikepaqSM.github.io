@@ -350,9 +350,8 @@ canvas.addEventListener('pointerdown', e => {
   mouse.x = e.clientX / VIEW; mouse.y = e.clientY / VIEW;
   if (e.pointerType === 'touch') {
     if (!isTouch) enableTouch();
-    if (e.clientX < innerWidth * 0.5) {   // left half: joystick
-      if (joy.id === null) Object.assign(joy, { id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0, mag: 0 });
-    } else if (!paused) useSkill('strike', mouseDir());   // tap the right side: chomp toward the tap
+    // Left half: joystick. Taps anywhere else do nothing; attacking and interacting only happen on the buttons.
+    if (e.clientX < innerWidth * 0.5 && joy.id === null) Object.assign(joy, { id: e.pointerId, ox: e.clientX, oy: e.clientY, dx: 0, dy: 0, mag: 0 });
     return;
   }
   if (e.button === 0 && !paused) useSkill('strike', mouseDir());
@@ -1714,7 +1713,7 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'tired',  text: "Out of stamina! Back off and catch your breath",  when: () => player.sta <= 0,                                         limit: 4 },
   { id: 'crit',   text: "Yellow ring: they're off balance. Hit them now for a critical!", when: () => enemies.some(e => e.state === 'recover' && e.punishable && near(e, 3.5)), done: () => tut.crits > 0, limit: 8 },
   { id: 'boss',   text: 'A tainted boss! Bosses chain attacks together, so wait for the yellow ring', when: () => enemies.some(e => e.boss && near(e, 5.5)), limit: 7 },
-  { id: 'attack', text: 'CLICK  to attack toward the mouse', touch: 'Tap the big button to attack, or tap where you want to strike',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
+  { id: 'attack', text: 'CLICK  to attack toward the mouse', touch: 'Tap the big button to attack',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
   { id: 'bone',   text: 'Your dropped XP glows like a bone. Go get it back!', when: () => !!bloodstain,                                       done: () => !bloodstain, limit: 8 },
   { id: 'trophy', text: 'You got a boss trophy! Fred might trade something rare for it', touch: 'You got a boss trophy! Fred might trade something rare for it',
     when: () => player.trophies.size > 0, done: () => tut.traded > 0, limit: 10 },
