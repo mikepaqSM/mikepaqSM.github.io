@@ -46,7 +46,7 @@ in `game/`.
 - **Open world, no winning.** Progress = exploring, freeing friends, finding rare items.
 - **Rare finds** (`TREASURES`, one per big island, glowing beam) unlock **doghouse upgrades**
   (`UPGRADES`, built from the doghouse menu with **Home XP** (`homeXp`): 1 per tile of land claimed
-  with pee, shown with a little house in the HUD; regular XP is for levels and Fred): Big Water Bowl, Fred's Shop Stall, Comfy Bed,
+  with pee, shown with a little house in the HUD; regular XP only fills the level bar): Big Water Bowl, Fred's Shop Stall, Comfy Bed,
   Cozy Fireplace, Bigger Doghouse, Fred's Shop, Doghouse Tower (`after` = needs another upgrade
   first). Some finds sit under `OBSTACLES`: boulders (smashed only by Boomer's Ground Pound) and
   brambles (burned only by Ember's Fire Fetch). Fred's stock starts tiny; items tagged
@@ -55,6 +55,11 @@ in `game/`.
 - **Outposts** (`OUTPOSTS`): dry water bowls on the other islands; once inside Watson's turf they
   refill his pee like the doghouse does.
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
+- **Leveling**: XP fills a level bar and levels Watson up automatically (`gainXp`); each level gives
+  one pick (`freePicks()` = level - 1 - stat points) spent at the doghouse Level up tab on a stat.
+- **Fred trades only for shiny trinkets** (`TRINKETS`, ~44 small glinting pickups spread over the
+  islands, fixed positions from a seeded RNG; `trinkets` count, `gotTrinket` ids). Item prices are `tk`.
+  Never XP. The HUD shows a blue gem with the count.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
   some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
 - **Save game**: 3 slots in `localStorage` (`slotKey(n)`, active slot in `watsonDogActive`). Autosaves the
