@@ -55,8 +55,10 @@ in `game/`.
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
   some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
-- **Save game**: autosaves to `localStorage` (`SAVE_KEY`) every 10s and when the app is hidden;
-  loads on start with Watson at the doghouse. A small "New game" button on the title screen wipes it.
+- **Save game**: 3 slots in `localStorage` (`slotKey(n)`, active slot in `watsonDogActive`). Autosaves the
+  active slot every 10s and when the app is hidden; loads on start with Watson at the doghouse. The
+  pause button (or Esc) opens a pause menu: Resume, Save, Save here / Load / New per slot (switching
+  reloads the page into that slot, skipping the title). "New game" on the title wipes the active slot.
   When adding new progress state, add it to `saveGame`/`loadGame`.
 - **Resting**: Watson licks Jackie, then rolls over for belly rubs (`startRest`/`updateScene`,
   `drawDogBellyUp`, Jackie `kneel`/`bend`), then the doghouse menu opens.
@@ -71,7 +73,7 @@ in `game/`.
 - Start screen is just the Watson Dog logo.
 - Phone first. Landscape, joystick on the left half, buttons on the right. Only the buttons
   attack or interact (wooden/brass round buttons with SVG icons; a dark wedge sweeps while a move
-  recharges); the big action button shows REST / TRADE near the doghouse / Fred, otherwise
+  recharges; small ability buttons only appear once earned and fill `ABILITY_SLOTS` in order); the big action button shows REST / TRADE near the doghouse / Fred, otherwise
   the gear's verb (BITE, WHACK, BONK...). No zooming. Desktop: WASD, click attacks toward the
   mouse, Space rolls, Shift runs.
 - **Audio: the owner will make all SFX and music themselves. Never generate or add placeholder
