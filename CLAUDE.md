@@ -40,20 +40,22 @@ in `game/`.
   A corner minimap shows islands, turf, Watson, home and lost dogs.
 - **Turf**: hold the PEE button (or P) to pee; letting go loses an unfinished trail; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
-  the trail (so does swimming). The pee meter refills **only at the doghouse**. Plants inside new
+  the trail (so does swimming). **Pee never refills until Watson trades the Shiny Bowl to Fred**
+  (`built.has('bowl')`, `peeRefills()`); after that, resting refills it (and claimed island bowls). Plants inside new
   turf are purified; fewer plants spawn as turf grows. Claimed land sprouts flowers (`flowerAt`,
   `drawFlower`): new ones pop up over ~1.4s (`growing`, `drawBlooms`), then get baked into the chunks.
 - **Open world, no winning.** Progress = exploring, freeing friends, finding rare items.
-- **Rare finds** (`TREASURES`, one per big island, glowing beam) unlock **doghouse upgrades**
-  (`UPGRADES`, built from the doghouse menu with **Home XP** (`homeXp`): 1 per tile of land claimed
-  with pee, shown with a little house in the HUD; regular XP only fills the level bar): Big Water Bowl, Fred's Shop Stall, Comfy Bed,
-  Cozy Fireplace, Bigger Doghouse, Fred's Shop, Doghouse Tower (`after` = needs another upgrade
-  first). Some finds sit under `OBSTACLES`: boulders (smashed only by Boomer's Ground Pound) and
+- **Doghouse upgrades** (`UPGRADES`) are tied to territory: **Home XP** (`homeXp`, 1 per tile of land
+  claimed with pee, a running total that's never spent; little house in the HUD). Each upgrade unlocks
+  at a Home XP threshold (`home`), some also need a rare find (`needs`, from `TREASURES`, glowing beam),
+  some need another upgrade first (`after`); then it's built free from the doghouse menu: Flower Garden,
+  Fred's Shop Stall, Bigger Doghouse, Comfy Bed, Fred's Shop, Cozy Fireplace, Doghouse Tower. Regular XP
+  only fills the level bar. Some finds sit under `OBSTACLES`: boulders (smashed only by Boomer's Ground Pound) and
   brambles (burned only by Ember's Fire Fetch). Fred's stock starts tiny; items tagged
   `shop: 'stall' | 'fire' | 'shop'` appear once those are built. The doghouse and Fred's stand
   visibly change with upgrades. Owner wants to grow this slowly.
-- **Outposts** (`OUTPOSTS`): dry water bowls on the other islands; once inside Watson's turf they
-  refill his pee like the doghouse does.
+- **Outposts** (`OUTPOSTS`): dry water bowls on the other islands; once inside Watson's turf (and after
+  the Fred bowl trade) they refill his pee.
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
 - **Leveling**: XP fills a level bar (`gainXp`), but Watson **only levels up when he rests** at the
   doghouse (`levelUpAtRest`, end of the rest scene); unbanked XP is what drops on knock-out. Each level
