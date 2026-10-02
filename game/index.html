@@ -364,16 +364,19 @@ const OUTPOSTS = [
   { ox: -22, oy: -24 },   // Pound Isle
 ].map(o => ({ x: CENTER + o.ox, y: CENTER + o.oy }));
 // Doghouse upgrades: each needs a rare find plus some XP. 'stall' and 'fire' open more of Fred's shop.
-// Costs are in Doghouse XP (home points), earned by claiming land with pee: 1 per tile claimed.
-const UPGRADES = [
-  { id: 'bowl',  needs: 'bowl',   cost: 25, name: 'Big Water Bowl',    desc: "+16 pee" },
-  { id: 'stall', needs: 'awning', cost: 60, name: "Fred's Shop Stall", desc: "Fred sells more" },
-  { id: 'bed',   needs: 'pillow', cost: 90, name: 'Comfy Bed',         desc: "+2 biscuits" },
-  { id: 'fire',  needs: 'ember',  cost: 160, name: 'Cozy Fireplace',    desc: "Fred's rare stock" },
-  { id: 'house2', needs: 'planks', cost: 110, name: 'Bigger Doghouse',  desc: "+25 HP" },
-  { id: 'shop',  needs: 'sign',   cost: 140, name: "Fred's Shop",       desc: "Fred's fanciest things", after: 'stall' },
-  { id: 'house3', needs: 'shingles', cost: 200, name: 'Doghouse Tower', desc: "+25 stamina", after: 'house2' },
+// Doghouse upgrades unlock as Watson's territory grows: Home XP = 1 per tile of land claimed with pee.
+const UPGRADES = [   // home = total Home XP needed (it's never spent); needs = rare item needed, if any
+  { id: 'garden', home: 25,  name: 'Flower Garden',     desc: '+1 biscuit' },
+  { id: 'stall',  home: 50,  needs: 'awning',   name: "Fred's Shop Stall", desc: 'Fred sells more' },
+  { id: 'house2', home: 90,  needs: 'planks',   name: 'Bigger Doghouse',  desc: '+25 HP' },
+  { id: 'bed',    home: 130, needs: 'pillow',   name: 'Comfy Bed',        desc: '+2 biscuits' },
+  { id: 'shop',   home: 180, needs: 'sign',     name: "Fred's Shop",      desc: "Fred's fanciest things", after: 'stall' },
+  { id: 'fire',   home: 240, needs: 'ember',    name: 'Cozy Fireplace',   desc: "Fred's rare stock" },
+  { id: 'house3', home: 320, needs: 'shingles', name: 'Doghouse Tower',   desc: '+25 stamina', after: 'house2' },
 ];
+// The Shiny Bowl isn't a doghouse upgrade: Watson trades it to Fred, who sets up the water bowl.
+// Until then pee never refills. After that, resting refills it (and claimed island bowls do too).
+const peeRefills = () => built.has('bowl');
 // Fred's stock: things with shop: 'stall' or 'fire' only appear once that upgrade is built.
 
 // Turf: Watson claims ground by peeing a trail that loops back to his turf (or closes on itself).
@@ -713,6 +716,7 @@ const tkLabel = n => `${n} trinket${n === 1 ? '' : 's'}`;
 
 // One short line per item, one tab at a time, so the menus stay calm.
 const shopTab = { rest: 'level', fred: 'gear' };
+let tradeShown = false;
 const outfitTip = o => [o.armor && `-${Math.round(o.armor * 100)}% damage taken`, o.speed && `${o.speed > 1 ? '+' : ''}${Math.round((o.speed - 1) * 100)}% speed`,
   o.roll && 'Cheaper rolls', o.dmg && `+${Math.round((o.dmg - 1) * 100)}% damage`].filter(Boolean).join(', ') || 'Style';
 function renderShop() {
@@ -736,8 +740,9 @@ function renderShop() {
     }
     body.appendChild(div);
   };
+  if (fred && found.has('bowl') && !built.has('bowl') && !tradeShown) { shopTab.fred = 'trade'; tradeShown = true; }
   const tabs = fred
-    ? [['gear', 'Gear'], ['tricks', 'Tricks'], ['treats', 'Treats'], ...(built.has('stall') ? [['outfits', 'Outfits']] : [])]
+    ? [...(found.has('bowl') && !built.has('bowl') ? [['trade', 'Trade']] : []), ['gear', 'Gear'], ['tricks', 'Tricks'], ['treats', 'Treats'], ...(built.has('stall') ? [['outfits', 'Outfits']] : [])]
     : [['level', 'Level up'], ['home', 'Doghouse'], ...(saved.size ? [['friends', 'Friends']] : []), ['wear', 'Wardrobe']];
   if (!tabs.some(([id]) => id === shopTab[shopMode])) shopTab[shopMode] = tabs[0][0];
   for (const [id, label] of tabs) {
@@ -753,18 +758,20 @@ function renderShop() {
       p.stats[s.id]++;
       if (s.id === 'vig') p.hp += 12;
       if (s.id === 'end') p.sta += 10;
-      if (s.id === 'bla') p.bladder = maxPee();
+      if (s.id === 'bla') p.bladder += PEE_PER;
     }, p.stats[s.id]));
   } else if (tab === 'home') {
     let hidden = 0;
     UPGRADES.forEach(u => {
       const done = built.has(u.id);
-      if (!found.has(u.needs) && !done) { hidden++; return; }
+      if (u.needs && !found.has(u.needs) && !done) { hidden++; return; }
       const pre = u.after && !built.has(u.after) ? UPGRADES.find(x => x.id === u.after).name : null;
-      row(u.name, pre ? `After the ${pre}` : u.desc, done ? 'Built' : pre ? 'Later' : `${u.cost} Home XP`, !done && !pre && homeXp >= u.cost,
+      const short = homeXp < u.home;
+      row(u.name, pre ? `After the ${pre}` : short ? `${u.desc} · grow your turf` : u.desc,
+        done ? 'Built' : pre ? 'Later' : short ? `${u.home} Home XP` : 'Build', !done && !pre && !short,
         () => {
-          homeXp -= u.cost; built.add(u.id); tut.built++;
-          if (u.id === 'bowl') p.bladder = maxPee();
+          built.add(u.id); tut.built++;
+          if (u.id === 'garden') { p.maxFlasks += 1; p.flasks = p.maxFlasks; speak('jackie', 'Flowers for our yard, Lovebug!'); }
           if (u.id === 'bed') { p.maxFlasks += 2; p.flasks = p.maxFlasks; }
           if (u.id === 'stall') speak('fred', 'Hm. A stall. ...Fine, it\'s nice. Come see.');
           if (u.id === 'fire') speak('fred', 'Oh. Oh, that\'s warm. ...Okay, I like you now.');
@@ -785,6 +792,12 @@ function renderShop() {
       if (!p.outfits.has(o.id)) return;
       const on = p.wear[o.slot] === o.id;
       row(o.name, outfitTip(o), on ? 'Take off' : 'Wear', true, () => { p.wear[o.slot] = on ? null : o.id; });
+    });
+  } else if (tab === 'trade') {
+    row('Shiny Bowl', 'Fred sets up a water bowl: resting refills your pee', 'Trade', true, () => {
+      built.add('bowl'); tut.built++; p.bladder = maxPee();
+      speak('fred', 'A bowl. For water. ...Fine, I\'ll set it up. Don\'t splash me.');
+      shopTab.fred = 'gear';
     });
   } else if (tab === 'gear') {
     WEAPONS.forEach((w, i) => {
@@ -1140,7 +1153,8 @@ function updateScene(dt) {
   if (sc.heartT <= 0) { floatText(p.x + rand(-0.2, 0.2), p.y + rand(-0.2, 0.2), '♥', '#ff7aa8', 1); sc.heartT = 0.3; }
   if (sc.t >= SCENE_END) {
     p.scene = null;
-    p.hp = maxHp(); p.bladder = maxPee();
+    p.hp = maxHp();
+    if (peeRefills()) p.bladder = maxPee();   // only once Fred has set up the water bowl
     levelUpAtRest();
     shopMode = 'rest'; shopOpenedAt = performance.now();
     openOverlay('shop');
@@ -1238,7 +1252,7 @@ function die() {
 function respawn() {
   if (!player.dead) return;
   Object.assign(player, { dead: false, x: CENTER, y: CENTER + 1.6, hp: maxHp(), sta: maxSta(),
-    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0, aimT: 0, swing: 0, whirl: 0, bladder: maxPee(), shake: 0 });
+    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0, aimT: 0, swing: 0, whirl: 0, bladder: peeRefills() ? maxPee() : player.bladder, shake: 0 });
   const b = buddy();
   if (b) { b.x = player.x - 0.7; b.y = player.y + 0.3; b.act = null; b.z = 0; }
   populate();   // every monster comes back when you die
@@ -1365,7 +1379,7 @@ function update(dt) {
 
   // The doghouse heals you and refills your biscuits. No other natural healing.
   const atHome = distC(p.x, p.y) < SAFE_R;
-  if (atHome) { p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.25 * dt); p.flasks = p.maxFlasks; p.bladder = maxPee(); }
+  if (atHome) { p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.25 * dt); p.flasks = p.maxFlasks; }
   else if (isTurf(p.x, p.y) && p.hp < maxHp()) p.hp = Math.min(maxHp(), p.hp + maxHp() * 0.02 * dt);   // home turf: slow healing
   // Jackie greets Watson when he gets back from an outing.
   if (distC(p.x, p.y) > SAFE_R + 4) awayFromHome = true;
@@ -1397,7 +1411,7 @@ function update(dt) {
     effects.push({ type: 'ring', x: t.x, y: t.y, range: 0.7, t: 0.4, max: 0.4, color: '#bfe6ff', fill: true });
   }
   // Pick up rare finds.
-  for (const o of OUTPOSTS) if (isTurf(o.x, o.y) && Math.hypot(o.x - p.x, o.y - p.y) < 1.2 && p.bladder < maxPee()) {
+  for (const o of OUTPOSTS) if (peeRefills() && isTurf(o.x, o.y) && Math.hypot(o.x - p.x, o.y - p.y) < 1.2 && p.bladder < maxPee()) {
     p.bladder = maxPee();
     effects.push({ type: 'ring', x: o.x, y: o.y, range: 0.9, t: 0.5, max: 0.5, color: '#9fd4ff', fill: true });
   }
@@ -2406,6 +2420,13 @@ function drawDoghouse() {
     ctx.beginPath(); ctx.moveTo(x - 15, y - 3); ctx.lineTo(x - 7, y + 1); ctx.lineTo(x - 7, y - 9); ctx.quadraticCurveTo(x - 11, y - 17, x - 15, y - 12); ctx.closePath(); ctx.fill();
   }
   ctx.restore();
+  if (built.has('garden')) {   // little flower beds in the yard
+    for (const [gx, gy] of [[-1.6, -1.2], [1.2, 1.6], [-0.4, -1.9]]) {
+      const g = toScreen(CENTER + gx, CENTER + gy);
+      ctx.fillStyle = '#6a4a2a'; ctx.beginPath(); ctx.ellipse(g.x, g.y, 12, 5, 0, 0, Math.PI * 2); ctx.fill();
+      for (let k = 0; k < 5; k++) drawFlower(ctx, g.x - 8 + k * 4, g.y + (k % 2) - 1, Math.abs((gx * 97 + k * 31) | 0), 0.9);
+    }
+  }
   if (built.has('bed')) {   // comfy cushion beside the doghouse
     const c = toScreen(CENTER - 0.7, CENTER + 0.9);
     ctx.fillStyle = '#7a4a8a'; ctx.beginPath(); ctx.ellipse(c.x, c.y, 15, 7, 0, 0, Math.PI * 2); ctx.fill();
@@ -2529,7 +2550,8 @@ function drawHUD() {
   ctx.restore();
 }
 const canLevelUp = () => freePicks() > 0 || readyToLevel();
-const canBuildUpgrade = () => UPGRADES.some(u => !built.has(u.id) && found.has(u.needs) && (!u.after || built.has(u.after)) && homeXp >= u.cost);
+const canBuildUpgrade = () => (found.has('bowl') && !built.has('bowl')) ||
+  UPGRADES.some(u => !built.has(u.id) && (!u.needs || found.has(u.needs)) && (!u.after || built.has(u.after)) && homeXp >= u.home);
 function drawHUDInner() {
   const p = player;
   // HP and stamina bars grow as you level those stats.
@@ -2778,12 +2800,13 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'water',  text: "Watson hates water! A friend who loves swimming might help", when: () => player.shake > 0 && !hasPower('swim'), limit: 4 },
   { id: 'free',   text: 'A dog is stuck in polluted vines! Walk up and CLICK to free them', touch: 'A dog is stuck in polluted vines! Walk up and tap FREE',
     when: () => FRIENDS.some(f => !saved.has(f.id) && near(f, 4.5)), done: () => saved.size > 0, limit: 10 },
-  { id: 'dry',    text: 'Out of pee! Head home to the doghouse to refill', when: () => time - peeEmptyT < 4 || (player.bladder <= 0 && distC(player.x, player.y) > SAFE_R), limit: 6 },
+  { id: 'dry',    text: () => peeRefills() ? 'Out of pee! Rest at the doghouse to refill' : "Out of pee! Watson needs a water bowl. Maybe Fred can help", when: () => time - peeEmptyT < 4 || (player.bladder <= 0 && distC(player.x, player.y) > SAFE_R), limit: 6 },
   { id: 'boulder', text: 'Too big to move. A strong friend could smash it', when: () => OBSTACLES.some(o => !o.gone && o.type === 'boulder' && near(o, 2.5)) && player.buddy !== 'boomer', limit: 5 },
   { id: 'bramble', text: 'Thick thorny brambles. Something hot could burn them', when: () => OBSTACLES.some(o => !o.gone && o.type === 'bramble' && near(o, 2.5)) && player.buddy !== 'ember', limit: 5 },
   { id: 'outpost', text: 'A dry water bowl! Claim the turf around it to refill your pee here', when: () => OUTPOSTS.some(o => !isTurf(o.x, o.y) && near(o, 2.5)), limit: 6 },
-  { id: 'home',   text: 'Claiming land earns Home XP for doghouse upgrades', when: () => homeXp > 0 && tut.built === 0, limit: 6 },
-  { id: 'treasure', text: 'Something rare! Bring it home to upgrade the doghouse', when: () => found.size > built.size && distC(player.x, player.y) > SAFE_R, done: () => tut.built > 0, limit: 8 },
+  { id: 'bowltrade', text: 'A Shiny Bowl! Bring it to Fred', when: () => found.has('bowl') && !built.has('bowl'), done: () => built.has('bowl'), limit: 10 },
+  { id: 'home',   text: 'Claiming land earns Home XP. The doghouse grows with your turf', when: () => homeXp > 0 && tut.built === 0, limit: 6 },
+  { id: 'treasure', text: 'Something rare! Bring it home to upgrade the doghouse', when: () => [...found].some(f => f !== 'bowl' && !UPGRADES.some(u => u.needs === f && built.has(u.id))) && distC(player.x, player.y) > SAFE_R, done: () => tut.built > 0, limit: 8 },
   { id: 'lost',   text: 'Got hit! The pee trail washed away. Start over', when: () => time - trailLostT < 2.5, limit: 6 },
   { id: 'attack', text: 'CLICK  to attack toward the mouse', touch: 'Tap the big button to attack',                when: () => enemies.some(e => near(e, 3.5)),                        done: () => tut.strike > 0 },
   { id: 'bone',   text: 'Your dropped XP glows like a bone. Go get it back!', when: () => !!bloodstain,                                       done: () => !bloodstain, limit: 8 },
@@ -2936,7 +2959,7 @@ function saveGame(slot = activeSlot) {
   const p = player;
   const data = { v: 1, when: Date.now(), summary: { level: p.level, xp: p.xp, home: homeXp, friends: saved.size, turf: Math.floor(turfFrac() * 100), finds: found.size },
     p: { level: p.level, stats: p.stats, xp: p.xp, weapon: p.weapon, skills: [...p.skills], outfits: [...p.outfits], wear: p.wear,
-         buddy: p.buddy, maxFlasks: p.maxFlasks },
+         buddy: p.buddy, maxFlasks: p.maxFlasks, bladder: p.bladder },
     saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
     turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp, trinkets, gotTrinket: [...gotTrinket], drops, bosses: [...bossesBeaten] };
   try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); } catch (e) {}
@@ -2956,8 +2979,9 @@ function loadGame() {
   dirtyChunks();
   bloodstain = d.bloodstain; Object.assign(tut, d.tut); d.hints.forEach(h => hintDone.add(h));
   trinkets = d.trinkets || 0; drops = d.drops || []; (d.bosses || []).forEach(id => bossesBeaten.add(id)); (d.gotTrinket || []).forEach(id => gotTrinket.add(id));
-  homeXp = d.homeXp !== undefined ? d.homeXp : Math.round(Math.max(0, turfCount - 25) / (G * G));   // older saves: credit claimed land
-  Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks, bladder: maxPee() });
+  homeXp = Math.max(d.homeXp || 0, Math.round(Math.max(0, turfCount - 25) / (G * G)));   // a running total of land claimed (older saves spent it)
+  Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks,
+    bladder: peeRefills() || d.p.bladder === undefined ? maxPee() : Math.min(maxPee(), d.p.bladder) });
   for (const f of FRIENDS) if (saved.has(f.id)) { f.x = CENTER + f.home[0]; f.y = CENTER + f.home[1]; }
   populate();
   return true;
