@@ -385,15 +385,16 @@ const player = {
   chew: null,               // chewing a friend free of vines
   scene: null,              // resting with Jackie: licks, then belly rubs
 };
-// XP fills the level bar; each level up gives one pick (spent at the doghouse on a stat).
+// XP fills the level bar. Watson only levels up when he rests at the doghouse; each level gives
+// one pick (spent on a stat in the doghouse menu). Unbanked XP is what drops when he's knocked out.
 const freePicks = () => player.level - 1 - Object.values(player.stats).reduce((a, b) => a + b, 0);
-function gainXp(n) {
-  const p = player;
-  p.xp += n;
-  const before = p.level;
+const readyToLevel = () => player.xp >= levelCost(player.level);
+function gainXp(n) { player.xp += n; }
+function levelUpAtRest() {
+  const p = player, before = p.level;
   while (p.xp >= levelCost(p.level)) { p.xp -= levelCost(p.level); p.level++; }
-  if (p.level > before && n > 0) {
-    floatText(p.x, p.y - 0.8, `Level ${p.level}!`, '#ffd25a', 2.2);
+  if (p.level > before) {
+    floatText(p.x, p.y - 0.8, `Level ${p.level}!`, '#ffd25a', 2.4);
     effects.push({ type: 'ring', x: p.x, y: p.y, range: 1.4, t: 0.7, max: 0.7, color: '#ffd25a', fill: true });
   }
 }
@@ -1127,6 +1128,7 @@ function updateScene(dt) {
   if (sc.t >= SCENE_END) {
     p.scene = null;
     p.hp = maxHp(); p.bladder = maxPee();
+    levelUpAtRest();
     shopMode = 'rest'; shopOpenedAt = performance.now();
     openOverlay('shop');
   }
@@ -2492,7 +2494,7 @@ function drawHUD() {
   drawHUDInner();
   ctx.restore();
 }
-const canLevelUp = () => freePicks() > 0;
+const canLevelUp = () => freePicks() > 0 || readyToLevel();
 const canBuildUpgrade = () => UPGRADES.some(u => !built.has(u.id) && found.has(u.needs) && (!u.after || built.has(u.after)) && homeXp >= u.cost);
 function drawHUDInner() {
   const p = player;
@@ -2507,7 +2509,7 @@ function drawHUDInner() {
   ctx.fillStyle = '#e8e4e0'; ctx.fillText(`Lv ${p.level}`, 18, 78);
   let lw = ctx.measureText(`Lv ${p.level}`).width;
   // Level bar: XP toward the next level
-  bar(26 + lw, 70, 46, 5, p.xp / levelCost(p.level), '#f2c94c');
+  bar(26 + lw, 70, 46, 5, p.xp / levelCost(p.level), readyToLevel() ? '#ffe680' : '#f2c94c');   // full = rest to level up
   lw += 58;
   // Gentle pulsing badges: a gold up-arrow when there's a level-up pick to spend, a glow on the house when an upgrade can be built.
   const pulse = 0.6 + Math.sin(time * 4) * 0.4;
@@ -2755,6 +2757,7 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'palmove', text: () => `F for ${buddy().name}'s ${buddy().moveName}`, touch: () => `Tap ${buddy().verb} for ${buddy().name}'s ${buddy().moveName}`,
     when: () => { const b = buddy(); return !!b && b.kind === 'attack' && enemies.some(e => near(e, 4)); }, done: () => tut.pal > 0 },
   { id: 'swap',   text: 'Swap dog friends at the doghouse', when: () => saved.size >= 2 && distC(player.x, player.y) < 6, done: () => tut.swaps > 0, limit: 8 },
+  { id: 'levelrest', text: 'Level bar full! Rest at the doghouse to level up', when: () => readyToLevel() && distC(player.x, player.y) > SAFE_R, done: () => player.level > 1, limit: 6 },
   { id: 'trinket', text: 'A shiny trinket! Fred trades his wares for these', when: () => trinkets > 0 && tut.fred === 0, done: () => tut.fred > 0, limit: 8 },
   { id: 'fred',   text: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred', touch: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred',
     when: () => trinkets >= 1 && distC(player.x, player.y) < 5 && !nearFred(), done: () => tut.fred > 0, limit: 12 },
@@ -2916,7 +2919,6 @@ function loadGame() {
   dirtyChunks();
   bloodstain = d.bloodstain; Object.assign(tut, d.tut); d.hints.forEach(h => hintDone.add(h));
   trinkets = d.trinkets || 0; (d.gotTrinket || []).forEach(id => gotTrinket.add(id));
-  gainXp(0);   // older saves banked XP as money: turn it into levels and picks
   homeXp = d.homeXp !== undefined ? d.homeXp : Math.round(Math.max(0, turfCount - 25) / (G * G));   // older saves: credit claimed land
   Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks, bladder: maxPee() });
   for (const f of FRIENDS) if (saved.has(f.id)) { f.x = CENTER + f.home[0]; f.y = CENTER + f.home[1]; }

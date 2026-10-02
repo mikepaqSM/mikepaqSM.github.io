@@ -55,8 +55,9 @@ in `game/`.
 - **Outposts** (`OUTPOSTS`): dry water bowls on the other islands; once inside Watson's turf they
   refill his pee like the doghouse does.
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
-- **Leveling**: XP fills a level bar and levels Watson up automatically (`gainXp`); each level gives
-  one pick (`freePicks()` = level - 1 - stat points) spent at the doghouse Level up tab on a stat.
+- **Leveling**: XP fills a level bar (`gainXp`), but Watson **only levels up when he rests** at the
+  doghouse (`levelUpAtRest`, end of the rest scene); unbanked XP is what drops on knock-out. Each level
+  gives one pick (`freePicks()` = level - 1 - stat points) spent at the doghouse Level up tab on a stat.
 - **Fred trades only for shiny trinkets** (`TRINKETS`, ~44 small glinting pickups spread over the
   islands, fixed positions from a seeded RNG; `trinkets` count, `gotTrinket` ids). Item prices are `tk`.
   Never XP. The HUD shows a blue gem with the count.
