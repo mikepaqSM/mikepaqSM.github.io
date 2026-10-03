@@ -37,12 +37,16 @@ in `game/`.
 - **World**: one big continent (`MAP` 180, sea around it, `CONTINENT`) split into `REGIONS`: Home Meadow
   (start), The Suburbs, Lakeside, Downtown, The Pound District. Region borders (`BORDERS`) are cliffs by
   default (impassable rock walls), except: home-suburbs open, home-lakeside a river (needs Splash to swim),
-  home-downtown a boulder gate (Boomer's Ground Pound), suburbs-pound a bramble gate (Ember's Fire Fetch).
+  home-downtown a boulder gate (Boomer's headbutt), suburbs-pound a bramble gate (Ember's Fire Breath).
   `GATES` become big `OBSTACLES`. `LAKES` add swim spots (one hides a treasure on an islet). Terrain is a
   grid (`terrainAt`: `T_LAND`/`T_WATER`/`T_CLIFF`/`T_SEA`); `moveBody` blocks cliffs/sea always and water
   without Splash (Watson shakes his head). `ISLANDS` / `islandAt` are aliases for regions. Plant toughness
   comes from `tierAt`. A corner minimap shows land, cliffs, water, turf, Watson, home and lost dogs.
   Progression: Splash (home) -> Lakeside; Boomer (suburbs) -> Downtown; Ember (downtown) -> Pound.
+- **Trees** (`TREES`, seeded groves + loners, density per region in `DENS`, pines `PINE`, bare trees in the
+  Pound): trunks block movement (`treeAt`, bucketed in `treeGrid`; checked in `moveBody` and `okSpot`),
+  kept clear of friends, finds, nests, gates and boss arenas. `drawTree`: smoggy colours outside turf,
+  lush with blossoms inside (bare ones leaf out); fades when Watson is behind it.
 - **Turf**: hold the PEE button (or P) to pee; letting go loses an unfinished trail; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
   the trail (so does swimming). **Pee never refills until Watson trades the Shiny Bowl to Fred**
@@ -55,8 +59,8 @@ in `game/`.
   at a Home XP threshold (`home`), some also need a rare find (`needs`, from `TREASURES`, glowing beam),
   some need another upgrade first (`after`); then it's built free from the doghouse menu: Flower Garden,
   Fred's Shop Stall, Bigger Doghouse, Comfy Bed, Fred's Shop, Cozy Fireplace, Doghouse Tower. Regular XP
-  only fills the level bar. Some finds sit under `OBSTACLES`: boulders (smashed only by Boomer's Ground Pound) and
-  brambles (burned only by Ember's Fire Fetch). Fred's stock starts tiny; items tagged
+  only fills the level bar. Some finds sit under `OBSTACLES`: boulders (smashed only by Boomer's headbutt) and
+  brambles (burned only by Ember's Fire Breath). Fred's stock starts tiny; items tagged
   `shop: 'stall' | 'fire' | 'shop'` appear once those are built. The doghouse and Fred's stand
   visibly change with upgrades. Owner wants to grow this slowly.
 - **Smog nests** (`NESTS`, 3-4 per region, seeded positions): purple bubbling mounds.
@@ -68,6 +72,10 @@ in `game/`.
 - **Outposts** (`OUTPOSTS`): dry water bowls in the other regions; once inside Watson's turf (and after
   the Fred bowl trade) they refill his pee.
 - Attacks are snappy (strike `cd` 0.4, `lock` 0.18, `swingMax` 0.2); owner asked for less delay.
+- **Special moves**: Zoomies (`whirl`) = Watson runs one quick loop (`player.zoom`, `ZOOM_T`), untouchable,
+  hitting each plant he passes for 1.5x, with a wind swirl (`drawWind`). Boomer's move is a short charge +
+  headbutt (`jab`, max 2 tiles, small hop; owner said the old leap flew too far). Ember breathes fire
+  (`breath` act spawns `flame` projectiles drawn by `drawFlame`; each plant burned once per breath).
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
 - **Leveling**: XP fills a level bar (`gainXp`), but Watson **only levels up when he rests** at the
   doghouse (`levelUpAtRest`, end of the rest scene); unbanked XP is what drops on knock-out. Each level
@@ -93,8 +101,9 @@ in `game/`.
 ### Design rules the owner cares about
 - Souls-like but fair: telegraphed attacks (red circle), dodge roll, stamina, punish window
   (yellow ring = 2x critical), XP dropped on knock-out and recoverable. **Not button-mashy**:
-  enemies die in few hits, and Watson can't take many either. Difficulty has been eased twice,
-  so lean forgiving. XP was slowed down once (plants give half, levels and upgrades cost more).
+  enemies die in few hits, and Watson can't take many either. Difficulty was eased twice, then the
+  owner found it too easy after the land rework, so plants/bosses got tougher and progression slower
+  (levelCost 60*1.27^n, upgrade Home XP thresholds up ~60%, lower trinket drops). Tune in small steps.
 - **Minimal on-screen text.** No instruction screens; players learn through one-time hints
   (`HINTS` list). The HUD is compact. Ready-to-spend is shown by pulsing HUD badges, not hint text:
   a gold up-arrow by "Lv" (`canLevelUp`), a glow on the house icon (`canBuildUpgrade`), and a pulsing

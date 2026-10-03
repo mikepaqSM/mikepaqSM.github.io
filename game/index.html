@@ -223,8 +223,8 @@ const WEAPONS = [
 ];
 
 const SKILLS = [
-  { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.4,  sta: 12, lock: 0.18, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
-  { id: 'whirl', tk: 3,    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'Spin attack that hits everyone around you', tip: 'Spin attack', desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
+  { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.4,  sta: 14, lock: 0.18, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
+  { id: 'whirl', tk: 3,    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'A speedy loop that hits every plant in the way', tip: 'Speedy loop attack', desc: 'Tear around in a quick loop, untouchable, hitting every plant you pass for 1.5x gear damage.' },
   { id: 'fireball', tk: 5, key: '3', name: 'Mega Bark', cost: 200, shop: 'stall', cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', tip: 'Long-range blast', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
 const CRIT_MULT = 2;   // damage bonus for hitting an enemy right after it attacks
@@ -239,16 +239,16 @@ const STATS = [
   { id: 'arc', name: 'Bark Power',   desc: '+10% bark damage' },
   { id: 'bla', name: 'Bladder',      desc: '+8 pee' },
 ];
-const levelCost = lvl => Math.floor(40 * 1.2 ** (lvl - 1));
+const levelCost = lvl => Math.floor(60 * 1.27 ** (lvl - 1));
 
 // Regular enemies: friendly plant folk turned mean by pollution.
 // windup = seconds of warning before the hit, reach = size of the red danger circle,
 // staggers = whether your hits interrupt their attack. s = drawing scale, look = how they're drawn.
 const ENEMY_TYPES = [
-  { name: 'Sproutling',       lvl: 1,  hp: 10,  dmg: 14, speed: 1.6, xp: 3,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', tier: 0,  windup: 0.66, reach: 0.45, recover: 0.7, staggers: true,  aggro: 4.0 },
-  { name: 'Thornbush',        lvl: 3,  hp: 30,  dmg: 20, speed: 2.1, xp: 10,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', tier: 1,  windup: 0.54, reach: 0.6,  recover: 0.55, staggers: true, aggro: 5.0 },
-  { name: 'Toxic Toadstool',  lvl: 6,  hp: 55,  dmg: 30, speed: 1.8, xp: 30,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', tier: 2,  windup: 0.84,  reach: 0.85, recover: 0.8, staggers: false, aggro: 5.5 },
-  { name: 'Smog Oak',         lvl: 10, hp: 110, dmg: 50, speed: 1.3, xp: 90,  r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', tier: 3,  windup: 1.2,  reach: 1.1,  recover: 1.2, staggers: false, aggro: 6.0 },
+  { name: 'Sproutling',       lvl: 1,  hp: 18,  dmg: 18, speed: 1.75, xp: 3,   r: 0.26, h: 30, s: 1,    look: 'sprout',    color: '#8fbf4f', tier: 0,  windup: 0.6, reach: 0.5, recover: 0.6, staggers: true,  aggro: 4.5 },
+  { name: 'Thornbush',        lvl: 3,  hp: 45,  dmg: 26, speed: 2.25, xp: 10,  r: 0.3,  h: 32, s: 1,    look: 'thorn',     color: '#3f6e2e', tier: 1,  windup: 0.5, reach: 0.65,  recover: 0.5, staggers: true, aggro: 5.5 },
+  { name: 'Toxic Toadstool',  lvl: 6,  hp: 85,  dmg: 38, speed: 1.95, xp: 30,  r: 0.34, h: 46, s: 1.1,  look: 'toadstool', color: '#8e3b9e', tier: 2,  windup: 0.76,  reach: 0.9, recover: 0.7, staggers: false, aggro: 6.0 },
+  { name: 'Smog Oak',         lvl: 10, hp: 170, dmg: 60, speed: 1.45, xp: 90,  r: 0.45, h: 72, s: 1.1,  look: 'oak',       color: '#6b4a2e', tier: 3,  windup: 1.08,  reach: 1.15,  recover: 1.05, staggers: false, aggro: 6.5 },
 ];
 
 // Dog friends: lost pups tangled in polluted vines around town. Free one and it joins you.
@@ -271,8 +271,8 @@ const FRIENDS = [
   { id: 'zip', name: 'Zip', breed: 'Greyhound', tip: 'Faster, cheaper rolls', ox: -8, oy: -50, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
     short: 'Watson runs faster, and rolls cost half the stamina', thanks: 'Zoom zoom! Race you home!',
     look: { fur: '#c9a27a', light: '#e6cfb2', dark: '#8a6a4a', saddle: null, bw: 0.9, leg: 1.25, collar: '#f39c12', s: 1.02 } },
-  { id: 'ember', name: 'Ember', breed: 'Dalmatian', tip: 'Burns brambles', ox: 14, oy: -52, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
-    moveName: 'Fire Fetch', cd: 4, dmg: 45, short: 'Throws a flaming ball. Fred likes her (she is warm)', thanks: "Phew! It's toasty out here. Thanks!",
+  { id: 'ember', name: 'Ember', breed: 'Dalmatian', tip: 'Burns brambles', ox: 14, oy: -52, home: [1.3, 1.8], kind: 'attack', move: 'fire', verb: 'FIRE',
+    moveName: 'Fire Breath', cd: 4, dmg: 45, short: 'Breathes fire. Fred likes her (she is warm)', thanks: "Phew! It's toasty out here. Thanks!",
     look: { fur: '#f4f1ea', light: '#ffffff', dark: '#222222', saddle: null, spots: true, collar: '#c0392b', s: 1 } },
 ];
 for (const f of FRIENDS) Object.assign(f, { cdBase: f.cd || 0, x: CENTER + f.ox, y: CENTER + f.oy, walk: 0, moving: false, fx: 1, fy: 0, cd: 0, act: null, z: 0, helpT: rand(2, 6) });
@@ -369,15 +369,15 @@ const TREASURES = [
   { id: 'shingles', name: 'Fancy Shingles', ox: 48, oy: 34, color: '#b3191c', under: 'bramble' },   // The Pound District (Ember)
 ].map(t => ({ ...t, x: CENTER + t.ox, y: CENTER + t.oy }));
 // Plants very rarely drop a trinket when knocked out (tougher plants a bit more often).
-const DROP_CHANCE = [0.02, 0.035, 0.06, 0.1];   // by plant tier
+const DROP_CHANCE = [0.012, 0.022, 0.04, 0.07];   // by plant tier
 // Bosses: giant polluted plants, one per big island. They chain attacks (combo), don't stagger, stay
 // near home, and stay beaten. Each drops a pile of trinkets. look/s = drawn like that plant, but huge.
 const BOSSES = [
-  { id: 'bramble', name: 'Bramble King',     look: 'thorn',     ox: -8,  oy: -13, s: 2.2, hp: 180, dmg: 22, r: 0.7,  h: 70,  speed: 1.8, combo: 2, windup: 0.75, reach: 1.0, recover: 1.0, aggro: 5,   xp: 120, tier: 1, color: '#3f6e2e', loot: 3 },
-  { id: 'toad',    name: 'Mother Toadstool', look: 'toadstool', ox: 54,  oy: -2,  s: 2.2, hp: 320, dmg: 30, r: 0.8,  h: 100, speed: 1.4, combo: 2, windup: 0.9,  reach: 1.4, recover: 1.1, aggro: 5.5, xp: 250, tier: 2, color: '#8e3b9e', loot: 3 },
-  { id: 'titan',   name: 'Smog Titan',       look: 'oak',       ox: 2,   oy: -58,  s: 2.0, hp: 520, dmg: 42, r: 0.9,  h: 140, speed: 1.1, combo: 3, windup: 1.15, reach: 1.6, recover: 1.2, aggro: 6,   xp: 450, tier: 3, color: '#6b4a2e', loot: 4 },
-  { id: 'giant',   name: 'Wilted Giant',     look: 'sprout',    ox: 42,  oy: 50, s: 3.4, hp: 750, dmg: 50, r: 0.85, h: 110, speed: 1.3, combo: 3, windup: 1.0,  reach: 1.5, recover: 1.1, aggro: 6,   xp: 700, tier: 3, color: '#8fbf4f', loot: 5 },
-  { id: 'bog',     name: 'Bog Monarch',      look: 'toadstool', ox: -58, oy: 4,   s: 2.6, hp: 420, dmg: 36, r: 0.85, h: 115, speed: 1.3, combo: 2, windup: 1.0,  reach: 1.5, recover: 1.1, aggro: 6,   xp: 350, tier: 2, color: '#5a8a6a', loot: 4 },
+  { id: 'bramble', name: 'Bramble King',     look: 'thorn',     ox: -8,  oy: -13, s: 2.2, hp: 250, dmg: 26, r: 0.7,  h: 70,  speed: 1.8, combo: 2, windup: 0.75, reach: 1.0, recover: 1.0, aggro: 5,   xp: 120, tier: 1, color: '#3f6e2e', loot: 3 },
+  { id: 'toad',    name: 'Mother Toadstool', look: 'toadstool', ox: 54,  oy: -2,  s: 2.2, hp: 450, dmg: 36, r: 0.8,  h: 100, speed: 1.4, combo: 2, windup: 0.9,  reach: 1.4, recover: 1.1, aggro: 5.5, xp: 250, tier: 2, color: '#8e3b9e', loot: 3 },
+  { id: 'titan',   name: 'Smog Titan',       look: 'oak',       ox: 2,   oy: -58,  s: 2.0, hp: 730, dmg: 50, r: 0.9,  h: 140, speed: 1.1, combo: 3, windup: 1.15, reach: 1.6, recover: 1.2, aggro: 6,   xp: 450, tier: 3, color: '#6b4a2e', loot: 4 },
+  { id: 'giant',   name: 'Wilted Giant',     look: 'sprout',    ox: 42,  oy: 50, s: 3.4, hp: 1050, dmg: 60, r: 0.85, h: 110, speed: 1.3, combo: 3, windup: 1.0,  reach: 1.5, recover: 1.1, aggro: 6,   xp: 700, tier: 3, color: '#8fbf4f', loot: 5 },
+  { id: 'bog',     name: 'Bog Monarch',      look: 'toadstool', ox: -58, oy: 4,   s: 2.6, hp: 590, dmg: 43, r: 0.85, h: 115, speed: 1.3, combo: 2, windup: 1.0,  reach: 1.5, recover: 1.1, aggro: 6,   xp: 350, tier: 2, color: '#5a8a6a', loot: 4 },
 ].map(b => ({ ...b, lvl: b.tier * 5 + 5, boss: true, staggers: false, homeX: CENTER + b.ox, homeY: CENTER + b.oy }));
 const bossesBeaten = new Set();
 let drops = [];   // trinkets lying where a plant dropped them: { id, x, y, kind }
@@ -396,7 +396,7 @@ const TRINKETS = [];
     }
   });
 }
-// Things in the way. Boulders: only Boomer's Ground Pound smashes them. Brambles: only Ember's Fire Fetch burns them.
+// Things in the way. Boulders: only Boomer's Ground Pound smashes them. Brambles: only Ember's Fire Breath burns them.
 const OBSTACLES = [...TREASURES.filter(t => t.under).map(t => ({ type: t.under, x: t.x, y: t.y, r: 0.85, hides: t.id, gone: false })),
   ...GATES.map(g => ({ type: g.type, x: g.x, y: g.y, r: 2.1, hides: 'gate:' + g.key, gone: false, gate: true }))];
 const obstacleAt = (x, y) => OBSTACLES.find(o => !o.gone && Math.hypot(x - o.x, y - o.y) < o.r);
@@ -424,6 +424,49 @@ const NESTS = [];
     }
   });
 }
+// Trees: groves scattered over the land (seeded, so they're the same every game). Trunks block Watson
+// and the plants; the canopy fades when Watson walks behind one. Smoggy outside his turf, lush inside.
+const TREES = [], treeGrid = new Map();
+const treeAt = (x, y) => {
+  for (let i = Math.floor(x) - 1; i <= Math.floor(x) + 1; i++) for (let j = Math.floor(y) - 1; j <= Math.floor(y) + 1; j++) {
+    const b = treeGrid.get(i + j * MAP);
+    if (b) for (const t of b) if (Math.hypot(t.x - x, t.y - y) < t.r) return t;
+  }
+  return null;
+};
+{
+  let seed = 4242;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const keep = [...FRIENDS.map(f => [f.x, f.y, 2.5]), ...TREASURES.map(t => [t.x, t.y, 2.5]), ...OUTPOSTS.map(o => [o.x, o.y, 2.5]),
+    ...TRINKETS.map(t => [t.x, t.y, 1.5]), ...NESTS.map(o => [o.x, o.y, 2.5]), ...OBSTACLES.map(o => [o.x, o.y, o.r + 2]),
+    ...BOSSES.map(b => [b.homeX, b.homeY, 6])];
+  const DENS = { home: 0.8, suburbs: 1, lake: 1.3, downtown: 0.5, pound: 0.8 };   // how wooded each region is
+  const PINE = { home: 0.2, suburbs: 0.15, lake: 0.6, downtown: 0.2, pound: 0.3 };
+  const near = (x, y, d) => { for (let i = Math.floor(x) - 2; i <= Math.floor(x) + 2; i++) for (let j = Math.floor(y) - 2; j <= Math.floor(y) + 2; j++) { const b = treeGrid.get(i + j * MAP); if (b && b.some(t => Math.hypot(t.x - x, t.y - y) < d)) return true; } return false; };
+  const ok = (x, y, rg) => regionAt(x, y) === rg && [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].every(([a, b]) => isLand(x + a, y + b)) &&
+    distC(x, y) > 9 && !keep.some(([kx, ky, kr]) => Math.hypot(kx - x, ky - y) < kr) && !near(x, y, 1.6);
+  const plant = (x, y, rg) => {
+    const r = rnd(), kind = r < PINE[rg.id] ? 1 : rg.id === 'pound' && r > 0.6 ? 2 : 0;   // 0 leafy, 1 pine, 2 bare (comes back to life in turf)
+    const t = { x, y, r: 0.35, s: 0.85 + rnd() * 0.4, kind, v: rnd() };
+    TREES.push(t);
+    const k = Math.floor(x) + Math.floor(y) * MAP;
+    (treeGrid.get(k) || treeGrid.set(k, []).get(k)).push(t);
+  };
+  for (const rg of REGIONS) {
+    const groves = Math.round(rg.R * rg.R * 0.022 * DENS[rg.id]);
+    for (let g = 0; g < groves; g++) {
+      const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * rg.R, cx = rg.x + Math.cos(a) * d, cy = rg.y + Math.sin(a) * d;
+      for (let n = 3 + Math.floor(rnd() * 6), tries = 0; n > 0 && tries < 30; tries++) {
+        const b = rnd() * Math.PI * 2, e = rnd() * 3.5, x = cx + Math.cos(b) * e, y = cy + Math.sin(b) * e;
+        if (ok(x, y, rg)) { plant(x, y, rg); n--; }
+      }
+    }
+    for (let n = Math.round(rg.R * 0.8 * DENS[rg.id]), tries = 0; n > 0 && tries < 400; tries++) {   // a few loners
+      const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * rg.R, x = rg.x + Math.cos(a) * d, y = rg.y + Math.sin(a) * d;
+      if (ok(x, y, rg)) { plant(x, y, rg); n--; }
+    }
+  }
+}
 const nestClean = o => isTurf(o.x, o.y);
 const islandClean = k => NESTS.some(o => o.isl === k) && NESTS.every(o => o.isl !== k || nestClean(o));
 const cleanAt = (x, y) => { const isl = islandAt(x, y); return !!isl && islandClean(ISLANDS.indexOf(isl)); };
@@ -431,13 +474,13 @@ const cleanIslands = new Set();   // islands already announced as clean
 // Doghouse upgrades: each needs a rare find plus some XP. 'stall' and 'fire' open more of Fred's shop.
 // Doghouse upgrades unlock as Watson's territory grows: Home XP = 1 per tile of land claimed with pee.
 const UPGRADES = [   // home = total Home XP needed (it's never spent); needs = rare item needed, if any
-  { id: 'garden', home: 25,  name: 'Flower Garden',     desc: '+1 biscuit' },
-  { id: 'stall',  home: 50,  needs: 'awning',   name: "Fred's Shop Stall", desc: 'Fred sells more' },
-  { id: 'house2', home: 90,  needs: 'planks',   name: 'Bigger Doghouse',  desc: '+25 HP' },
-  { id: 'bed',    home: 130, needs: 'pillow',   name: 'Comfy Bed',        desc: '+2 biscuits' },
-  { id: 'shop',   home: 180, needs: 'sign',     name: "Fred's Shop",      desc: "Fred's fanciest things", after: 'stall' },
-  { id: 'fire',   home: 240, needs: 'ember',    name: 'Cozy Fireplace',   desc: "Fred's rare stock" },
-  { id: 'house3', home: 320, needs: 'shingles', name: 'Doghouse Tower',   desc: '+25 stamina', after: 'house2' },
+  { id: 'garden', home: 40,  name: 'Flower Garden',     desc: '+1 biscuit' },
+  { id: 'stall',  home: 80,  needs: 'awning',   name: "Fred's Shop Stall", desc: 'Fred sells more' },
+  { id: 'house2', home: 140,  needs: 'planks',   name: 'Bigger Doghouse',  desc: '+25 HP' },
+  { id: 'bed',    home: 210, needs: 'pillow',   name: 'Comfy Bed',        desc: '+2 biscuits' },
+  { id: 'shop',   home: 290, needs: 'sign',     name: "Fred's Shop",      desc: "Fred's fanciest things", after: 'stall' },
+  { id: 'fire',   home: 380, needs: 'ember',    name: 'Cozy Fireplace',   desc: "Fred's rare stock" },
+  { id: 'house3', home: 500, needs: 'shingles', name: 'Doghouse Tower',   desc: '+25 stamina', after: 'house2' },
 ];
 // The Shiny Bowl isn't a doghouse upgrade: Watson trades it to Fred, who sets up the water bowl.
 // Until then pee never refills. After that, resting refills it (and claimed island bowls do too).
@@ -460,7 +503,7 @@ const player = {
   flasks: 4, maxFlasks: 4, drink: 0,
   face: { x: 1, y: 0 }, flash: 0, swing: 0, swingMax: 0.2, dead: false,
   aimT: 0, walk: 0, moving: false, running: false, whirl: 0, swimming: false,
-  roll: null, hitstun: 0, grace: 0, attackLock: 0,
+  roll: null, zoom: null, hitstun: 0, grace: 0, attackLock: 0,
   shake: 0, shakeCd: 0,     // shaking off water
   chew: null,               // chewing a friend free of vines
   scene: null,              // resting with Jackie: licks, then belly rubs
@@ -896,7 +939,7 @@ function pickType(d) {   // d = plant tier of the spot
   // Mostly the toughest type for the zone, sometimes an easier one.
   return Math.random() < 0.7 ? allowed[allowed.length - 1] : allowed[Math.floor(Math.random() * allowed.length)];
 }
-const okSpot = (x, y) => !inWater(x, y) && !isTurf(x, y) && distC(x, y) >= SAFE_R + 2.5 && !cleanAt(x, y);
+const okSpot = (x, y) => isLand(x, y) && !treeAt(x, y) && !isTurf(x, y) && distC(x, y) >= SAFE_R + 2.5 && !cleanAt(x, y);
 function spawnEnemy() {
   for (let tries = 0; tries < 80; tries++) {
     const x = rand(1, MAP - 1), y = rand(1, MAP - 1);
@@ -962,7 +1005,8 @@ function startRoll() {
   player.roll = { t: 0.4, x: d.x, y: d.y };
   tut.rolls++;
 }
-const invulnerable = () => !!player.roll || player.grace > 0;   // untouchable for the whole roll
+const invulnerable = () => !!player.roll || !!player.zoom || player.grace > 0;
+const ZOOM_T = 0.5;   // how long the zoomies loop takes   // untouchable for the whole roll
 
 function drinkFlask() {
   if (!canAct() || player.flasks <= 0) return;
@@ -1000,14 +1044,12 @@ function useSkill(id, aim) {
       if (diff < Math.PI * 0.42 || d < 0.7) { hurtEnemy(e, weaponDmg()); hit = true; }
     }
     sfx(hit ? 'attack' : 'swipe');
-  } else if (id === 'whirl') {
-    const range = 1.9;
-    p.whirl = 0.4;
-    effects.push({ type: 'ring', x: p.x, y: p.y, range, t: 0.3, max: 0.3, color: '#9fd4ff' });
-    let hit = false;
-    for (const e of enemies)
-      if (Math.hypot(e.x - p.x, e.y - p.y) < range + e.r) { hurtEnemy(e, Math.round(weaponDmg() * 1.3)); hit = true; }
-    sfx(hit ? 'attack' : 'swipe');
+  } else if (id === 'whirl') {   // zoomies: a quick loop-the-loop, hitting every plant he tears past
+    const R = 1.1, cx = p.x + p.face.x * R, cy = p.y + p.face.y * R;
+    p.zoom = { t: 0, cx, cy, R, a0: Math.atan2(p.y - cy, p.x - cx), hit: new Set() };
+    p.whirl = ZOOM_T;
+    effects.push({ type: 'wind', x: cx, y: cy, range: R, a0: p.zoom.a0, t: ZOOM_T + 0.3, max: ZOOM_T + 0.3, color: '#e8f6ff' });
+    sfx('swipe');
   } else if (id === 'fireball') {
     projectiles.push({ x: p.x + p.face.x * 0.4, y: p.y + p.face.y * 0.4, vx: p.face.x * 8, vy: p.face.y * 8, life: 1.3 });
   }
@@ -1147,7 +1189,10 @@ function palMove() {
   const tx = target ? target.x : p.x + p.face.x * 1.8, ty = target ? target.y : p.y + p.face.y * 1.8;
   const dx = tx - f.x, dy = ty - f.y, d = Math.hypot(dx, dy) || 1;
   f.fx = dx / d; f.fy = dy / d;
-  if (f.move === 'pound') f.act = { type: 'leap', t: 0, max: 0.55, sx: f.x, sy: f.y, tx, ty, dmg };
+  if (f.move === 'pound') {   // a quick charge and headbutt: only ever a short hop toward the target
+    const reach = Math.min(Math.max(0, d - 0.6), 2);
+    f.act = { type: 'jab', t: 0, max: 0.3, sx: f.x, sy: f.y, tx: f.x + f.fx * reach, ty: f.y + f.fy * reach, dmg };
+  }
   else if (f.move === 'howl') {
     f.act = { type: 'howl', t: 0, max: 0.7 };
     effects.push({ type: 'ring', x: f.x, y: f.y, range: 2.6, t: 0.6, max: 0.6, color: '#bfe8ff', fill: true });
@@ -1155,9 +1200,8 @@ function palMove() {
       hurtEnemy(e, dmg, f.x, f.y);
       if (e.hp > 0) Object.assign(e, { state: 'recover', t: 3, frozen: 3, punishable: true, kx: 0, ky: 0 });
     }
-  } else if (f.move === 'fetch') {
-    f.act = { type: 'throw', t: 0, max: 0.3 };
-    projectiles.push({ x: f.x + f.fx * 0.3, y: f.y + f.fy * 0.3, vx: f.fx * 7, vy: f.fy * 7, life: 1.3, kind: 'fire', dmg });
+  } else if (f.move === 'fire') {   // a gush of fire breath: a short cone of flames (each plant is hit once)
+    f.act = { type: 'breath', t: 0, max: 0.6, puffT: 0, hit: new Set(), dmg };
   }
 }
 function updateFriends(dt) {
@@ -1174,13 +1218,23 @@ function updateFriends(dt) {
       if (f.act) {
         f.act.t += dt;
         const k = Math.min(1, f.act.t / f.act.max);
-        if (f.act.type === 'leap') {
-          f.x = lerp(f.act.sx, f.act.tx, k); f.y = lerp(f.act.sy, f.act.ty, k); f.z = Math.sin(k * Math.PI) * 34;
-          if (k >= 1) {   // belly flop!
+        if (f.act.type === 'breath') {   // puff out flames toward the target
+          f.act.puffT -= dt;
+          while (f.act.puffT <= 0) {
+            f.act.puffT += 0.035;
+            const a = Math.atan2(f.fy, f.fx) + rand(-0.28, 0.28), v = rand(5.5, 7);
+            projectiles.push({ x: f.x + f.fx * 0.35, y: f.y + f.fy * 0.35, vx: Math.cos(a) * v, vy: Math.sin(a) * v, life: 0.42, max: 0.42, kind: 'flame', hit: f.act.hit, dmg: f.act.dmg });
+          }
+        }
+        if (f.act.type === 'jab') {
+          const e = 1 - (1 - k) ** 3;   // fast start, then a thump
+          f.x = lerp(f.act.sx, f.act.tx, e); f.y = lerp(f.act.sy, f.act.ty, e); f.z = Math.sin(k * Math.PI) * 7;
+          if (k >= 1) {   // headbutt!
             f.z = 0;
-            effects.push({ type: 'ring', x: f.x, y: f.y, range: 1.6, t: 0.45, max: 0.45, color: '#e8c37a', fill: true });
-            clearObstacles('boulder', f.x, f.y, 1.6);
-            for (const e of enemies) if (Math.hypot(e.x - f.x, e.y - f.y) < 1.6 + e.r) {
+            effects.push({ type: 'ring', x: f.x + f.fx * 0.4, y: f.y + f.fy * 0.4, range: 1.2, t: 0.35, max: 0.35, color: '#e8c37a', fill: true });
+            const hx = f.x + f.fx * 0.4, hy = f.y + f.fy * 0.4;
+            clearObstacles('boulder', hx, hy, 1.4);
+            for (const e of enemies) if (Math.hypot(e.x - hx, e.y - hy) < 1.2 + e.r) {
               hurtEnemy(e, f.act.dmg, f.x, f.y);
               if (e.hp > 0 && !e.frozen) Object.assign(e, { state: 'recover', t: 1.1, punishable: true });
             }
@@ -1330,7 +1384,7 @@ function die() {
 function respawn() {
   if (!player.dead) return;
   Object.assign(player, { dead: false, x: CENTER, y: CENTER + 1.6, hp: maxHp(), sta: maxSta(),
-    flasks: player.maxFlasks, roll: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0, aimT: 0, swing: 0, whirl: 0, bladder: peeRefills() ? maxPee() : player.bladder, shake: 0 });
+    flasks: player.maxFlasks, roll: null, zoom: null, hitstun: 0, drink: 0, grace: 0, attackLock: 0, aimT: 0, swing: 0, whirl: 0, bladder: peeRefills() ? maxPee() : player.bladder, shake: 0 });
   const b = buddy();
   if (b) { b.x = player.x - 0.7; b.y = player.y + 0.3; b.act = null; b.z = 0; }
   populate();   // every monster comes back when you die
@@ -1376,7 +1430,7 @@ function moveBody(o, dx, dy, swim) {
   const inLake = terrainAt(o.x, o.y) === T_WATER;
   const wet = (x, y, ax, ay) => {
     const [px, py] = probe(x, y, ax, ay), t = terrainAt(px, py);
-    return t === T_CLIFF || t === T_SEA || (t === T_WATER && !swim && !inLake) || !!obstacleAt(px, py);
+    return t === T_CLIFF || t === T_SEA || (t === T_WATER && !swim && !inLake) || !!obstacleAt(px, py) || !!treeAt(px, py);
   };
   if (!wet(o.x + dx, o.y + dy, dx, dy)) { o.x += dx; o.y += dy; return false; }
   if (dx && !wet(o.x + dx, o.y, dx, 0)) o.x += dx;
@@ -1405,7 +1459,18 @@ function update(dt) {
   const ox = p.x, oy = p.y, swim = hasPower('swim');
   let bumped = false;
   p.running = false;
-  if (p.roll) {
+  if (p.zoom) {   // zoomies: run once around the loop
+    const z = p.zoom;
+    z.t += dt;
+    const k = Math.min(1, z.t / ZOOM_T), a = z.a0 + k * Math.PI * 2;
+    const nx = z.cx + Math.cos(a) * z.R, ny = z.cy + Math.sin(a) * z.R;
+    moveBody(p, nx - p.x, ny - p.y, swim);
+    p.face = { x: -Math.sin(a), y: Math.cos(a) };
+    for (const e of enemies) if (e.hp > 0 && !z.hit.has(e) && Math.hypot(e.x - p.x, e.y - p.y) < 0.9 + e.r) {
+      z.hit.add(e); hurtEnemy(e, Math.round(weaponDmg() * 1.5)); sfx('attack');
+    }
+    if (k >= 1) p.zoom = null;
+  } else if (p.roll) {
     p.roll.t -= dt;
     bumped = moveBody(p, p.roll.x * 7 * dt, p.roll.y * 7 * dt, swim);
     if (p.roll.t <= 0) p.roll = null;
@@ -1583,6 +1648,13 @@ function update(dt) {
   // Projectiles
   for (const pr of projectiles) {
     pr.x += pr.vx * dt; pr.y += pr.vy * dt; pr.life -= dt;
+    if (pr.kind === 'flame') {   // fire breath: slows down, burns each plant once, burns brambles
+      pr.vx *= 1 - 2.5 * dt; pr.vy *= 1 - 2.5 * dt;
+      for (const e of enemies) if (e.hp > 0 && !pr.hit.has(e) && Math.hypot(e.x - pr.x, e.y - pr.y) < e.r + 0.3) { pr.hit.add(e); hurtEnemy(e, pr.dmg, pr.x - pr.vx, pr.y - pr.vy); }
+      const o = obstacleAt(pr.x, pr.y);
+      if (o && o.type === 'bramble') clearObstacles('bramble', pr.x, pr.y, 0.5);
+      continue;
+    }
     const hit = enemies.some(e => e.hp > 0 && Math.hypot(e.x - pr.x, e.y - pr.y) < e.r + 0.15) || !!obstacleAt(pr.x, pr.y);
     if (hit || pr.life <= 0 || pr.x < 0 || pr.y < 0 || pr.x > MAP || pr.y > MAP) { explode(pr); pr.life = -1; }
   }
@@ -2433,7 +2505,6 @@ function drawPlayer() {
     drawDogBellyUp(s.x, s.y, screenFacing(p.face.x, p.face.y).flip);
   } else {
     let { flip } = screenFacing(p.face.x, p.face.y);
-    if (p.whirl > 0) flip = Math.floor(p.whirl * 20) % 2 === 0;   // zoomies: spinning in circles
     const wpn = WEAPONS[p.weapon];
     const dog = y => drawDog(s.x, y, { flip, walk: p.walk, moving: p.moving || p.whirl > 0, running: p.running || p.whirl > 0,
       attack: p.chew ? (time * 3) % 1 : p.swing > 0 ? 1 - p.swing / p.swingMax : -1, item: wpn.type, color: wpn.color, eating: p.drink > 0,
@@ -2469,7 +2540,7 @@ function drawFriend(f) {
   const { flip } = screenFacing(f.fx, f.fy);
   const a = f.act;
   const dog = y => drawDog(s.x, y - (f.z || 0), { flip, walk: f.walk, moving: f.moving, running: f.moving && player.running,
-    attack: a && a.type === 'throw' ? a.t / a.max : -1, look: f.look, howl: (a && a.type === 'howl') || (lost && Math.sin(time * 1.3 + f.ox) > 0.85) });
+    attack: a && (a.type === 'throw' || a.type === 'jab') ? a.t / a.max : a && a.type === 'breath' ? 0.5 : -1, look: f.look, howl: (a && a.type === 'howl') || (lost && Math.sin(time * 1.3 + f.ox) > 0.85) });
   if (inWater(f.x, f.y) && !f.z) swimming(s, dog); else dog(s.y);
   if (!lost) return;
   // Thorny purple vines wrapped around them
@@ -2589,6 +2660,46 @@ function drawTrinket(t) {
   }
 }
 // Water bowls on far islands: dry and dusty until they're inside Watson's turf.
+// A tree. Leafy, pine or bare; smoggy colours outside Watson's turf, lush (bare ones leaf out) inside.
+const TREE_COL = {
+  leaf: [['#2f6b2a', '#3f8a34', '#58a542'], ['#3a4338', '#4a5446', '#5d6656']],   // [clean, smoggy]
+  pine: [['#1f5530', '#2b6e3c'], ['#2e3b35', '#3c4842']],
+};
+function drawTree(t) {
+  const s = toScreen(t.x, t.y), k = t.s, clean = isTurf(t.x, t.y), p = player;
+  const ps = toScreen(p.x, p.y);
+  // Watson behind the tree: fade it so he never disappears.
+  const fade = p.x + p.y < t.x + t.y && Math.abs(ps.x - s.x) < 26 * k && ps.y < s.y && ps.y > s.y - 70 * k;
+  if (fade) ctx.globalAlpha = 0.4;
+  shadow(t.x, t.y, 0.55 * k);
+  const sway = Math.sin(time * 1.1 + t.x * 0.7) * 1.2;
+  ctx.fillStyle = t.kind === 2 && !clean ? '#5a4a42' : '#6b4a2e';
+  ctx.fillRect(s.x - 3 * k, s.y - 24 * k, 6 * k, 24 * k);
+  if (t.kind === 1) {   // pine
+    const c = TREE_COL.pine[clean ? 0 : 1];
+    for (let n = 0; n < 3; n++) {
+      const y = s.y - (20 + n * 13) * k, w = (20 - n * 5) * k;
+      ctx.fillStyle = c[n % 2];
+      ctx.beginPath(); ctx.moveTo(s.x - w + sway * n * 0.4, y); ctx.lineTo(s.x + w + sway * n * 0.4, y); ctx.lineTo(s.x + sway * (n + 1) * 0.4, y - 22 * k); ctx.closePath(); ctx.fill();
+    }
+  } else if (t.kind === 2 && !clean) {   // bare, polluted
+    ctx.strokeStyle = '#5a4a42'; ctx.lineWidth = 2.5 * k; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (const [a, l] of [[-0.9, 18], [-0.3, 22], [0.4, 20], [1, 15]]) { ctx.moveTo(s.x, s.y - 22 * k); ctx.lineTo(s.x + Math.sin(a) * l * k + sway, s.y - (22 + Math.cos(a) * l) * k); }
+    ctx.stroke(); ctx.lineWidth = 1; ctx.lineCap = 'butt';
+  } else {   // leafy
+    const c = TREE_COL.leaf[clean ? 0 : 1], cy = s.y - 36 * k;
+    ctx.fillStyle = c[0]; ctx.beginPath(); ctx.arc(s.x + sway, cy + 3 * k, 17 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = c[1];
+    ctx.beginPath(); ctx.arc(s.x - 7 * k + sway, cy - 2 * k, 11 * k, 0, Math.PI * 2); ctx.arc(s.x + 7 * k + sway, cy - 1 * k, 11 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = c[2]; ctx.beginPath(); ctx.arc(s.x - 3 * k + sway, cy - 8 * k, 8 * k, 0, Math.PI * 2); ctx.fill();
+    if (clean) {   // blossoms on healthy trees
+      ctx.fillStyle = t.v < 0.5 ? '#ffb3cf' : '#fff2a8';
+      for (let n = 0; n < 5; n++) { const a = n * 1.3 + t.v * 6; ctx.beginPath(); ctx.arc(s.x + Math.cos(a) * 11 * k + sway, cy + Math.sin(a) * 8 * k, 1.8 * k, 0, Math.PI * 2); ctx.fill(); }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
 // Smog nest: a purple, bubbling mound puffing smog. Once inside Watson's turf it turns into a flowering bush.
 function drawNest(o) {
   const s = toScreen(o.x, o.y);
@@ -2652,7 +2763,41 @@ function drawBloodstain() {
   ctx.restore(); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
 }
 
+// Zoomies wind: white streaks whooshing around the loop behind Watson, then a fading swirl.
+function drawWind(f) {
+  const el = f.max - f.t, k = Math.min(1, el / ZOOM_T), head = f.a0 + k * Math.PI * 2 + Math.max(0, el - ZOOM_T) * 6;
+  const fade = Math.min(1, f.t / 0.3);
+  ctx.lineCap = 'round';
+  for (let n = 0; n < 3; n++) {
+    const R = f.range * [0.75, 1, 1.3][n], lift = [8, 18, 12][n], len = 1.2 + k * 1.4 - n * 0.3;
+    ctx.strokeStyle = `rgba(232,246,255,${(0.9 - n * 0.2) * fade})`; ctx.lineWidth = 5 - n * 1.2;
+    ctx.beginPath();
+    for (let i = 0; i <= 10; i++) {
+      const a = head - n * 0.5 - len * (i / 10);
+      const s = toScreen(f.x + Math.cos(a) * R, f.y + Math.sin(a) * R);
+      i ? ctx.lineTo(s.x, s.y - lift) : ctx.moveTo(s.x, s.y - lift);
+    }
+    ctx.stroke();
+  }
+  ctx.fillStyle = `rgba(150,200,90,${fade})`;   // leaves and grass flung about
+  for (let n = 0; n < 6; n++) {
+    const a = head - n * 0.9, R = f.range * (1.2 + el * 1.5 + (n % 2) * 0.3), s = toScreen(f.x + Math.cos(a) * R, f.y + Math.sin(a) * R);
+    ctx.beginPath(); ctx.ellipse(s.x, s.y - 10 - n * 3, 2.5, 1.3, a, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.lineWidth = 1; ctx.lineCap = 'butt';
+}
+// One puff of Ember's fire breath: grows, rises and fades from yellow to red.
+function drawFlame(pr) {
+  const s = toScreen(pr.x, pr.y), a = 1 - pr.life / pr.max, y = s.y - 16 - a * 14, r = 6 + a * 15;
+  ctx.save(); ctx.globalCompositeOperation = 'lighter';
+  ctx.globalAlpha = 0.75 * (1 - a);
+  ctx.fillStyle = '#e8401a'; ctx.beginPath(); ctx.arc(s.x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ff9a2a'; ctx.beginPath(); ctx.arc(s.x, y + r * 0.15, r * 0.65, 0, Math.PI * 2); ctx.fill();
+  if (a < 0.6) { ctx.fillStyle = '#ffe680'; ctx.beginPath(); ctx.arc(s.x, y + r * 0.25, r * 0.35, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
 function drawEffect(f) {
+  if (f.type === 'wind') { drawWind(f); return; }
   const a = f.t / f.max;
   ctx.globalAlpha = a;
   ctx.strokeStyle = ctx.fillStyle = f.color;
@@ -2884,9 +3029,11 @@ function draw() {
     ...OBSTACLES.filter(o => !o.gone && seen(o.x, o.y)).map(o => ({ d: o.x + o.y, f: () => drawObstacle(o) })),
     ...OUTPOSTS.filter(o => seen(o.x, o.y)).map(o => ({ d: o.x + o.y - 0.5, f: () => drawOutpost(o) })),
     ...NESTS.filter(o => seen(o.x, o.y)).map(o => ({ d: o.x + o.y, f: () => drawNest(o) })),
+    ...TREES.filter(t => seen(t.x, t.y)).map(t => ({ d: t.x + t.y, f: () => drawTree(t) })),
     ...FRIENDS.filter(fr => seen(fr.x, fr.y)).map(fr => ({ d: fr.x + fr.y, f: () => drawFriend(fr) })),
     ...shown.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
+      if (pr.kind === 'flame') { drawFlame(pr); return; }
       shadow(pr.x, pr.y, 0.12);
       const s = toScreen(pr.x, pr.y), a = Math.atan2(pr.vy * 0.5 + pr.vx * 0.5, pr.vx - pr.vy);
       if (pr.kind === 'fire') {   // Ember's flaming ball
