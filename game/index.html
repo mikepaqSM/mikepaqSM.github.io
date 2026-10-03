@@ -183,10 +183,10 @@
 <script>
 // ---------- Setup ----------
 const TW = 64, TH = 32;        // isometric tile size in pixels
-const MAP = 120;               // map is MAP x MAP tiles (mostly sea, with islands)
+const MAP = 180;               // map is MAP x MAP tiles: one big continent, with sea around it
 const CENTER = MAP / 2;
 const SAFE_R = 2.5;            // radius of the safe area around the doghouse (tiles)
-const MAX_ENEMIES = 70;
+const MAX_ENEMIES = 160;
 const LOCK_RANGE = 7;          // how far away auto lock-on reaches (tiles)
 
 const canvas = document.getElementById('game');
@@ -223,7 +223,7 @@ const WEAPONS = [
 ];
 
 const SKILLS = [
-  { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.7,  sta: 16, lock: 0.32, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
+  { id: 'strike',   key: '1', name: 'Attack',    cost: 0,   cd: 0.4,  sta: 12, lock: 0.18, desc: 'Bite, or swing your fetch gear, toward the mouse (click) or at the locked-on enemy (1 / J).' },
   { id: 'whirl', tk: 3,    key: '2', name: 'Zoomies',   cost: 80,  cd: 4,    sta: 35, lock: 0.5,  short: 'Spin attack that hits everyone around you', tip: 'Spin attack', desc: 'Tear around in a circle, hitting everyone nearby for 1.3x gear damage.' },
   { id: 'fireball', tk: 5, key: '3', name: 'Mega Bark', cost: 200, shop: 'stall', cd: 1.6,  sta: 25, lock: 0.4,  short: 'Flying bark blast, 35 damage', tip: 'Long-range blast', desc: 'A bark so loud it flies. Blasts an area for 35 damage (scales with Bark Power).' },
 ];
@@ -259,42 +259,83 @@ const FRIENDS = [
   { id: 'splash', name: 'Splash', breed: 'Labrador', tip: 'Swims', ox: -12, oy: 8, home: [0.9, -1.7], kind: 'ability', power: 'swim',
     short: 'Loves water, so Watson can swim too', thanks: 'Woof! Thanks! Ooh, is that a pond?',
     look: { fur: '#e3b968', light: '#f3d9a4', dark: '#c2954a', saddle: null, collar: '#2e86de', s: 1 } },
-  { id: 'boomer', name: 'Boomer', breed: 'Bulldog', tip: 'Smashes boulders', ox: 40, oy: -10, home: [-0.9, -1.8], kind: 'attack', move: 'pound', verb: 'POUND',
+  { id: 'boomer', name: 'Boomer', breed: 'Bulldog', tip: 'Smashes boulders', ox: 48, oy: -8, home: [-0.9, -1.8], kind: 'attack', move: 'pound', verb: 'POUND',
     moveName: 'Ground Pound', cd: 6, dmg: 40, short: 'Belly-flops on plants and knocks them off balance', thanks: "Hrmph. Thanks, pal. I'll wait at your place.",
     look: { fur: '#b98a5e', light: '#f2ead8', dark: '#6e4c30', saddle: null, bw: 1.15, leg: 0.75, collar: '#8e44ad', s: 0.95 } },
-  { id: 'scout', name: 'Scout', breed: 'German Shepherd', tip: 'Guards you while you pee', ox: 31, oy: 0, home: [1.9, 0.9], kind: 'ability', power: 'lookout',
+  { id: 'scout', name: 'Scout', breed: 'German Shepherd', tip: 'Guards you while you pee', ox: 38, oy: 16, home: [1.9, 0.9], kind: 'ability', power: 'lookout',
     short: 'Keeps watch while you pee. Plants back off', thanks: "Thanks! I'll keep an eye out for you.",
     look: { fur: '#c08038', light: '#d9a462', dark: '#2a2018', saddle: '#2a2018', earUp: true, collar: '#27ae60', s: 1.08 } },
-  { id: 'frost', name: 'Frost', breed: 'Husky', tip: 'Freezes plants', ox: -23, oy: 37, home: [-1.7, -0.5], kind: 'attack', move: 'howl', verb: 'HOWL',
+  { id: 'frost', name: 'Frost', breed: 'Husky', tip: 'Freezes plants', ox: -52, oy: 10, home: [-1.7, -0.5], kind: 'attack', move: 'howl', verb: 'HOWL',
     moveName: 'Frost Howl', cd: 9, dmg: 12, short: 'A chilly howl that freezes nearby plants (free critical hits)', thanks: 'Awooo! You found me!',
     look: { fur: '#8d96a3', light: '#f1f3f6', dark: '#4f5763', saddle: '#6f7885', belly: true, earUp: true, eye: '#5ab4ff', collar: '#e74c3c', s: 1.05 } },
-  { id: 'zip', name: 'Zip', breed: 'Greyhound', tip: 'Faster, cheaper rolls', ox: -12, oy: 30, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
+  { id: 'zip', name: 'Zip', breed: 'Greyhound', tip: 'Faster, cheaper rolls', ox: -8, oy: -50, home: [-0.7, 2.1], kind: 'ability', power: 'zoom',
     short: 'Watson runs faster, and rolls cost half the stamina', thanks: 'Zoom zoom! Race you home!',
     look: { fur: '#c9a27a', light: '#e6cfb2', dark: '#8a6a4a', saddle: null, bw: 0.9, leg: 1.25, collar: '#f39c12', s: 1.02 } },
-  { id: 'ember', name: 'Ember', breed: 'Dalmatian', tip: 'Burns brambles', ox: -29, oy: -30, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
+  { id: 'ember', name: 'Ember', breed: 'Dalmatian', tip: 'Burns brambles', ox: 14, oy: -52, home: [1.3, 1.8], kind: 'attack', move: 'fetch', verb: 'FETCH',
     moveName: 'Fire Fetch', cd: 4, dmg: 45, short: 'Throws a flaming ball. Fred likes her (she is warm)', thanks: "Phew! It's toasty out here. Thanks!",
     look: { fur: '#f4f1ea', light: '#ffffff', dark: '#222222', saddle: null, spots: true, collar: '#c0392b', s: 1 } },
 ];
 for (const f of FRIENDS) Object.assign(f, { cdBase: f.cd || 0, x: CENTER + f.ox, y: CENTER + f.oy, walk: 0, moving: false, fx: 1, fy: 0, cd: 0, act: null, z: 0, helpT: rand(2, 6) });
 
-// The world is islands in the sea. Watson starts on Home Island and hates water, so he can't leave
-// until he frees Splash, who loves to swim. x/y = centre (tiles from the doghouse), R = size,
-// tier = how tough the plants are (Home Island is easy near the doghouse, harder near its shore).
-const ISLANDS = [
-  { name: 'Home Island',   ox: 0,   oy: 0,   R: 17,  tier: 0, ground: [56, 112, 52] },
-  { name: 'Suburb Isle',   ox: 36,  oy: -6,  R: 13,  tier: 2, ground: [96, 128, 70] },
-  { name: 'Downtown Isle', ox: -18, oy: 33,  R: 14,  tier: 2, ground: [116, 116, 122] },
-  { name: 'Pound Isle',    ox: -26, oy: -27, R: 13,  tier: 3, ground: [70, 62, 66] },
-  { name: 'islet', ox: 18,  oy: 20, R: 3.5, tier: 2, ground: [110, 138, 78] },
-  { name: 'islet', ox: 40,  oy: 26, R: 4,   tier: 2, ground: [110, 138, 78] },
-  { name: 'islet', ox: -40, oy: 4,  R: 3,   tier: 2, ground: [110, 138, 78] },
-].map((isl, k) => ({ ...isl, x: CENTER + isl.ox, y: CENTER + isl.oy, p1: k * 1.7, p2: k * 2.9 + 1, p3: k * 0.6 + 2 }));
-// Wobbly coastline: island radius in a given direction.
+// The world: one big continent split into regions. Rocky cliffs run along the borders between
+// regions; some borders are open, some have a gate a friend has to clear (a boulder for Boomer, a
+// bramble wall for Ember), and Lakeside is across a river (Splash). x/y = centre (tiles from the
+// doghouse), R = rough size, tier = how tough the plants are.
+const REGIONS = [
+  { id: 'home',     name: 'Home Meadow',        ox: 0,   oy: 0,   R: 22, tier: 0, ground: [56, 112, 52] },
+  { id: 'suburbs',  name: 'The Suburbs',        ox: 42,  oy: 4,   R: 30, tier: 1, ground: [96, 128, 70] },
+  { id: 'lake',     name: 'Lakeside',           ox: -44, oy: -2,  R: 30, tier: 2, ground: [62, 120, 86] },
+  { id: 'downtown', name: 'Downtown',           ox: 4,   oy: -44, R: 30, tier: 2, ground: [116, 116, 122] },
+  { id: 'pound',    name: 'The Pound District', ox: 32,  oy: 40,  R: 30, tier: 3, ground: [70, 62, 66] },
+].map(r => ({ ...r, x: CENTER + r.ox, y: CENTER + r.oy }));
+const ISLANDS = REGIONS;   // (older code calls regions "islands")
+// Borders not listed here are cliffs with no way through.
+const BORDERS = { 'home|suburbs': 'open', 'home|lake': 'river', 'home|downtown': 'boulder', 'suburbs|pound': 'bramble' };
+const borderOf = (a, b) => BORDERS[a.id + '|' + b.id] || BORDERS[b.id + '|' + a.id] || 'cliff';
+// Gates sit where two regions meet, halfway between their centres.
+const GATES = Object.entries(BORDERS).filter(([, t]) => t === 'boulder' || t === 'bramble').map(([k, type]) => {
+  const [a, b] = k.split('|').map(id => REGIONS.find(r => r.id === id));
+  return { type, x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, key: k };
+});
+// Lakes in Lakeside (Splash swims across; one has a little island with something on it).
+const LAKES = [
+  { ox: -52, oy: -16, r: 6, island: 1.8 },
+  { ox: -36, oy: 18,  r: 4.5 },
+].map(l => ({ ...l, x: CENTER + l.ox, y: CENTER + l.oy }));
+const CONTINENT = { x: CENTER, y: CENTER, R: 76, p1: 0.7, p2: 2.1, p3: 4.4 };
+// Wobbly coastline: radius in a given direction.
 const coastR = (isl, a) => isl.R * (1 + 0.07 * Math.sin(3 * a + isl.p1) + 0.04 * Math.sin(5 * a + isl.p2) + 0.02 * Math.sin(11 * a + isl.p3));
-const islandAt = (x, y) => ISLANDS.find(isl => Math.hypot(x - isl.x, y - isl.y) < coastR(isl, Math.atan2(y - isl.y, x - isl.x)));
-const inWater = (x, y) => !islandAt(x, y);
+const T_LAND = 0, T_WATER = 1, T_CLIFF = 2, T_SEA = 3;
+function terrainCalc(x, y) {
+  if (Math.hypot(x - CONTINENT.x, y - CONTINENT.y) > coastR(CONTINENT, Math.atan2(y - CONTINENT.y, x - CONTINENT.x))) return T_SEA;
+  let type = T_LAND;
+  for (const l of LAKES) { const d = Math.hypot(x - l.x, y - l.y); if (d < l.r && !(l.island && d < l.island)) type = T_WATER; }
+  const ds = REGIONS.map(r => Math.hypot(x - r.x, y - r.y));
+  let a = 0; ds.forEach((d, k) => { if (d < ds[a]) a = k; });
+  for (let b = 0; b < REGIONS.length; b++) {
+    if (b === a) continue;
+    const diff = ds[b] - ds[a], kind = borderOf(REGIONS[a], REGIONS[b]);
+    if (kind === 'open') continue;
+    if (kind === 'river') { if (diff < 7 && type !== T_CLIFF) type = T_WATER; continue; }
+    if (diff < 2.6) {
+      if (kind !== 'cliff' && GATES.some(g => g.type === kind && Math.hypot(x - g.x, y - g.y) < 2)) continue;   // the gap in the cliff
+      type = T_CLIFF;
+    }
+  }
+  return type;
+}
+// The terrain is worked out once into a grid of G x G cells per tile.
+const G = 2, N = MAP * G;
+const cellAt = (x, y) => clamp(Math.floor(x * G), 0, N - 1) + clamp(Math.floor(y * G), 0, N - 1) * N;
+const terrain = new Uint8Array(N * N);
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) terrain[i + j * N] = terrainCalc((i + 0.5) / G, (j + 0.5) / G);
+const terrainAt = (x, y) => terrain[cellAt(x, y)];
+const isLand = (x, y) => terrainAt(x, y) === T_LAND;
+const inWater = (x, y) => { const t = terrainAt(x, y); return t === T_WATER || t === T_SEA; };
+const regionAt = (x, y) => terrainAt(x, y) === T_SEA ? null : REGIONS.reduce((a, b) => Math.hypot(x - a.x, y - a.y) <= Math.hypot(x - b.x, y - b.y) ? a : b);
+const islandAt = regionAt;
 // Plant toughness at a spot.
-const tierAt = (x, y) => { const isl = islandAt(x, y); return !isl ? 0 : isl === ISLANDS[0] ? (distC(x, y) < 9 ? 0 : 1) : isl.tier; };
+const tierAt = (x, y) => { const r = regionAt(x, y); return !r ? 0 : r.id === 'home' ? (distC(x, y) < 9 ? 0 : 1) : r.tier; };
 
 // Outfits and armor, sold by Fred. One per slot; change them at the doghouse.
 // armor = damage taken reduced by this much, speed / roll / dmg = multipliers. No numbers = just for style.
@@ -309,7 +350,7 @@ const OUTFITS = [
   { id: 'raincoat', tk: 2,      slot: 'body', shop: 'stall', name: 'Raincoat',         cost: 90,   desc: "Still won't go in the water. Just for style" },
   { id: 'cape', tk: 3,          slot: 'body', shop: 'stall', name: 'Hero Cape',        cost: 250,  desc: 'Move 8% faster', speed: 1.08 },
   { id: 'royalcape', tk: 5,     slot: 'body', shop: 'shop', name: 'Royal Cape',        cost: 900,  desc: 'Move 12% faster, take 10% less damage', speed: 1.12, armor: 0.1 },
-  { id: 'crown', tk: 3,         slot: 'head', shop: 'shop', name: 'Golden Crown',      cost: 700,  desc: 'King of the islands. Just for style' },
+  { id: 'crown', tk: 3,         slot: 'head', shop: 'shop', name: 'Golden Crown',      cost: 700,  desc: 'King of the town. Just for style' },
   { id: 'thorncoat', tk: 5,     slot: 'body', shop: 'stall', name: 'Thornproof Coat',  cost: 500,  desc: 'Take 20% less damage', armor: 0.2 },
   { id: 'knight', tk: 5,        slot: 'body', shop: 'fire', name: 'Knight Armor',     cost: 1100, desc: 'Take 35% less damage, but 10% slower', armor: 0.35, speed: 0.9 },
   { id: 'rainboots', tk: 2,     slot: 'feet', shop: 'stall', name: 'Rain Boots',       cost: 70,   desc: 'Just for style' },
@@ -318,54 +359,57 @@ const OUTFITS = [
 
 // Rare finds hidden around the islands. Bring them home to build doghouse upgrades.
 const TREASURES = [
-  { id: 'bowl',   name: 'Shiny Bowl',     ox: 11,  oy: -7,  color: '#5aa0ff' },   // Home Island, far side
-  { id: 'awning', name: 'Striped Awning', ox: 42,  oy: -2,  color: '#e74c3c' },   // Suburb Isle
-  { id: 'pillow', name: 'Feather Pillow', ox: -22, oy: 28,  color: '#f4f1ea' },   // Downtown Isle
-  { id: 'ember',  name: 'Ember Stone',    ox: -24, oy: -33, color: '#ff7a1a' },   // Pound Isle
+  { id: 'bowl',   name: 'Shiny Bowl',     ox: 12,  oy: -8,  color: '#5aa0ff' },   // Home Meadow
+  { id: 'awning', name: 'Striped Awning', ox: 52,  oy: 12,  color: '#e74c3c' },   // The Suburbs
+  { id: 'pillow', name: 'Feather Pillow', ox: -4,  oy: -60, color: '#f4f1ea' },   // Downtown
+  { id: 'ember',  name: 'Ember Stone',    ox: 20,  oy: 54,  color: '#ff7a1a' },   // The Pound District
+  { id: 'sign',   name: 'Shop Sign',      ox: -52, oy: -16, color: '#2ec4b6' },   // on the little island in Lakeside's big lake (Splash)
   // These are hidden under an obstacle that only a friend can clear (see OBSTACLES).
-  { id: 'planks',   name: 'Sturdy Planks',  ox: 6,   oy: 12,  color: '#b07a45', under: 'boulder' },   // Home Island (bring Boomer back)
-  { id: 'sign',     name: 'Shop Sign',      ox: -13, oy: 38,  color: '#2ec4b6', under: 'bramble' },   // Downtown Isle (needs Ember)
-  { id: 'shingles', name: 'Fancy Shingles', ox: 40,  oy: 26,  color: '#b3191c', under: 'bramble' },   // little islet (needs Ember)
+  { id: 'planks',   name: 'Sturdy Planks',  ox: 6,  oy: 13, color: '#b07a45', under: 'boulder' },   // Home Meadow (bring Boomer back)
+  { id: 'shingles', name: 'Fancy Shingles', ox: 48, oy: 34, color: '#b3191c', under: 'bramble' },   // The Pound District (Ember)
 ].map(t => ({ ...t, x: CENTER + t.ox, y: CENTER + t.oy }));
 // Plants very rarely drop a trinket when knocked out (tougher plants a bit more often).
 const DROP_CHANCE = [0.02, 0.035, 0.06, 0.1];   // by plant tier
 // Bosses: giant polluted plants, one per big island. They chain attacks (combo), don't stagger, stay
 // near home, and stay beaten. Each drops a pile of trinkets. look/s = drawn like that plant, but huge.
 const BOSSES = [
-  { id: 'bramble', name: 'Bramble King',     look: 'thorn',     ox: -6,  oy: -11, s: 2.2, hp: 180, dmg: 22, r: 0.7,  h: 70,  speed: 1.8, combo: 2, windup: 0.75, reach: 1.0, recover: 1.0, aggro: 5,   xp: 120, tier: 1, color: '#3f6e2e', loot: 3 },
-  { id: 'toad',    name: 'Mother Toadstool', look: 'toadstool', ox: 37,  oy: -1,  s: 2.2, hp: 320, dmg: 30, r: 0.8,  h: 100, speed: 1.4, combo: 2, windup: 0.9,  reach: 1.4, recover: 1.1, aggro: 5.5, xp: 250, tier: 2, color: '#8e3b9e', loot: 3 },
-  { id: 'titan',   name: 'Smog Titan',       look: 'oak',       ox: -18, oy: 40,  s: 2.0, hp: 520, dmg: 42, r: 0.9,  h: 140, speed: 1.1, combo: 3, windup: 1.15, reach: 1.6, recover: 1.2, aggro: 6,   xp: 450, tier: 3, color: '#6b4a2e', loot: 4 },
-  { id: 'giant',   name: 'Wilted Giant',     look: 'sprout',    ox: -31, oy: -22, s: 3.4, hp: 750, dmg: 50, r: 0.85, h: 110, speed: 1.3, combo: 3, windup: 1.0,  reach: 1.5, recover: 1.1, aggro: 6,   xp: 700, tier: 3, color: '#8fbf4f', loot: 5 },
+  { id: 'bramble', name: 'Bramble King',     look: 'thorn',     ox: -8,  oy: -13, s: 2.2, hp: 180, dmg: 22, r: 0.7,  h: 70,  speed: 1.8, combo: 2, windup: 0.75, reach: 1.0, recover: 1.0, aggro: 5,   xp: 120, tier: 1, color: '#3f6e2e', loot: 3 },
+  { id: 'toad',    name: 'Mother Toadstool', look: 'toadstool', ox: 54,  oy: -2,  s: 2.2, hp: 320, dmg: 30, r: 0.8,  h: 100, speed: 1.4, combo: 2, windup: 0.9,  reach: 1.4, recover: 1.1, aggro: 5.5, xp: 250, tier: 2, color: '#8e3b9e', loot: 3 },
+  { id: 'titan',   name: 'Smog Titan',       look: 'oak',       ox: 2,   oy: -58,  s: 2.0, hp: 520, dmg: 42, r: 0.9,  h: 140, speed: 1.1, combo: 3, windup: 1.15, reach: 1.6, recover: 1.2, aggro: 6,   xp: 450, tier: 3, color: '#6b4a2e', loot: 4 },
+  { id: 'giant',   name: 'Wilted Giant',     look: 'sprout',    ox: 42,  oy: 50, s: 3.4, hp: 750, dmg: 50, r: 0.85, h: 110, speed: 1.3, combo: 3, windup: 1.0,  reach: 1.5, recover: 1.1, aggro: 6,   xp: 700, tier: 3, color: '#8fbf4f', loot: 5 },
+  { id: 'bog',     name: 'Bog Monarch',      look: 'toadstool', ox: -58, oy: 4,   s: 2.6, hp: 420, dmg: 36, r: 0.85, h: 115, speed: 1.3, combo: 2, windup: 1.0,  reach: 1.5, recover: 1.1, aggro: 6,   xp: 350, tier: 2, color: '#5a8a6a', loot: 4 },
 ].map(b => ({ ...b, lvl: b.tier * 5 + 5, boss: true, staggers: false, homeX: CENTER + b.ox, homeY: CENTER + b.oy }));
 const bossesBeaten = new Set();
 let drops = [];   // trinkets lying where a plant dropped them: { id, x, y, kind }
 // Shiny trinkets: small glinting things scattered over the islands. Fred trades his wares for them
 // (cats love shiny things). Placed the same way every game; `tk` on an item = how many it costs.
-const TRINKET_PER = [1, 1, 1, 1, 1, 1, 1];   // per island, in ISLANDS order: very rare, out near the shores
+const TRINKET_PER = [1, 2, 2, 2, 2];   // per region, in REGIONS order: very rare, tucked out of the way
 const TRINKETS = [];
 {
   let seed = 12345;
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   ISLANDS.forEach((isl, k) => {
     for (let n = 0, tries = 0; n < TRINKET_PER[k] && tries < 400; tries++) {
-      const a = rnd() * Math.PI * 2, r = isl.R * (isl.R > 6 ? 0.7 + rnd() * 0.15 : rnd() * 0.5), x = isl.x + Math.cos(a) * r, y = isl.y + Math.sin(a) * r;
-      if (inWater(x, y) || distC(x, y) < 5 || TREASURES.some(t => Math.hypot(t.x - x, t.y - y) < 2) || TRINKETS.some(t => Math.hypot(t.x - x, t.y - y) < 3)) continue;
+      const a = rnd() * Math.PI * 2, r = isl.R * (0.6 + rnd() * 0.5), x = isl.x + Math.cos(a) * r, y = isl.y + Math.sin(a) * r;
+      if (!isLand(x, y) || regionAt(x, y) !== isl || distC(x, y) < 5 || TREASURES.some(t => Math.hypot(t.x - x, t.y - y) < 2) || TRINKETS.some(t => Math.hypot(t.x - x, t.y - y) < 3)) continue;
       TRINKETS.push({ id: TRINKETS.length, x, y, kind: TRINKETS.length % 4 }); n++;
     }
   });
 }
 // Things in the way. Boulders: only Boomer's Ground Pound smashes them. Brambles: only Ember's Fire Fetch burns them.
-const OBSTACLES = TREASURES.filter(t => t.under).map(t => ({ type: t.under, x: t.x, y: t.y, r: 0.85, hides: t.id, gone: false }));
+const OBSTACLES = [...TREASURES.filter(t => t.under).map(t => ({ type: t.under, x: t.x, y: t.y, r: 0.85, hides: t.id, gone: false })),
+  ...GATES.map(g => ({ type: g.type, x: g.x, y: g.y, r: 2.1, hides: 'gate:' + g.key, gone: false, gate: true }))];
 const obstacleAt = (x, y) => OBSTACLES.find(o => !o.gone && Math.hypot(x - o.x, y - o.y) < o.r);
 // Dry water bowls on the other islands. Claim the turf around one and Watson can refill his pee there.
 const OUTPOSTS = [
-  { ox: 33, oy: -10 },    // Suburb Isle
-  { ox: -15, oy: 29 },    // Downtown Isle
-  { ox: -22, oy: -24 },   // Pound Isle
+  { ox: 36, oy: -9 },     // The Suburbs
+  { ox: -38, oy: -8 },    // Lakeside
+  { ox: -8, oy: -38 },    // Downtown
+  { ox: 28, oy: 36 },     // The Pound District
 ].map(o => ({ x: CENTER + o.ox, y: CENTER + o.oy }));
 // Smog nests: the pollution's bases. A few on every island. Once Watson's turf covers every nest on an
 // island, that island is clean for good: plants stop coming back there (even after a knock-out).
-const NESTS_PER = [3, 3, 3, 3, 1, 1, 1];   // per island, in ISLANDS order
+const NESTS_PER = [3, 4, 4, 4, 4];   // per region, in REGIONS order
 const NESTS = [];
 {
   let seed = 777;
@@ -373,9 +417,9 @@ const NESTS = [];
   const busy = [...FRIENDS.map(f => [f.x, f.y]), ...TREASURES.map(t => [t.x, t.y]), ...OUTPOSTS.map(o => [o.x, o.y]), ...BOSSES.map(b => [b.homeX, b.homeY])];
   ISLANDS.forEach((isl, k) => {
     for (let n = 0, tries = 0; n < NESTS_PER[k] && tries < 600; tries++) {
-      const a = rnd() * Math.PI * 2, r = isl.R * (isl.R > 6 ? 0.3 + rnd() * 0.4 : 0.3 + rnd() * 0.3), x = isl.x + Math.cos(a) * r, y = isl.y + Math.sin(a) * r;
-      if (islandAt(x, y) !== isl || distC(x, y) < 6 || busy.some(([bx, by]) => Math.hypot(bx - x, by - y) < (isl.R > 6 ? 2.5 : 1.2)) ||
-          NESTS.some(o => Math.hypot(o.x - x, o.y - y) < isl.R * 0.5)) continue;
+      const a = rnd() * Math.PI * 2, r = isl.R * (0.3 + rnd() * 0.6), x = isl.x + Math.cos(a) * r, y = isl.y + Math.sin(a) * r;
+      if (!isLand(x, y) || regionAt(x, y) !== isl || distC(x, y) < 6 || busy.some(([bx, by]) => Math.hypot(bx - x, by - y) < 3) ||
+          NESTS.some(o => Math.hypot(o.x - x, o.y - y) < isl.R * 0.4)) continue;
       NESTS.push({ x, y, isl: k }); n++;
     }
   });
@@ -414,7 +458,7 @@ const player = {
   buddy: null,              // id of the dog friend tagging along
   pee: false, bladder: PEE_BASE,
   flasks: 4, maxFlasks: 4, drink: 0,
-  face: { x: 1, y: 0 }, flash: 0, swing: 0, swingMax: 0.28, dead: false,
+  face: { x: 1, y: 0 }, flash: 0, swing: 0, swingMax: 0.2, dead: false,
   aimT: 0, walk: 0, moving: false, running: false, whirl: 0, swimming: false,
   roll: null, hitstun: 0, grace: 0, attackLock: 0,
   shake: 0, shakeCd: 0,     // shaking off water
@@ -461,16 +505,14 @@ const lookoutR = () => [4, 5.5, 7][bondLvl('scout') - 1];
 const zoomMult = () => [1.08, 1.14, 1.2][bondLvl('zip') - 1];
 
 // Turf grid: G cells per tile. turf = Watson's claimed ground, trailMark = cells under the current pee trail.
-const G = 2, N = MAP * G;
 const turf = new Uint8Array(N * N), trailMark = new Uint8Array(N * N);
 let trail = [], turfCount = 0, landCount = 0, trailLostT = -99, lastTurfPt = null;
 const landCell = new Uint8Array(N * N);   // which cells are dry land (only land counts as turf)
-const cellAt = (x, y) => clamp(Math.floor(x * G), 0, N - 1) + clamp(Math.floor(y * G), 0, N - 1) * N;
 const isTurf = (x, y) => turf[cellAt(x, y)] === 1;
 const turfFrac = () => turfCount / landCount;
 for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
   const x = (i + 0.5) / G, y = (j + 0.5) / G;
-  if (!inWater(x, y)) { landCell[i + j * N] = 1; landCount++; }
+  if (terrain[i + j * N] === T_LAND) { landCell[i + j * N] = 1; landCount++; }
   if (distC(x, y) < SAFE_R + 0.4) { turf[i + j * N] = 1; turfCount++; }
 }
 
@@ -800,7 +842,7 @@ function renderShop() {
           if (u.id === 'house2' || u.id === 'house3') { p.hp = maxHp(); p.sta = maxSta(); speak('jackie', 'Look at our house, Lovebug!'); }
         }, undefined, done);
     });
-    if (hidden) row(`${hidden} more to discover`, 'Find rare items on the islands', null, false, null, undefined, true);
+    if (hidden) row(`${hidden} more to discover`, 'Find rare items out in the world', null, false, null, undefined, true);
   } else if (tab === 'friends') {
     FRIENDS.forEach(f => {
       if (!saved.has(f.id)) return;
@@ -1039,7 +1081,7 @@ function tryClaim(force) {
     if (cleanIslands.has(k) || !islandClean(k)) return;
     cleanIslands.add(k);   // no new plants will grow here, but the ones already here still have to be beaten
     sfx('special');
-    floatText(player.x, player.y - 2, `${isl.name === 'islet' ? 'This islet' : isl.name} is clean!`, '#9be37a', 3.2);
+    floatText(player.x, player.y - 2, `${isl.name} is clean!`, '#9be37a', 3.2);
     effects.push({ type: 'ring', x: player.x, y: player.y, range: 4, t: 1.2, max: 1.2, color: '#9be37a', fill: true });
     speak('jackie', 'Lovebug! The air smells so fresh!');
   });
@@ -1260,7 +1302,8 @@ function hurtPlayer(dmg, fromX, fromY) {
   p.grace = 0.35;
   p.drink = 0;   // getting hit interrupts eating (the biscuit is wasted)
   const dx = p.x - fromX, dy = p.y - fromY, d = Math.hypot(dx, dy) || 1;
-  if (!inWater(p.x + dx / d * 0.35, p.y + dy / d * 0.35) || hasPower('swim')) {
+  const kt = terrainAt(p.x + dx / d * 0.35, p.y + dy / d * 0.35);
+  if (kt === T_LAND || (kt === T_WATER && hasPower('swim'))) {
     p.x = clamp(p.x + dx / d * 0.35, 0.3, MAP - 0.3);
     p.y = clamp(p.y + dy / d * 0.35, 0.3, MAP - 0.3);
   }
@@ -1330,11 +1373,15 @@ function faceTarget() {
 // Returns true if water got in the way.
 function moveBody(o, dx, dy, swim) {
   const probe = (x, y, ax, ay) => { const l = Math.hypot(ax, ay) || 1; return [x + ax / l * 0.22, y + ay / l * 0.22]; };
-  const wet = (x, y, ax, ay) => { const [px, py] = probe(x, y, ax, ay); return (!swim && !inWater(o.x, o.y) && inWater(px, py)) || !!obstacleAt(px, py); };
+  const inLake = terrainAt(o.x, o.y) === T_WATER;
+  const wet = (x, y, ax, ay) => {
+    const [px, py] = probe(x, y, ax, ay), t = terrainAt(px, py);
+    return t === T_CLIFF || t === T_SEA || (t === T_WATER && !swim && !inLake) || !!obstacleAt(px, py);
+  };
   if (!wet(o.x + dx, o.y + dy, dx, dy)) { o.x += dx; o.y += dy; return false; }
   if (dx && !wet(o.x + dx, o.y, dx, 0)) o.x += dx;
   else if (dy && !wet(o.x, o.y + dy, 0, dy)) o.y += dy;
-  return !obstacleAt(...probe(o.x + dx, o.y + dy, dx, dy));   // true = bumped into water (not a rock)
+  return terrainAt(...probe(o.x + dx, o.y + dy, dx, dy)) === T_WATER && !swim;   // true = bumped into a river or lake
 }
 
 function update(dt) {
@@ -1560,7 +1607,7 @@ function tileColor(i, j, clean) {
   const x = i + 0.5, y = j + 0.5, d = distC(x, y);
   const n = ((i * 73856093) ^ (j * 19349663)) & 7;   // cheap per-tile variation
   const shade = (n - 3.5) * 2 - ((i + j) % 2) * 4;
-  const isl = islandAt(x, y) || ISLANDS.reduce((a, b) => Math.hypot(x - a.x, y - a.y) / a.R < Math.hypot(x - b.x, y - b.y) / b.R ? a : b);
+  const isl = REGIONS.reduce((a, b) => Math.hypot(x - a.x, y - a.y) <= Math.hypot(x - b.x, y - b.y) ? a : b);
   let [r, g, b] = d < SAFE_R ? [128, 104, 72] : isl.ground;   // Watson's yard is dirt
   if (clean && d >= SAFE_R) { r = lerp(r, 84, 0.5); g = lerp(g, 168, 0.5); b = lerp(b, 70, 0.5); }
   else if (!clean) {
@@ -1591,7 +1638,7 @@ function renderChunk(ci, cj, c) {
   const x0 = ci * CH, y0 = cj * CH, x1 = x0 + CH, y1 = y0 + CH;
   g.save();
   g.beginPath(); g.rect(x0, y0, CH, CH); g.clip();
-  const near = ISLANDS.filter(isl => isl.x + isl.R * 1.3 + 2 > x0 && isl.x - isl.R * 1.3 - 2 < x1 && isl.y + isl.R * 1.3 + 2 > y0 && isl.y - isl.R * 1.3 - 2 < y1);
+  const near = [CONTINENT].filter(isl => isl.x + isl.R * 1.3 + 2 > x0 && isl.x - isl.R * 1.3 - 2 < x1 && isl.y + isl.R * 1.3 + 2 > y0 && isl.y - isl.R * 1.3 - 2 < y1);
   if (!near.length) { g.restore(); c.empty = true; return; }
   g.fillStyle = SHALLOW; g.beginPath(); for (const isl of near) coastPath(g, isl, 1.4); g.fill();
   g.fillStyle = SAND; g.beginPath(); for (const isl of near) coastPath(g, isl, 0.45); g.fill();
@@ -1620,6 +1667,32 @@ function renderChunk(ci, cj, c) {
     if (!T(cx, cy + 1)) { g.moveTo(x, y + cs); g.lineTo(x + cs, y + cs); }
   }
   g.stroke();
+  // Rivers and lakes
+  for (let cy = y0 * G; cy < y1 * G; cy++) for (let cx = x0 * G; cx < x1 * G; cx++) {
+    if (terrain[cx + cy * N] !== T_WATER) continue;
+    const edge = [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([a, b]) => { const t = terrain[clamp(cx + a, 0, N - 1) + clamp(cy + b, 0, N - 1) * N]; return t === T_LAND; });
+    g.fillStyle = edge ? '#4a9fd0' : '#3484bd';
+    g.fillRect(cx * cs - 0.01, cy * cs - 0.01, cs + 0.02, cs + 0.02);
+  }
+  // Cliff ground, then rocks standing on it (drawn in screen space so they look upright)
+  for (let cy = y0 * G; cy < y1 * G; cy++) for (let cx = x0 * G; cx < x1 * G; cx++) {
+    if (terrain[cx + cy * N] !== T_CLIFF) continue;
+    g.fillStyle = '#5e5448'; g.fillRect(cx * cs - 0.01, cy * cs - 0.01, cs + 0.02, cs + 0.02);
+  }
+  g.save();
+  g.setTransform(1, 0, 0, 1, -o.x, -o.y);
+  for (let sum = (x0 + y0) * G; sum < (x1 + y1) * G; sum++) for (let cx = x0 * G; cx < x1 * G; cx++) {   // back to front
+    const cy = sum - cx;
+    if (cy < y0 * G || cy >= y1 * G || terrain[cx + cy * N] !== T_CLIFF) continue;
+    const wx = (cx + 0.5) / G, wy = (cy + 0.5) / G;
+    if (wx - x0 < 0.5 || x1 - wx < 0.5 || wy - y0 < 0.5 || y1 - wy < 0.5) continue;   // keep clear of chunk edges
+    const h = ((cx * 73856093) ^ (cy * 19349663)) >>> 0, px = (wx - wy) * TW / 2 + (h % 7) - 3, py = (wx + wy) * TH / 2;
+    const w = 11 + (h >> 3) % 6, ht = 12 + (h >> 6) % 12;
+    g.fillStyle = ['#7d7468', '#8a8174', '#71685d'][h % 3];
+    g.beginPath(); g.moveTo(px - w, py); g.lineTo(px - w * 0.7, py - ht * 0.8); g.lineTo(px - w * 0.1, py - ht); g.lineTo(px + w * 0.6, py - ht * 0.7); g.lineTo(px + w, py); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(255,255,255,.12)'; g.beginPath(); g.moveTo(px - w * 0.7, py - ht * 0.8); g.lineTo(px - w * 0.1, py - ht); g.lineTo(px - w * 0.2, py - ht * 0.4); g.closePath(); g.fill();
+  }
+  g.restore();
   // Flowers on claimed land (ones still growing are drawn by drawBlooms until they're done).
   g.setTransform(1, 0, 0, 1, -o.x, -o.y);
   for (let cy = y0 * G; cy < y1 * G; cy++) for (let cx = x0 * G; cx < x1 * G; cx++) {
@@ -2475,6 +2548,10 @@ function drawDoghouse() {
 
 // Boulders and brambles sitting on top of rare finds (a faint glint shows something is underneath).
 function drawObstacle(o) {
+  if (o.gate) {   // a big gate blocking a gap in the cliffs: draw a cluster of smaller ones across it
+    for (const [dx, dy] of [[-1, 0.6], [0, 0], [1, -0.6], [-0.4, -0.9], [0.5, 0.9]]) drawObstacle({ ...o, gate: false, r: 0.85, x: o.x + dx, y: o.y + dy });
+    return;
+  }
   const s = toScreen(o.x, o.y);
   shadow(o.x, o.y, o.r);
   if (o.type === 'boulder') {
@@ -2725,7 +2802,12 @@ function drawMinimap() {
     g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, mini.width, mini.height);
     g.fillStyle = 'rgba(20,50,80,.75)'; g.beginPath(); g.moveTo(MINI_W / 2, 0); g.lineTo(MINI_W, MINI_W / 4); g.lineTo(MINI_W / 2, MINI_W / 2); g.lineTo(0, MINI_W / 4); g.fill();
     g.setTransform(MINI_SC * TW / 2, MINI_SC * TH / 2, -MINI_SC * TW / 2, MINI_SC * TH / 2, MINI_W / 2, 0);
-    g.fillStyle = '#7a9a5a'; g.beginPath(); for (const isl of ISLANDS) coastPath(g, isl, 0); g.fill();
+    g.fillStyle = '#7a9a5a'; g.beginPath(); coastPath(g, CONTINENT, 0); g.fill();
+    for (let j = 0; j < MAP; j++) for (let i = 0; i < MAP; i++) {   // cliffs and water, one tile at a time
+      const t = terrain[i * G + j * G * N];
+      if (t === T_CLIFF) { g.fillStyle = '#4a4238'; g.fillRect(i, j, 1.05, 1.05); }
+      else if (t === T_WATER) { g.fillStyle = '#3a7fb8'; g.fillRect(i, j, 1.05, 1.05); }
+    }
     g.fillStyle = '#ffe066';
     for (let c = 0; c < N * N; c++) if (turf[c]) g.fillRect((c % N) / G, Math.floor(c / N) / G, 1 / G + 0.05, 1 / G + 0.05);
   }
@@ -2863,7 +2945,7 @@ const HINTS = [   // earlier hints win when several apply at once
   { id: 'dry',    text: () => peeRefills() ? 'Out of pee! Rest at the doghouse to refill' : "Out of pee! Watson needs a water bowl. Maybe Fred can help", when: () => time - peeEmptyT < 4 || (player.bladder <= 0 && distC(player.x, player.y) > SAFE_R), limit: 6 },
   { id: 'boulder', text: 'Too big to move. A strong friend could smash it', when: () => OBSTACLES.some(o => !o.gone && o.type === 'boulder' && near(o, 2.5)) && player.buddy !== 'boomer', limit: 5 },
   { id: 'bramble', text: 'Thick thorny brambles. Something hot could burn them', when: () => OBSTACLES.some(o => !o.gone && o.type === 'bramble' && near(o, 2.5)) && player.buddy !== 'ember', limit: 5 },
-  { id: 'nest',   text: 'A smog nest! Pee a loop around every nest on an island to clean it for good', when: () => NESTS.some(o => !nestClean(o) && near(o, 4)), limit: 8 },
+  { id: 'nest',   text: 'A smog nest! Pee a loop around every nest in an area to clean it for good', when: () => NESTS.some(o => !nestClean(o) && near(o, 4)), limit: 8 },
   { id: 'outpost', text: 'A dry water bowl! Claim the turf around it to refill your pee here', when: () => OUTPOSTS.some(o => !isTurf(o.x, o.y) && near(o, 2.5)), limit: 6 },
   { id: 'bowltrade', text: 'A Shiny Bowl! Bring it to Fred', when: () => found.has('bowl') && !built.has('bowl'), done: () => built.has('bowl'), limit: 10 },
   { id: 'home',   text: 'Claiming land earns Home XP. The doghouse grows with your turf', when: () => homeXp > 0 && tut.built === 0, limit: 6 },
@@ -3018,7 +3100,7 @@ let noSave = false;
 function saveGame(slot = activeSlot) {
   if (player.dead || noSave) return;
   const p = player;
-  const data = { v: 1, when: Date.now(), summary: { level: p.level, xp: p.xp, home: homeXp, friends: saved.size, turf: Math.floor(turfFrac() * 100), finds: found.size },
+  const data = { v: 2, when: Date.now(), summary: { level: p.level, xp: p.xp, home: homeXp, friends: saved.size, turf: Math.floor(turfFrac() * 100), finds: found.size },
     p: { level: p.level, stats: p.stats, xp: p.xp, weapon: p.weapon, skills: [...p.skills], outfits: [...p.outfits], wear: p.wear,
          buddy: p.buddy, maxFlasks: p.maxFlasks, bladder: p.bladder },
     saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
@@ -3026,7 +3108,7 @@ function saveGame(slot = activeSlot) {
     stragglers: (noteStragglers(), stragglers) };
   try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); } catch (e) {}
 }
-const readSlot = n => { try { const d = JSON.parse(localStorage.getItem(slotKey(n))); return d && d.v === 1 ? d : null; } catch (e) { return null; } };
+const readSlot = n => { try { const d = JSON.parse(localStorage.getItem(slotKey(n))); return d && d.v === 2 ? d : null; } catch (e) { return null; } };
 function loadGame() {
   const d = readSlot(activeSlot);
   if (!d) return false;
