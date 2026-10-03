@@ -47,6 +47,14 @@ in `game/`.
   Pound): trunks block movement (`treeAt`, bucketed in `treeGrid`; checked in `moveBody` and `okSpot`),
   kept clear of friends, finds, nests, gates and boss arenas. `drawTree`: smoggy colours outside turf,
   lush with blossoms inside (bare ones leaf out); fades when Watson is behind it.
+- **Paths, chests, golden pines** (seeded, before the trees block): per region 2 dirt `PATHS` start at a
+  wooden signpost (`drawSignpost`, icon shows what's at the end) and wind to a treasure chest or a golden
+  pine; one more chest and one more golden pine hide off the paths. Paths are drawn into the ground chunks
+  and the minimap; `pathGrid`/`nearPath` keeps trees off them. `CHESTS`: action button shows OPEN
+  (`interactTarget` 'chest', `openChest`): 1 trinket + some XP, saved in `chestsOpen`. Golden pines
+  (`GOLD_TREES`, `t.gold`/`t.gid`): hold PEE next to one ~0.8s for a **Golden Pinecone** (`cones`,
+  `gotCones`, saved; HUD shows a pinecone count once found). Fred sells pinecone outfits (`pc` price
+  instead of `tk`: Pinecone Cap, Leaf Cloak, Golden Collar); his Outfits tab shows once a pinecone is found.
 - **Turf**: hold the PEE button (or P) to pee; letting go loses an unfinished trail; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
   the trail (so does swimming). **Pee never refills until Watson trades the Shiny Bowl to Fred**
@@ -89,7 +97,7 @@ in `game/`.
   attacks, don't stagger, stay within 8 tiles of home, aren't purified by turf, and stay beaten
   (`bossesBeaten`, saved). Each drops `loot` trinkets in a ring.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
-  some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
+  some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear` (`COLLARS`, `COATS`, `CAPES`; capes drape over the back and flutter behind). All were checked visually and their stat effects verified.
 - **Save game**: 3 slots in `localStorage` (`slotKey(n)`, active slot in `watsonDogActive`). Save version `v: 2` (the land rework dropped v1 saves). Autosaves the
   active slot every 10s and when the app is hidden; loads on start with Watson at the doghouse. The
   pause button (or Esc) opens a pause menu: Resume, Save, Save here / Load / New per slot (switching
