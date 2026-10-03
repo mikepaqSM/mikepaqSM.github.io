@@ -56,8 +56,9 @@ in `game/`.
   visibly change with upgrades. Owner wants to grow this slowly.
 - **Smog nests** (`NESTS`, 3 per big island, 1 per islet, seeded positions): purple bubbling mounds.
   A nest inside turf turns into a flowering bush. When every nest on an island is in turf the island is
-  clean (`islandClean`): its remaining plants are purified and no plants spawn there again, including
-  after a knock-out (`okSpot` checks `cleanAt`). Derived from turf, so nothing extra is saved. Minimap
+  clean (`islandClean`): no new plants spawn there (`okSpot` checks `cleanAt`), but the plants already
+  there are NOT removed: each must be beaten. They come back after a knock-out (`stragglers`, saved)
+  until beaten. Minimap
   shows nests (purple / green).
 - **Outposts** (`OUTPOSTS`): dry water bowls on the other islands; once inside Watson's turf (and after
   the Fred bowl trade) they refill his pee.
