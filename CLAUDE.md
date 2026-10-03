@@ -31,17 +31,22 @@ in `game/`.
   Toxic Toadstool, Smog Oak; plus giant plant bosses). **No dog-on-dog or dog-on-human violence**: the old human bosses were
   removed (their `LOOKS` art is still there, unused). Only plants are ever attacked.
 - **Dog friends** (`FRIENDS`): lost dogs tangled in vines around town; Watson frees them (FREE
-  button), brings one along (swap at the doghouse). Ability friends: Splash (swim), Scout (plants back
+  button), brings one along (swap at the doghouse). Ability friends: Splash (swim rivers/lakes), Scout (plants back
   off while peeing), Zip (faster, half-cost rolls). Attack friends (own button): Boomer, Frost, Ember. Bond
-  (1-3 stars) grows with plants knocked out together. Some friends sit on islands that need Splash.
-- **World**: a 120x120 sea with islands (`ISLANDS`, wobbly coastlines via `coastR`). Watson starts on
-  Home Island; he hates water (shakes his head, won't go in) until he frees Splash there, then can swim
-  to Suburb, Downtown and Pound Isles (plus small islets). Plant toughness comes from `tierAt`.
-  A corner minimap shows islands, turf, Watson, home and lost dogs.
+  (1-3 stars) grows with plants knocked out together. Some friends sit behind gates or water.
+- **World**: one big continent (`MAP` 180, sea around it, `CONTINENT`) split into `REGIONS`: Home Meadow
+  (start), The Suburbs, Lakeside, Downtown, The Pound District. Region borders (`BORDERS`) are cliffs by
+  default (impassable rock walls), except: home-suburbs open, home-lakeside a river (needs Splash to swim),
+  home-downtown a boulder gate (Boomer's Ground Pound), suburbs-pound a bramble gate (Ember's Fire Fetch).
+  `GATES` become big `OBSTACLES`. `LAKES` add swim spots (one hides a treasure on an islet). Terrain is a
+  grid (`terrainAt`: `T_LAND`/`T_WATER`/`T_CLIFF`/`T_SEA`); `moveBody` blocks cliffs/sea always and water
+  without Splash (Watson shakes his head). `ISLANDS` / `islandAt` are aliases for regions. Plant toughness
+  comes from `tierAt`. A corner minimap shows land, cliffs, water, turf, Watson, home and lost dogs.
+  Progression: Splash (home) -> Lakeside; Boomer (suburbs) -> Downtown; Ember (downtown) -> Pound.
 - **Turf**: hold the PEE button (or P) to pee; letting go loses an unfinished trail; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
   the trail (so does swimming). **Pee never refills until Watson trades the Shiny Bowl to Fred**
-  (`built.has('bowl')`, `peeRefills()`); after that, resting refills it (and claimed island bowls). Plants inside new
+  (`built.has('bowl')`, `peeRefills()`); after that, resting refills it (and claimed outpost bowls). Plants inside new
   turf are purified; fewer plants spawn as turf grows. Claimed land sprouts flowers (`flowerAt`,
   `drawFlower`): new ones pop up over ~1.4s (`growing`, `drawBlooms`), then get baked into the chunks.
 - **Open world, no winning.** Progress = exploring, freeing friends, finding rare items.
@@ -54,29 +59,30 @@ in `game/`.
   brambles (burned only by Ember's Fire Fetch). Fred's stock starts tiny; items tagged
   `shop: 'stall' | 'fire' | 'shop'` appear once those are built. The doghouse and Fred's stand
   visibly change with upgrades. Owner wants to grow this slowly.
-- **Smog nests** (`NESTS`, 3 per big island, 1 per islet, seeded positions): purple bubbling mounds.
-  A nest inside turf turns into a flowering bush. When every nest on an island is in turf the island is
+- **Smog nests** (`NESTS`, 3-4 per region, seeded positions): purple bubbling mounds.
+  A nest inside turf turns into a flowering bush. When every nest in a region is in turf the region is
   clean (`islandClean`): no new plants spawn there (`okSpot` checks `cleanAt`), but the plants already
   there are NOT removed: each must be beaten. They come back after a knock-out (`stragglers`, saved)
   until beaten. Minimap
   shows nests (purple / green).
-- **Outposts** (`OUTPOSTS`): dry water bowls on the other islands; once inside Watson's turf (and after
+- **Outposts** (`OUTPOSTS`): dry water bowls in the other regions; once inside Watson's turf (and after
   the Fred bowl trade) they refill his pee.
+- Attacks are snappy (strike `cd` 0.4, `lock` 0.18, `swingMax` 0.2); owner asked for less delay.
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
 - **Leveling**: XP fills a level bar (`gainXp`), but Watson **only levels up when he rests** at the
   doghouse (`levelUpAtRest`, end of the rest scene); unbanked XP is what drops on knock-out. Each level
   gives one pick (`freePicks()` = level - 1 - stat points) spent at the doghouse Level up tab on a stat.
 - **Fred trades only for shiny trinkets**, which are very rare: a handful hidden on the map
-  (`TRINKETS`, ~1 per island near the shore, seeded positions, `gotTrinket` ids) plus rare plant drops
+  (`TRINKETS`, 1-2 per region, seeded positions, `gotTrinket` ids) plus rare plant drops
   (`DROP_CHANCE` by tier, 2-10%; `drops`, saved). Prices (`tk`) are 2-3 for small things, **5 for
   powerful items**. Never XP. HUD shows a blue gem with the count. Bosses drop piles of them.
-- **Bosses** (`BOSSES`): giant polluted plants, one per big island (Bramble King, Mother Toadstool,
-  Smog Titan, Wilted Giant), drawn with `drawPlant` at large scale plus a purple glow. They chain
+- **Bosses** (`BOSSES`): giant polluted plants, one per region (Bramble King, Mother Toadstool,
+  Smog Titan, Wilted Giant, Bog Monarch), drawn with `drawPlant` at large scale plus a purple glow. They chain
   attacks, don't stagger, stay within 8 tiles of home, aren't purified by turf, and stay beaten
   (`bossesBeaten`, saved). Each drops `loot` trinkets in a ring.
 - **Outfits** (`OUTFITS`): Fred sells them, wear them at the doghouse. Slots neck/head/body/feet;
   some are armor/stat items, some just style. Drawn in `drawDog` via `o.wear`.
-- **Save game**: 3 slots in `localStorage` (`slotKey(n)`, active slot in `watsonDogActive`). Autosaves the
+- **Save game**: 3 slots in `localStorage` (`slotKey(n)`, active slot in `watsonDogActive`). Save version `v: 2` (the land rework dropped v1 saves). Autosaves the
   active slot every 10s and when the app is hidden; loads on start with Watson at the doghouse. The
   pause button (or Esc) opens a pause menu: Resume, Save, Save here / Load / New per slot (switching
   reloads the page into that slot, skipping the title). "New game" on the title wipes the active slot.
@@ -105,7 +111,7 @@ in `game/`.
   (Watson's hit lands), death (plant knocked out), bark (Watson gets hit), fred (walking up to Fred),
   click (menu buttons, 2 takes), swipe (attack that misses), special (freeing a friend or finding a rare
   item). `music` loops. Missing files are skipped silently. Mute toggle in the
-  pause menu (`watsonMute`). Later: more music, crossfade by island.
+  pause menu (`watsonMute`). Later: more music, crossfade by region.
 
 ### Code map (`game/index.html`)
 Sections are marked with `// ---------- Name ----------` comments:
