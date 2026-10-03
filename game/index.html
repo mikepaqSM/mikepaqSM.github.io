@@ -870,8 +870,13 @@ function makeEnemy(t, x, y) {
 }
 // Fewer plants come back as Watson's turf grows.
 const maxEnemies = () => Math.max(8, Math.round(MAX_ENEMIES * (1 - turfFrac() * 1.5)));
+// Plants still left on a clean island (where no new ones grow). They come back after a knock-out
+// like everything else, so each one has to be beaten.
+let stragglers = [];   // [type name, home x, home y]
+const noteStragglers = () => { stragglers = enemies.filter(e => e.hp > 0 && !e.boss && cleanAt(e.homeX, e.homeY)).map(e => [e.name, e.homeX, e.homeY]); };
 function populate() {
-  enemies = [];
+  if (enemies.length) noteStragglers();   // (on load, enemies is empty and stragglers come from the save)
+  enemies = stragglers.map(([n, x, y]) => makeEnemy(ENEMY_TYPES.find(t => t.name === n) || ENEMY_TYPES[0], x, y));
   // A couple of plants guard each lost dog.
   for (const f of FRIENDS) {
     if (saved.has(f.id)) continue;
@@ -1032,11 +1037,7 @@ function tryClaim(force) {
   // Did that loop finish off the last smog nest on an island?
   ISLANDS.forEach((isl, k) => {
     if (cleanIslands.has(k) || !islandClean(k)) return;
-    cleanIslands.add(k);
-    for (const e of enemies) if (e.hp > 0 && !e.boss && islandAt(e.x, e.y) === isl) {
-      xp += e.xp; e.hp = 0; purified++;
-      effects.push({ type: 'ring', x: e.x, y: e.y, range: e.r * 2.5, t: 0.8, max: 0.8, color: '#9be37a', fill: true });
-    }
+    cleanIslands.add(k);   // no new plants will grow here, but the ones already here still have to be beaten
     sfx('special');
     floatText(player.x, player.y - 2, `${isl.name === 'islet' ? 'This islet' : isl.name} is clean!`, '#9be37a', 3.2);
     effects.push({ type: 'ring', x: player.x, y: player.y, range: 4, t: 1.2, max: 1.2, color: '#9be37a', fill: true });
@@ -3021,7 +3022,8 @@ function saveGame(slot = activeSlot) {
     p: { level: p.level, stats: p.stats, xp: p.xp, weapon: p.weapon, skills: [...p.skills], outfits: [...p.outfits], wear: p.wear,
          buddy: p.buddy, maxFlasks: p.maxFlasks, bladder: p.bladder },
     saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
-    turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp, trinkets, gotTrinket: [...gotTrinket], drops, bosses: [...bossesBeaten] };
+    turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp, trinkets, gotTrinket: [...gotTrinket], drops, bosses: [...bossesBeaten],
+    stragglers: (noteStragglers(), stragglers) };
   try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); } catch (e) {}
 }
 const readSlot = n => { try { const d = JSON.parse(localStorage.getItem(slotKey(n))); return d && d.v === 1 ? d : null; } catch (e) { return null; } };
@@ -3038,7 +3040,7 @@ function loadGame() {
   for (const n of d.turf) { turf.fill(v, c, c + n); if (v) turfCount += n; c += n; v = 1 - v; }
   dirtyChunks();
   bloodstain = d.bloodstain; Object.assign(tut, d.tut); d.hints.forEach(h => hintDone.add(h));
-  trinkets = d.trinkets || 0; drops = d.drops || []; (d.bosses || []).forEach(id => bossesBeaten.add(id)); (d.gotTrinket || []).forEach(id => gotTrinket.add(id));
+  trinkets = d.trinkets || 0; drops = d.drops || []; (d.bosses || []).forEach(id => bossesBeaten.add(id)); enemies = []; stragglers = d.stragglers || []; (d.gotTrinket || []).forEach(id => gotTrinket.add(id));
   homeXp = Math.max(d.homeXp || 0, Math.round(Math.max(0, turfCount - 25) / (G * G)));   // a running total of land claimed (older saves spent it)
   Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks,
     bladder: peeRefills() || d.p.bladder === undefined ? maxPee() : Math.min(maxPee(), d.p.bladder) });
