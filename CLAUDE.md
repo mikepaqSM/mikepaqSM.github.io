@@ -43,6 +43,10 @@ in `game/`.
   without Splash (Watson shakes his head). `ISLANDS` / `islandAt` are aliases for regions. Plant toughness
   comes from `tierAt`. A corner minimap shows land, cliffs, water, turf, Watson, home and lost dogs.
   Progression: Splash (home) -> Lakeside; Boomer (suburbs) -> Downtown; Ember (downtown) -> Pound.
+- **Trees** (`TREES`, seeded groves + loners, density per region in `DENS`, pines `PINE`, bare trees in the
+  Pound): trunks block movement (`treeAt`, bucketed in `treeGrid`; checked in `moveBody` and `okSpot`),
+  kept clear of friends, finds, nests, gates and boss arenas. `drawTree`: smoggy colours outside turf,
+  lush with blossoms inside (bare ones leaf out); fades when Watson is behind it.
 - **Turf**: hold the PEE button (or P) to pee; letting go loses an unfinished trail; a trail outside Watson's turf that loops back to the turf (or
   closes on itself) claims everything inside (flood fill on a `G`x-per-tile grid). Getting hit erases
   the trail (so does swimming). **Pee never refills until Watson trades the Shiny Bowl to Fred**

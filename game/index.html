@@ -424,6 +424,49 @@ const NESTS = [];
     }
   });
 }
+// Trees: groves scattered over the land (seeded, so they're the same every game). Trunks block Watson
+// and the plants; the canopy fades when Watson walks behind one. Smoggy outside his turf, lush inside.
+const TREES = [], treeGrid = new Map();
+const treeAt = (x, y) => {
+  for (let i = Math.floor(x) - 1; i <= Math.floor(x) + 1; i++) for (let j = Math.floor(y) - 1; j <= Math.floor(y) + 1; j++) {
+    const b = treeGrid.get(i + j * MAP);
+    if (b) for (const t of b) if (Math.hypot(t.x - x, t.y - y) < t.r) return t;
+  }
+  return null;
+};
+{
+  let seed = 4242;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const keep = [...FRIENDS.map(f => [f.x, f.y, 2.5]), ...TREASURES.map(t => [t.x, t.y, 2.5]), ...OUTPOSTS.map(o => [o.x, o.y, 2.5]),
+    ...TRINKETS.map(t => [t.x, t.y, 1.5]), ...NESTS.map(o => [o.x, o.y, 2.5]), ...OBSTACLES.map(o => [o.x, o.y, o.r + 2]),
+    ...BOSSES.map(b => [b.homeX, b.homeY, 6])];
+  const DENS = { home: 0.8, suburbs: 1, lake: 1.3, downtown: 0.5, pound: 0.8 };   // how wooded each region is
+  const PINE = { home: 0.2, suburbs: 0.15, lake: 0.6, downtown: 0.2, pound: 0.3 };
+  const near = (x, y, d) => { for (let i = Math.floor(x) - 2; i <= Math.floor(x) + 2; i++) for (let j = Math.floor(y) - 2; j <= Math.floor(y) + 2; j++) { const b = treeGrid.get(i + j * MAP); if (b && b.some(t => Math.hypot(t.x - x, t.y - y) < d)) return true; } return false; };
+  const ok = (x, y, rg) => regionAt(x, y) === rg && [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].every(([a, b]) => isLand(x + a, y + b)) &&
+    distC(x, y) > 9 && !keep.some(([kx, ky, kr]) => Math.hypot(kx - x, ky - y) < kr) && !near(x, y, 1.6);
+  const plant = (x, y, rg) => {
+    const r = rnd(), kind = r < PINE[rg.id] ? 1 : rg.id === 'pound' && r > 0.6 ? 2 : 0;   // 0 leafy, 1 pine, 2 bare (comes back to life in turf)
+    const t = { x, y, r: 0.35, s: 0.85 + rnd() * 0.4, kind, v: rnd() };
+    TREES.push(t);
+    const k = Math.floor(x) + Math.floor(y) * MAP;
+    (treeGrid.get(k) || treeGrid.set(k, []).get(k)).push(t);
+  };
+  for (const rg of REGIONS) {
+    const groves = Math.round(rg.R * rg.R * 0.022 * DENS[rg.id]);
+    for (let g = 0; g < groves; g++) {
+      const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * rg.R, cx = rg.x + Math.cos(a) * d, cy = rg.y + Math.sin(a) * d;
+      for (let n = 3 + Math.floor(rnd() * 6), tries = 0; n > 0 && tries < 30; tries++) {
+        const b = rnd() * Math.PI * 2, e = rnd() * 3.5, x = cx + Math.cos(b) * e, y = cy + Math.sin(b) * e;
+        if (ok(x, y, rg)) { plant(x, y, rg); n--; }
+      }
+    }
+    for (let n = Math.round(rg.R * 0.8 * DENS[rg.id]), tries = 0; n > 0 && tries < 400; tries++) {   // a few loners
+      const a = rnd() * Math.PI * 2, d = Math.sqrt(rnd()) * rg.R, x = rg.x + Math.cos(a) * d, y = rg.y + Math.sin(a) * d;
+      if (ok(x, y, rg)) { plant(x, y, rg); n--; }
+    }
+  }
+}
 const nestClean = o => isTurf(o.x, o.y);
 const islandClean = k => NESTS.some(o => o.isl === k) && NESTS.every(o => o.isl !== k || nestClean(o));
 const cleanAt = (x, y) => { const isl = islandAt(x, y); return !!isl && islandClean(ISLANDS.indexOf(isl)); };
@@ -896,7 +939,7 @@ function pickType(d) {   // d = plant tier of the spot
   // Mostly the toughest type for the zone, sometimes an easier one.
   return Math.random() < 0.7 ? allowed[allowed.length - 1] : allowed[Math.floor(Math.random() * allowed.length)];
 }
-const okSpot = (x, y) => !inWater(x, y) && !isTurf(x, y) && distC(x, y) >= SAFE_R + 2.5 && !cleanAt(x, y);
+const okSpot = (x, y) => isLand(x, y) && !treeAt(x, y) && !isTurf(x, y) && distC(x, y) >= SAFE_R + 2.5 && !cleanAt(x, y);
 function spawnEnemy() {
   for (let tries = 0; tries < 80; tries++) {
     const x = rand(1, MAP - 1), y = rand(1, MAP - 1);
@@ -1376,7 +1419,7 @@ function moveBody(o, dx, dy, swim) {
   const inLake = terrainAt(o.x, o.y) === T_WATER;
   const wet = (x, y, ax, ay) => {
     const [px, py] = probe(x, y, ax, ay), t = terrainAt(px, py);
-    return t === T_CLIFF || t === T_SEA || (t === T_WATER && !swim && !inLake) || !!obstacleAt(px, py);
+    return t === T_CLIFF || t === T_SEA || (t === T_WATER && !swim && !inLake) || !!obstacleAt(px, py) || !!treeAt(px, py);
   };
   if (!wet(o.x + dx, o.y + dy, dx, dy)) { o.x += dx; o.y += dy; return false; }
   if (dx && !wet(o.x + dx, o.y, dx, 0)) o.x += dx;
@@ -2589,6 +2632,46 @@ function drawTrinket(t) {
   }
 }
 // Water bowls on far islands: dry and dusty until they're inside Watson's turf.
+// A tree. Leafy, pine or bare; smoggy colours outside Watson's turf, lush (bare ones leaf out) inside.
+const TREE_COL = {
+  leaf: [['#2f6b2a', '#3f8a34', '#58a542'], ['#3a4338', '#4a5446', '#5d6656']],   // [clean, smoggy]
+  pine: [['#1f5530', '#2b6e3c'], ['#2e3b35', '#3c4842']],
+};
+function drawTree(t) {
+  const s = toScreen(t.x, t.y), k = t.s, clean = isTurf(t.x, t.y), p = player;
+  const ps = toScreen(p.x, p.y);
+  // Watson behind the tree: fade it so he never disappears.
+  const fade = p.x + p.y < t.x + t.y && Math.abs(ps.x - s.x) < 26 * k && ps.y < s.y && ps.y > s.y - 70 * k;
+  if (fade) ctx.globalAlpha = 0.4;
+  shadow(t.x, t.y, 0.55 * k);
+  const sway = Math.sin(time * 1.1 + t.x * 0.7) * 1.2;
+  ctx.fillStyle = t.kind === 2 && !clean ? '#5a4a42' : '#6b4a2e';
+  ctx.fillRect(s.x - 3 * k, s.y - 24 * k, 6 * k, 24 * k);
+  if (t.kind === 1) {   // pine
+    const c = TREE_COL.pine[clean ? 0 : 1];
+    for (let n = 0; n < 3; n++) {
+      const y = s.y - (20 + n * 13) * k, w = (20 - n * 5) * k;
+      ctx.fillStyle = c[n % 2];
+      ctx.beginPath(); ctx.moveTo(s.x - w + sway * n * 0.4, y); ctx.lineTo(s.x + w + sway * n * 0.4, y); ctx.lineTo(s.x + sway * (n + 1) * 0.4, y - 22 * k); ctx.closePath(); ctx.fill();
+    }
+  } else if (t.kind === 2 && !clean) {   // bare, polluted
+    ctx.strokeStyle = '#5a4a42'; ctx.lineWidth = 2.5 * k; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (const [a, l] of [[-0.9, 18], [-0.3, 22], [0.4, 20], [1, 15]]) { ctx.moveTo(s.x, s.y - 22 * k); ctx.lineTo(s.x + Math.sin(a) * l * k + sway, s.y - (22 + Math.cos(a) * l) * k); }
+    ctx.stroke(); ctx.lineWidth = 1; ctx.lineCap = 'butt';
+  } else {   // leafy
+    const c = TREE_COL.leaf[clean ? 0 : 1], cy = s.y - 36 * k;
+    ctx.fillStyle = c[0]; ctx.beginPath(); ctx.arc(s.x + sway, cy + 3 * k, 17 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = c[1];
+    ctx.beginPath(); ctx.arc(s.x - 7 * k + sway, cy - 2 * k, 11 * k, 0, Math.PI * 2); ctx.arc(s.x + 7 * k + sway, cy - 1 * k, 11 * k, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = c[2]; ctx.beginPath(); ctx.arc(s.x - 3 * k + sway, cy - 8 * k, 8 * k, 0, Math.PI * 2); ctx.fill();
+    if (clean) {   // blossoms on healthy trees
+      ctx.fillStyle = t.v < 0.5 ? '#ffb3cf' : '#fff2a8';
+      for (let n = 0; n < 5; n++) { const a = n * 1.3 + t.v * 6; ctx.beginPath(); ctx.arc(s.x + Math.cos(a) * 11 * k + sway, cy + Math.sin(a) * 8 * k, 1.8 * k, 0, Math.PI * 2); ctx.fill(); }
+    }
+  }
+  ctx.globalAlpha = 1;
+}
 // Smog nest: a purple, bubbling mound puffing smog. Once inside Watson's turf it turns into a flowering bush.
 function drawNest(o) {
   const s = toScreen(o.x, o.y);
@@ -2884,6 +2967,7 @@ function draw() {
     ...OBSTACLES.filter(o => !o.gone && seen(o.x, o.y)).map(o => ({ d: o.x + o.y, f: () => drawObstacle(o) })),
     ...OUTPOSTS.filter(o => seen(o.x, o.y)).map(o => ({ d: o.x + o.y - 0.5, f: () => drawOutpost(o) })),
     ...NESTS.filter(o => seen(o.x, o.y)).map(o => ({ d: o.x + o.y, f: () => drawNest(o) })),
+    ...TREES.filter(t => seen(t.x, t.y)).map(t => ({ d: t.x + t.y, f: () => drawTree(t) })),
     ...FRIENDS.filter(fr => seen(fr.x, fr.y)).map(fr => ({ d: fr.x + fr.y, f: () => drawFriend(fr) })),
     ...shown.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
