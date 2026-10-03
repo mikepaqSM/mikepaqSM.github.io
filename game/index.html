@@ -194,6 +194,7 @@ let ctx = canvas.getContext('2d');   // swapped briefly to draw the title-screen
 let W, H;
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
 let VIEW = 1;   // < 1 zooms out on small (phone) screens
 // Notch / rounded-corner insets, so the HUD isn't hidden in landscape full screen.
 const safeProbe = document.createElement('div');
@@ -354,6 +355,9 @@ const OUTFITS = [
   { id: 'thorncoat', tk: 5,     slot: 'body', shop: 'stall', name: 'Thornproof Coat',  cost: 500,  desc: 'Take 20% less damage', armor: 0.2 },
   { id: 'knight', tk: 5,        slot: 'body', shop: 'fire', name: 'Knight Armor',     cost: 1100, desc: 'Take 35% less damage, but 10% slower', armor: 0.35, speed: 0.9 },
   { id: 'rainboots', tk: 2,     slot: 'feet', shop: 'stall', name: 'Rain Boots',       cost: 70,   desc: 'Just for style' },
+  { id: 'pinehat', pc: 2,      slot: 'head', name: 'Pinecone Cap',     cost: 1,    desc: 'Just for style' },
+  { id: 'leafcape', pc: 3,     slot: 'body', name: 'Leaf Cloak',       cost: 1,    desc: 'Move 10% faster, take 10% less damage', speed: 1.1, armor: 0.1 },
+  { id: 'goldcollar', pc: 4,   slot: 'neck', name: 'Golden Collar',    cost: 1,    desc: '+15% damage', dmg: 1.15 },
   { id: 'sneakers', tk: 3,      slot: 'feet', shop: 'stall', name: 'Squeaky Sneakers', cost: 300,  desc: 'Move 15% faster', speed: 1.15 },
 ];
 
@@ -424,6 +428,56 @@ const NESTS = [];
     }
   });
 }
+// Paths: dirt trails wind out from a signpost to something worth finding: a treasure chest or a golden
+// pine (pee on one to shake loose a Golden Pinecone, Fred's other currency). One more chest and one more
+// golden pine per region hide off the paths. Seeded, so they're the same every game.
+const PATHS = [], CHESTS = [], GOLD_SPOTS = [];
+const pathGrid = new Uint8Array(MAP * MAP);
+const nearPath = (x, y) => pathGrid[clamp(Math.floor(x), 0, MAP - 1) + clamp(Math.floor(y), 0, MAP - 1) * MAP] === 1;
+{
+  let seed = 2024;
+  const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const avoid = [...FRIENDS.map(f => [f.x, f.y, 3]), ...TREASURES.map(t => [t.x, t.y, 3]), ...OUTPOSTS.map(o => [o.x, o.y, 3]),
+    ...NESTS.map(o => [o.x, o.y, 2.5]), ...OBSTACLES.map(o => [o.x, o.y, o.r + 2.5]), ...BOSSES.map(b => [b.homeX, b.homeY, 9]), [CENTER, CENTER, 4.5]];
+  const clear = (x, y) => [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].every(([a, b]) => isLand(x + a, y + b)) && !avoid.some(([ax, ay, r]) => Math.hypot(ax - x, ay - y) < r);
+  const ends = () => [...CHESTS.map(c => [c.x, c.y]), ...GOLD_SPOTS];
+  for (const rg of REGIONS) {
+    const home = rg.id === 'home';
+    for (let n = 0, tries = 0; n < 2 && tries < 600; tries++) {
+      const a0 = rnd() * Math.PI * 2, d0 = home ? 6 : rnd() * rg.R * 0.35, sx = rg.x + Math.cos(a0) * d0, sy = rg.y + Math.sin(a0) * d0;
+      const a1 = rnd() * Math.PI * 2, d1 = rg.R * (0.5 + rnd() * 0.4), ex = rg.x + Math.cos(a1) * d1, ey = rg.y + Math.sin(a1) * d1;
+      const L = Math.hypot(ex - sx, ey - sy);
+      if (L < 11 || L > 32 || ends().some(([x, y]) => Math.hypot(x - ex, y - ey) < 9)) continue;
+      const nx = -(ey - sy) / L, ny = (ex - sx) / L, ph = rnd() * 6, amp = 1.5 + rnd() * 2.5, fq = 1 + rnd() * 1.5;
+      const pts = [];
+      for (let k = 0, steps = Math.ceil(L / 0.6); k <= steps; k++) {   // a gentle wiggle, pinned at both ends
+        const t = k / steps, off = Math.sin(t * Math.PI * 2 * fq + ph) * amp * Math.sin(t * Math.PI);
+        const x = lerp(sx, ex, t) + nx * off, y = lerp(sy, ey, t) + ny * off;
+        if (regionAt(x, y) !== rg || !clear(x, y)) break;
+        pts.push([x, y]);
+      }
+      if (pts.length < Math.ceil(L / 0.6) + 1) continue;
+      const kind = n === 0 ? 'chest' : 'gold';
+      const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+      PATHS.push({ pts, kind, bx0: Math.min(...xs) - 1, bx1: Math.max(...xs) + 1, by0: Math.min(...ys) - 1, by1: Math.max(...ys) + 1 });
+      for (const [x, y] of pts) for (let i = -1; i <= 1; i++) for (let j = -1; j <= 1; j++) pathGrid[clamp(Math.floor(x) + i, 0, MAP - 1) + clamp(Math.floor(y) + j, 0, MAP - 1) * MAP] = 1;
+      if (kind === 'chest') CHESTS.push({ x: ex, y: ey, hidden: false }); else GOLD_SPOTS.push([ex, ey]);
+      n++;
+    }
+    for (const kind of ['chest', 'gold']) for (let tries = 0; tries < 400; tries++) {   // tucked away off the paths
+      const a = rnd() * Math.PI * 2, d = rg.R * (0.35 + rnd() * 0.6), x = rg.x + Math.cos(a) * d, y = rg.y + Math.sin(a) * d;
+      if (regionAt(x, y) !== rg || !clear(x, y) || nearPath(x, y) || ends().some(([ax, ay]) => Math.hypot(ax - x, ay - y) < 8)) continue;
+      if (kind === 'chest') CHESTS.push({ x, y, hidden: true }); else GOLD_SPOTS.push([x, y]);
+      break;
+    }
+  }
+  CHESTS.forEach((c, k) => { c.id = k; c.xp = c.hidden ? 50 : 25; });
+}
+const chestsOpen = new Set();   // chest ids already opened (saved)
+const gotCones = new Set();     // golden pines already shaken (saved)
+let cones = 0;                  // Golden Pinecones carried (Fred takes these too)
+const chestNear = () => CHESTS.find(c => !chestsOpen.has(c.id) && Math.hypot(c.x - player.x, c.y - player.y) < 1.3);
+
 // Trees: groves scattered over the land (seeded, so they're the same every game). Trunks block Watson
 // and the plants; the canopy fades when Watson walks behind one. Smoggy outside his turf, lush inside.
 const TREES = [], treeGrid = new Map();
@@ -439,12 +493,12 @@ const treeAt = (x, y) => {
   const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const keep = [...FRIENDS.map(f => [f.x, f.y, 2.5]), ...TREASURES.map(t => [t.x, t.y, 2.5]), ...OUTPOSTS.map(o => [o.x, o.y, 2.5]),
     ...TRINKETS.map(t => [t.x, t.y, 1.5]), ...NESTS.map(o => [o.x, o.y, 2.5]), ...OBSTACLES.map(o => [o.x, o.y, o.r + 2]),
-    ...BOSSES.map(b => [b.homeX, b.homeY, 6])];
+    ...BOSSES.map(b => [b.homeX, b.homeY, 6]), ...CHESTS.map(c => [c.x, c.y, 2]), ...GOLD_SPOTS.map(([x, y]) => [x, y, 1.8])];
   const DENS = { home: 0.8, suburbs: 1, lake: 1.3, downtown: 0.5, pound: 0.8 };   // how wooded each region is
   const PINE = { home: 0.2, suburbs: 0.15, lake: 0.6, downtown: 0.2, pound: 0.3 };
   const near = (x, y, d) => { for (let i = Math.floor(x) - 2; i <= Math.floor(x) + 2; i++) for (let j = Math.floor(y) - 2; j <= Math.floor(y) + 2; j++) { const b = treeGrid.get(i + j * MAP); if (b && b.some(t => Math.hypot(t.x - x, t.y - y) < d)) return true; } return false; };
   const ok = (x, y, rg) => regionAt(x, y) === rg && [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]].every(([a, b]) => isLand(x + a, y + b)) &&
-    distC(x, y) > 9 && !keep.some(([kx, ky, kr]) => Math.hypot(kx - x, ky - y) < kr) && !near(x, y, 1.6);
+    distC(x, y) > 9 && !nearPath(x, y) && !keep.some(([kx, ky, kr]) => Math.hypot(kx - x, ky - y) < kr) && !near(x, y, 1.6);
   const plant = (x, y, rg) => {
     const r = rnd(), kind = r < PINE[rg.id] ? 1 : rg.id === 'pound' && r > 0.6 ? 2 : 0;   // 0 leafy, 1 pine, 2 bare (comes back to life in turf)
     const t = { x, y, r: 0.35, s: 0.85 + rnd() * 0.4, kind, v: rnd() };
@@ -452,6 +506,10 @@ const treeAt = (x, y) => {
     const k = Math.floor(x) + Math.floor(y) * MAP;
     (treeGrid.get(k) || treeGrid.set(k, []).get(k)).push(t);
   };
+  GOLD_SPOTS.forEach(([x, y], k) => {   // golden pines first (they're kept clear of everything else)
+    plant(x, y, regionAt(x, y));
+    Object.assign(TREES[TREES.length - 1], { kind: 1, gold: true, gid: k, s: 1.15 });
+  });
   for (const rg of REGIONS) {
     const groves = Math.round(rg.R * rg.R * 0.022 * DENS[rg.id]);
     for (let g = 0; g < groves; g++) {
@@ -467,6 +525,7 @@ const treeAt = (x, y) => {
     }
   }
 }
+const GOLD_TREES = TREES.filter(t => t.gold);
 const nestClean = o => isTurf(o.x, o.y);
 const islandClean = k => NESTS.some(o => o.isl === k) && NESTS.every(o => o.isl !== k || nestClean(o));
 const cleanAt = (x, y) => { const isl = islandAt(x, y); return !!isl && islandClean(ISLANDS.indexOf(isl)); };
@@ -567,7 +626,7 @@ const FRED = { x: CENTER - 1.9, y: CENTER + 0.7 };   // Fred the cat's shop, bes
 const nearFred = () => Math.hypot(player.x - FRED.x, player.y - FRED.y) < 1.7;
 const lostFriendNear = () => FRIENDS.find(f => !saved.has(f.id) && Math.hypot(player.x - f.x, player.y - f.y) < 1.3);
 // What the attack button does instead of attacking: talk to Fred, free a friend, or rest at the doghouse.
-const interactTarget = () => player.dead ? null : nearFred() ? 'fred' : lostFriendNear() ? 'free' : distC(player.x, player.y) < 1.8 ? 'rest' : null;
+const interactTarget = () => player.dead ? null : nearFred() ? 'fred' : lostFriendNear() ? 'free' : chestNear() ? 'chest' : distC(player.x, player.y) < 1.8 ? 'rest' : null;
 let shopOpenedAt = 0;
 let shopMode = 'rest';
 let spawnTimer = 0, kills = 0, time = 0;
@@ -697,7 +756,7 @@ function updateTouchButtons() {
     if (sub !== undefined) el.querySelector('small').textContent = sub;
   };
   // The big button says what it will do: REST / TRADE at home, FREE next to a lost dog, otherwise your weapon's verb.
-  const it = interactTarget(), label = it === 'fred' ? 'TRADE' : it === 'rest' ? 'REST' : it === 'free' ? 'FREE' : WEAPONS[p.weapon].verb;
+  const it = interactTarget(), label = it === 'fred' ? 'TRADE' : it === 'rest' ? 'REST' : it === 'free' ? 'FREE' : it === 'chest' ? 'OPEN' : WEAPONS[p.weapon].verb;
   const btn = tb('tChomp'), lb = btn.querySelector('b');
   if (lb.textContent !== label) {
     lb.textContent = label;
@@ -819,6 +878,10 @@ overlay('closeShop').onclick = () => { if (performance.now() - shopOpenedAt > 40
 overlay('respawn').onclick = respawn;
 
 const tkLabel = n => `${n} trinket${n === 1 ? '' : 's'}`;
+// Outfits cost trinkets (tk) or Golden Pinecones (pc).
+const priceLabel = o => o.pc ? `${o.pc} pinecone${o.pc === 1 ? '' : 's'}` : tkLabel(o.tk);
+const canPay = o => o.pc ? cones >= o.pc : trinkets >= o.tk;
+const pay = o => { if (o.pc) cones -= o.pc; else trinkets -= o.tk; };
 
 // One short line per item, one tab at a time, so the menus stay calm.
 const shopTab = { rest: 'level', fred: 'gear' };
@@ -828,7 +891,7 @@ const outfitTip = o => [o.armor && `-${Math.round(o.armor * 100)}% damage taken`
 function renderShop() {
   const p = player, fred = shopMode === 'fred';
   overlay('shopTitle').textContent = fred ? "Fred's Wares" : "Watson's Doghouse";
-  overlay('shopXp').textContent = fred ? `${trinkets} trinket${trinkets === 1 ? '' : 's'}` : `${freePicks()} pick${freePicks() === 1 ? '' : 's'} · ${homeXp} Home XP`;
+  overlay('shopXp').textContent = fred ? `${trinkets} trinket${trinkets === 1 ? '' : 's'}` + (cones ? ` · ${cones} pinecone${cones === 1 ? '' : 's'}` : '') : `${freePicks()} pick${freePicks() === 1 ? '' : 's'} · ${homeXp} Home XP`;
   const body = overlay('shopBody'), tabsEl = overlay('shopTabs');
   body.innerHTML = ''; tabsEl.innerHTML = '';
   const row = (name, desc, label, enabled, onBuy, val, dim) => {
@@ -848,7 +911,7 @@ function renderShop() {
   };
   if (fred && found.has('bowl') && !built.has('bowl') && !tradeShown) { shopTab.fred = 'trade'; tradeShown = true; }
   const tabs = fred
-    ? [...(found.has('bowl') && !built.has('bowl') ? [['trade', 'Trade']] : []), ['gear', 'Gear'], ['tricks', 'Tricks'], ['treats', 'Treats'], ...(built.has('stall') ? [['outfits', 'Outfits']] : [])]
+    ? [...(found.has('bowl') && !built.has('bowl') ? [['trade', 'Trade']] : []), ['gear', 'Gear'], ['tricks', 'Tricks'], ['treats', 'Treats'], ...(built.has('stall') || gotCones.size ? [['outfits', 'Outfits']] : [])]
     : [['level', 'Level up'], ['home', 'Doghouse'], ...(saved.size ? [['friends', 'Friends']] : []), ['wear', 'Wardrobe']];
   if (!tabs.some(([id]) => id === shopTab[shopMode])) shopTab[shopMode] = tabs[0][0];
   for (const [id, label] of tabs) {
@@ -927,8 +990,8 @@ function renderShop() {
     OUTFITS.forEach(o => {
       if (o.cost === 0 || !inShop(o)) return;
       const owned = p.outfits.has(o.id);
-      row(o.name, outfitTip(o), owned ? 'Owned' : tkLabel(o.tk), !owned && trinkets >= o.tk,
-        () => { trinkets -= o.tk; p.outfits.add(o.id); p.wear[o.slot] = o.id; speak('fred', pick(FRED_SOLD)); }, undefined, owned);
+      row(o.name, outfitTip(o), owned ? 'Owned' : priceLabel(o), !owned && canPay(o),
+        () => { pay(o); p.outfits.add(o.id); p.wear[o.slot] = o.id; speak('fred', pick(FRED_SOLD)); }, undefined, owned);
     });
   }
 }
@@ -1023,6 +1086,7 @@ function useSkill(id, aim) {
   if (it === 'rest') { startRest(); return; }
   if (it === 'fred') { toggleShop('fred'); return; }
   if (it === 'free') { startChew(lostFriendNear()); return; }
+  if (it === 'chest') { openChest(chestNear()); return; }
   if (!canAct() || !player.skills.has(id) || cooldowns[id] > 0) return;
   const s = SKILLS.find(s => s.id === id);
   if (!spendSta(s.sta)) return;
@@ -1160,6 +1224,32 @@ function updatePee(dt, moved) {
     loseTrail();
     floatText(p.x, p.y, 'Out of pee!', '#f2c94c', 1.4);
     peeEmptyT = time;
+  }
+}
+
+// Treasure chests: always a shiny trinket inside, plus a little XP.
+function openChest(c) {
+  if (!c || !canAct()) return;
+  chestsOpen.add(c.id); c.openT = time;
+  trinkets++; tut.trinkets++; gainXp(c.xp);
+  sfx('special');
+  floatText(c.x, c.y, '+1 trinket', '#bfe6ff', 1.8);
+  floatText(c.x, c.y + 0.5, `+${c.xp} XP`, '#f2c94c', 1.6);
+  effects.push({ type: 'ring', x: c.x, y: c.y, range: 1, t: 0.6, max: 0.6, color: '#ffd25a', fill: true });
+}
+// Golden pines: pee on one for a moment and a Golden Pinecone drops.
+function updateGoldTrees(dt) {
+  const p = player;
+  for (const t of GOLD_TREES) {
+    if (gotCones.has(t.gid)) continue;
+    if (!p.pee || p.dead || Math.hypot(t.x - p.x, t.y - p.y) > 1.4) { t.peeT = 0; continue; }
+    t.peeT = (t.peeT || 0) + dt;
+    if (t.peeT < 0.8) continue;
+    gotCones.add(t.gid); cones++; tut.cones++;
+    sfx('special');
+    floatText(t.x, t.y, '+1 Golden Pinecone', '#ffd84a', 2);
+    effects.push({ type: 'ring', x: t.x, y: t.y, range: 1.2, t: 0.7, max: 0.7, color: '#ffd84a', fill: true });
+    if (Math.random() < 0.6) speak('fred', 'Is that... a golden pinecone? I might be interested.');
   }
 }
 
@@ -1502,6 +1592,7 @@ function update(dt) {
   p.walk += moved * 9;
   p.whirl = Math.max(0, p.whirl - dt);
   if (!p.dead) updatePee(dt, moved);
+  updateGoldTrees(dt);
   updateFriends(dt);
 
   for (const k in cooldowns) cooldowns[k] = Math.max(0, cooldowns[k] - dt);
@@ -1739,6 +1830,19 @@ function renderChunk(ci, cj, c) {
     if (!T(cx, cy + 1)) { g.moveTo(x, y + cs); g.lineTo(x + cs, y + cs); }
   }
   g.stroke();
+  // Dirt paths
+  g.lineCap = g.lineJoin = 'round';
+  for (const pa of PATHS) {
+    if (pa.bx1 < x0 || pa.bx0 > x1 || pa.by1 < y0 || pa.by0 > y1) continue;
+    for (const [w, col] of [[1.3, '#8a6e48'], [1, '#b39066']]) {
+      g.strokeStyle = col; g.lineWidth = w; g.beginPath();
+      pa.pts.forEach(([x, y], k) => k ? g.lineTo(x, y) : g.moveTo(x, y));
+      g.stroke();
+    }
+    g.fillStyle = '#cdb084';
+    pa.pts.forEach(([x, y], k) => { if (k % 2) return; const h = (k * 2654435761) >>> 0; g.fillRect(x + ((h % 7) - 3) * 0.1, y + (((h >> 4) % 7) - 3) * 0.1, 0.12, 0.12); });
+  }
+  g.lineCap = g.lineJoin = 'butt';
   // Rivers and lakes
   for (let cy = y0 * G; cy < y1 * G; cy++) for (let cx = x0 * G; cx < x1 * G; cx++) {
     if (terrain[cx + cy * N] !== T_WATER) continue;
@@ -1906,7 +2010,6 @@ const lighten = (c, t) => mix(c, '#ffffff', t), darken = (c, t) => mix(c, '#0000
 let paintMode = null;
 const P = c => paintMode === 'flash' ? '#ffffff' : paintMode === 'tint' ? mix(c, '#ff3a2a', 0.55) : paintMode === 'ice' ? mix(c, '#bfe8ff', 0.6) : c;
 function fill(c) { ctx.fillStyle = P(c); ctx.fill(); }
-const lerp = (a, b, t) => a + (b - a) * t;
 
 // Which way a world-space facing vector points on screen.
 function screenFacing(fx, fy) { return { flip: fx - fy < 0, back: fx + fy < -0.35 }; }
@@ -1954,7 +2057,8 @@ function drawDogItem(type, color, biting) {
 // How a dog looks: fur colours, saddle patch (undefined = Watson's small patch, null = none),
 // spots, pointy ears, body width (bw), leg length (leg), eye colour, light belly, collar colour, size (s).
 const WATSON_LOOK = { fur: '#cc7a2e', light: '#e8b47c', dark: '#8e4c1a', collar: '#c0392b', saddle: null, chest: '#fff6ea', s: 1 };   // all orange, tiny white chest patch
-const COLLARS = { redcollar: '#c0392b', expresscollar: '#2e86de', spikecollar: '#2a2a2e', bandana: '#2e6fd8' };
+const COLLARS = { redcollar: '#c0392b', expresscollar: '#2e86de', spikecollar: '#2a2a2e', bandana: '#2e6fd8', goldcollar: '#f2c94c' };
+const CAPES = { cape: '#c0392b', royalcape: '#6a2a9a', leafcape: '#3f8a34' };
 const COATS = { raincoat: ['#f4c20d', '#d9a800'], thorncoat: ['#3d5a3a', '#7a5028'], knight: ['#b8c2cc', '#7f8a96'] };
 
 // o: { flip, walk, moving, running, attack (0..1 while attacking, else -1), item, color, eating,
@@ -1982,10 +2086,10 @@ function drawDog(sx, sy, o) {
   };
 
   // Hero cape flutters behind everything.
-  if (wear.body === 'cape' || wear.body === 'royalcape') {
+  if (CAPES[wear.body]) {
     const fl = Math.sin(time * 9 + o.walk) * 1.5, royal = wear.body === 'royalcape';
     ctx.beginPath(); ctx.moveTo(8, by - 6); ctx.quadraticCurveTo(-4, by - 9 + fl, -16, by - 2 + fl);
-    ctx.lineTo(-13, by + 5 - fl); ctx.quadraticCurveTo(-2, by + 1, 7, by - 2); ctx.closePath(); fill(royal ? '#6a2a9a' : '#c0392b');
+    ctx.lineTo(-13, by + 5 - fl); ctx.quadraticCurveTo(-2, by + 1, 7, by - 2); ctx.closePath(); fill(CAPES[wear.body]);
     if (royal) { ctx.beginPath(); ctx.moveTo(8, by - 6); ctx.quadraticCurveTo(-4, by - 9 + fl, -16, by - 2 + fl); ctx.lineTo(-15.5, by - 0.5 + fl); ctx.quadraticCurveTo(-4, by - 7 + fl, 8, by - 4.5); ctx.closePath(); fill('#f4f1ea'); }
   }
 
@@ -2011,6 +2115,17 @@ function drawDog(sx, sy, o) {
     if (wear.body === 'raincoat') for (const x of [-6, 0]) { ctx.beginPath(); ctx.arc(x, by - 1.5, 0.8, 0, Math.PI * 2); fill(c2); }
     ctx.restore();
     if (wear.body === 'thorncoat') for (const x of [-9, -5, -1, 3]) { ctx.beginPath(); ctx.moveTo(x - 1.2, by - 6.2); ctx.lineTo(x, by - 9); ctx.lineTo(x + 1.2, by - 6.2); fill(c2); }
+  }
+  if (CAPES[wear.body]) {   // the cape drapes over his back too, so it's easy to see
+    const fl = Math.sin(time * 9 + o.walk) * 1.5, royal = wear.body === 'royalcape', c = CAPES[wear.body];
+    ctx.beginPath(); ctx.moveTo(9, by - 6.5); ctx.quadraticCurveTo(-1, by - 10.5, -13, by - 6 + fl * 0.4);
+    ctx.lineTo(-16, by + 2 + fl); ctx.quadraticCurveTo(-5, by + 2.5, 6, by - 1.5); ctx.closePath(); fill(c);
+    ctx.beginPath(); ctx.moveTo(-15, by - 1 + fl); ctx.quadraticCurveTo(-5, by + 0.5, 6, by - 3); ctx.lineTo(6, by - 1.5); ctx.quadraticCurveTo(-5, by + 2.5, -16, by + 2 + fl); ctx.closePath(); fill(darken(c, 0.25));
+    if (royal) { ctx.beginPath(); ctx.moveTo(9, by - 6.5); ctx.quadraticCurveTo(-1, by - 10.5, -13, by - 6 + fl * 0.4); ctx.lineTo(-13, by - 4.4 + fl * 0.4); ctx.quadraticCurveTo(-1, by - 8.8, 9, by - 5); ctx.closePath(); fill('#f4f1ea'); }
+    if (wear.body === 'leafcape') for (const [x, y] of [[-9, -4], [-4, -6], [1, -6.5], [-12, 0], [-6, -1]]) {   // leaf veins
+      ctx.beginPath(); ctx.ellipse(x, by + y + fl * 0.3, 2.2, 1, 0.4, 0, Math.PI * 2); fill('#5aa844');
+    }
+    ctx.beginPath(); ctx.arc(8, by - 5.5, 1.5, 0, Math.PI * 2); fill(wear.body === 'leafcape' ? '#8a5a2e' : '#f2c94c');   // clasp
   }
   // Near hind leg: lifted while peeing.
   leg(-5.5 * bw, o.pee ? 1.25 : -sw, fur, true); leg(11 * bw, sw, fur, true);   // near legs
@@ -2074,6 +2189,11 @@ function drawDog(sx, sy, o) {
     for (const [x, y] of [[-1, -2.5], [1.2, -4.5], [-0.2, -6.5]]) { ctx.beginPath(); ctx.arc(x, y, 0.6, 0, Math.PI * 2); fill('#ffffff'); }
     ctx.beginPath(); ctx.arc(0, -9, 1.6, 0, Math.PI * 2); fill('#f2c94c');
     ctx.restore();
+  } else if (wear.head === 'pinehat') {   // a little pinecone cap
+    ctx.beginPath(); ctx.ellipse(3, -13, 5.2, 4.6, 0, Math.PI, 0); ctx.closePath(); fill('#8a5a2e');
+    for (const [x, y] of [[0, -13], [3, -13], [6, -13], [1.5, -15.5], [4.5, -15.5], [3, -17.3]]) { ctx.beginPath(); ctx.ellipse(x, y, 1.5, 1, 0, 0, Math.PI); fill('#a8743a'); }
+    ctx.beginPath(); ctx.rect(2.3, -19.5, 1.4, 2.4); fill('#5a3a1a');
+    ctx.beginPath(); ctx.ellipse(5, -19.2, 2, 1, -0.4, 0, Math.PI * 2); fill('#5aa844');
   } else if (wear.head === 'cowboy') {
     ctx.beginPath(); ctx.roundRect(-1.5, -16.5, 9, 6.5, 2.5); fill('#8a5a2e');
     ctx.beginPath(); ctx.ellipse(3, -10.6, 9.5, 2, -0.05, 0, Math.PI * 2); fill('#8a5a2e');
@@ -2660,6 +2780,46 @@ function drawTrinket(t) {
   }
 }
 // Water bowls on far islands: dry and dusty until they're inside Watson's turf.
+// A Golden Pinecone (on golden pines and in the HUD).
+function drawCone(x, y, k) {
+  ctx.fillStyle = '#a8781a'; ctx.beginPath(); ctx.ellipse(x, y, 3.4 * k, 4.6 * k, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffd84a';
+  for (const [dx, dy] of [[-1.2, -2], [1.2, -2], [0, -0.2], [-1.2, 1.6], [1.2, 1.6]]) { ctx.beginPath(); ctx.ellipse(x + dx * k, y + dy * k, 1.3 * k, 0.9 * k, 0, 0, Math.PI); ctx.fill(); }
+}
+// Treasure chest: wooden with gold bands. Opens once (lid flips back, then it stays open and empty).
+function drawChest(c) {
+  const s = toScreen(c.x, c.y), open = chestsOpen.has(c.id);
+  shadow(c.x, c.y, 0.45);
+  const x = s.x, y = s.y - 2;
+  ctx.fillStyle = '#7a4a22'; ctx.beginPath(); ctx.roundRect(x - 11, y - 13, 22, 13, 2); ctx.fill();   // box
+  ctx.fillStyle = '#5e3818'; ctx.fillRect(x - 11, y - 4, 22, 4);
+  ctx.fillStyle = '#d9a92e'; ctx.fillRect(x - 8, y - 13, 2.5, 13); ctx.fillRect(x + 5.5, y - 13, 2.5, 13);   // bands
+  if (open) {
+    ctx.fillStyle = '#2a1a0c'; ctx.beginPath(); ctx.ellipse(x, y - 13, 10, 2.6, 0, 0, Math.PI * 2); ctx.fill();   // empty inside
+    ctx.fillStyle = '#8a5428'; ctx.beginPath(); ctx.roundRect(x - 11, y - 25, 22, 10, 3); ctx.fill();         // lid flipped back
+    ctx.fillStyle = '#d9a92e'; ctx.fillRect(x - 8, y - 25, 2.5, 10); ctx.fillRect(x + 5.5, y - 25, 2.5, 10);
+    const a = c.openT ? Math.max(0, 1 - (time - c.openT) / 1.5) : 0;   // a burst of light as it opens
+    if (a > 0) { ctx.globalAlpha = a; ctx.fillStyle = '#fff1a8'; ctx.beginPath(); ctx.moveTo(x - 9, y - 13); ctx.lineTo(x - 20, y - 50); ctx.lineTo(x + 20, y - 50); ctx.lineTo(x + 9, y - 13); ctx.fill(); ctx.globalAlpha = 1; }
+  } else {
+    ctx.fillStyle = '#8a5428'; ctx.beginPath(); ctx.roundRect(x - 12, y - 19, 24, 8, [5, 5, 1, 1]); ctx.fill();   // lid
+    ctx.fillStyle = '#d9a92e'; ctx.fillRect(x - 8, y - 19, 2.5, 8); ctx.fillRect(x + 5.5, y - 19, 2.5, 8);
+    ctx.fillStyle = '#f2c94c'; ctx.beginPath(); ctx.roundRect(x - 2.5, y - 14, 5, 5, 1); ctx.fill();          // lock
+    const g = (time * 0.6 + c.id * 0.41) % 2.4;
+    if (g < 0.35) { const r = Math.sin(g / 0.35 * Math.PI) * 6; ctx.strokeStyle = '#fff6c8'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + 8 - r, y - 18); ctx.lineTo(x + 8 + r, y - 18); ctx.moveTo(x + 8, y - 18 - r); ctx.lineTo(x + 8, y - 18 + r); ctx.stroke(); ctx.lineWidth = 1; }
+  }
+}
+// Wooden signpost where a path starts, its arrow pointing down the path.
+function drawSignpost(pa) {
+  const [x0, y0] = pa.pts[0], [x1, y1] = pa.pts[Math.min(4, pa.pts.length - 1)];
+  const s = toScreen(x0, y0), d = toScreen(x1, y1).x >= s.x ? 1 : -1;
+  shadow(x0, y0, 0.15);
+  ctx.fillStyle = '#6b4a2e'; ctx.fillRect(s.x - 1.5, s.y - 26, 3, 26);
+  ctx.fillStyle = '#a8743a'; ctx.beginPath();
+  ctx.moveTo(s.x - 9 * d, s.y - 27); ctx.lineTo(s.x + 7 * d, s.y - 27); ctx.lineTo(s.x + 12 * d, s.y - 22.5); ctx.lineTo(s.x + 7 * d, s.y - 18); ctx.lineTo(s.x - 9 * d, s.y - 18); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = pa.kind === 'gold' ? '#ffd84a' : '#d9a92e';   // a little picture of what's at the end
+  if (pa.kind === 'gold') { ctx.beginPath(); ctx.ellipse(s.x, s.y - 22.5, 2, 2.8, 0, 0, Math.PI * 2); ctx.fill(); }
+  else ctx.fillRect(s.x - 3, s.y - 24.5, 6, 4);
+}
 // A tree. Leafy, pine or bare; smoggy colours outside Watson's turf, lush (bare ones leaf out) inside.
 const TREE_COL = {
   leaf: [['#2f6b2a', '#3f8a34', '#58a542'], ['#3a4338', '#4a5446', '#5d6656']],   // [clean, smoggy]
@@ -2675,12 +2835,22 @@ function drawTree(t) {
   const sway = Math.sin(time * 1.1 + t.x * 0.7) * 1.2;
   ctx.fillStyle = t.kind === 2 && !clean ? '#5a4a42' : '#6b4a2e';
   ctx.fillRect(s.x - 3 * k, s.y - 24 * k, 6 * k, 24 * k);
+  const gold = t.gold && !gotCones.has(t.gid);
   if (t.kind === 1) {   // pine
-    const c = TREE_COL.pine[clean ? 0 : 1];
+    const c = gold ? ['#9a8a2a', '#c9a93a'] : TREE_COL.pine[clean ? 0 : 1];
     for (let n = 0; n < 3; n++) {
       const y = s.y - (20 + n * 13) * k, w = (20 - n * 5) * k;
       ctx.fillStyle = c[n % 2];
       ctx.beginPath(); ctx.moveTo(s.x - w + sway * n * 0.4, y); ctx.lineTo(s.x + w + sway * n * 0.4, y); ctx.lineTo(s.x + sway * (n + 1) * 0.4, y - 22 * k); ctx.closePath(); ctx.fill();
+    }
+    if (gold) {   // golden pinecones hanging in it, and a glint now and then
+      for (const [dx, dy] of [[-9, -22], [7, -27], [-3, -38]]) drawCone(s.x + dx * k + sway, s.y + dy * k, 0.9);
+      const g = (time * 0.8 + t.gid * 0.37) % 1.8;
+      if (g < 0.4) {
+        const r = Math.sin(g / 0.4 * Math.PI) * 7, gx = s.x + 4 * k, gy = s.y - 45 * k;
+        ctx.strokeStyle = '#fff6c8'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.moveTo(gx - r, gy); ctx.lineTo(gx + r, gy); ctx.moveTo(gx, gy - r); ctx.lineTo(gx, gy + r); ctx.stroke(); ctx.lineWidth = 1;
+      }
     }
   } else if (t.kind === 2 && !clean) {   // bare, polluted
     ctx.strokeStyle = '#5a4a42'; ctx.lineWidth = 2.5 * k; ctx.lineCap = 'round';
@@ -2873,6 +3043,11 @@ function drawHUDInner() {
   ctx.fillStyle = '#9fd4ff'; ctx.beginPath(); ctx.moveTo(tx, 66); ctx.lineTo(tx + 5.5, 72); ctx.lineTo(tx, 78); ctx.lineTo(tx - 5.5, 72); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#e6f6ff'; ctx.beginPath(); ctx.moveTo(tx, 67.5); ctx.lineTo(tx + 2.5, 71); ctx.lineTo(tx, 71); ctx.closePath(); ctx.fill();
   ctx.fillStyle = '#bfe6ff'; ctx.fillText(`${trinkets}`, tx + 9, 78);
+  if (cones || gotCones.size) {   // Golden Pinecones, once he's found one
+    const cx = tx + 20 + ctx.measureText(`${trinkets}`).width;
+    drawCone(cx, 72, 1.1);
+    ctx.fillStyle = '#ffd84a'; ctx.fillText(`${cones}`, cx + 7, 78);
+  }
   // Turf claimed, then one pip per dog friend (filled once saved)
   ctx.font = 'bold 12px system-ui, sans-serif'; ctx.fillStyle = '#9be37a';
   const tt = `Turf ${Math.floor(turfFrac() * 100)}%`;
@@ -2953,6 +3128,8 @@ function drawMinimap() {
       if (t === T_CLIFF) { g.fillStyle = '#4a4238'; g.fillRect(i, j, 1.05, 1.05); }
       else if (t === T_WATER) { g.fillStyle = '#3a7fb8'; g.fillRect(i, j, 1.05, 1.05); }
     }
+    g.strokeStyle = '#c8a878'; g.lineWidth = 0.9;
+    for (const pa of PATHS) { g.beginPath(); pa.pts.forEach(([x, y], k) => k ? g.lineTo(x, y) : g.moveTo(x, y)); g.stroke(); }
     g.fillStyle = '#ffe066';
     for (let c = 0; c < N * N; c++) if (turf[c]) g.fillRect((c % N) / G, Math.floor(c / N) / G, 1 / G + 0.05, 1 / G + 0.05);
   }
@@ -2971,7 +3148,7 @@ function drawMinimap() {
 function drawInteract() {
   const it = interactTarget();
   if (!it || paused || isTouch) return;   // phones: the big button itself changes to REST / TRADE
-  const label = it === 'fred' ? 'Trade with Fred' : it === 'free' ? 'Free the dog' : 'Rest';
+  const label = it === 'fred' ? 'Trade with Fred' : it === 'free' ? 'Free the dog' : it === 'chest' ? 'Open the chest' : 'Rest';
   const key = 'Click';
   ctx.font = 'bold 14px system-ui, sans-serif';
   const kw = ctx.measureText(key).width + 14, w = kw + ctx.measureText(label).width + 30;
@@ -3030,6 +3207,8 @@ function draw() {
     ...OUTPOSTS.filter(o => seen(o.x, o.y)).map(o => ({ d: o.x + o.y - 0.5, f: () => drawOutpost(o) })),
     ...NESTS.filter(o => seen(o.x, o.y)).map(o => ({ d: o.x + o.y, f: () => drawNest(o) })),
     ...TREES.filter(t => seen(t.x, t.y)).map(t => ({ d: t.x + t.y, f: () => drawTree(t) })),
+    ...CHESTS.filter(c => seen(c.x, c.y)).map(c => ({ d: c.x + c.y, f: () => drawChest(c) })),
+    ...PATHS.filter(pa => seen(pa.pts[0][0], pa.pts[0][1])).map(pa => ({ d: pa.pts[0][0] + pa.pts[0][1], f: () => drawSignpost(pa) })),
     ...FRIENDS.filter(fr => seen(fr.x, fr.y)).map(fr => ({ d: fr.x + fr.y, f: () => drawFriend(fr) })),
     ...shown.map(e => ({ d: e.x + e.y, f: () => drawEnemy(e) })),
     ...projectiles.map(pr => ({ d: pr.x + pr.y, f: () => {
@@ -3078,7 +3257,7 @@ function draw() {
 // No instruction screen: each hint pops up the first time it's useful and goes away
 // once you've done it (or after a few seconds for the ones that are just warnings).
 const tut = { moved: 0, playT: 0, strike: 0, whirl: 0, fireball: 0, rolls: 0, crits: 0, ran: 0, ate: 0, shop: 0, fred: 0,
-  pal: 0, claims: 0, swaps: 0, swum: 0, shakes: 0, peeOn: 0, built: 0, trinkets: 0 };
+  pal: 0, claims: 0, swaps: 0, swum: 0, shakes: 0, peeOn: 0, built: 0, trinkets: 0, cones: 0 };
 const near = (e, d) => Math.hypot(e.x - player.x, e.y - player.y) < d;
 const HINTS = [   // earlier hints win when several apply at once
   { id: 'roll',   text: 'SPACE  to roll out of the red circle', touch: 'Tap ROLL to get out of the red circle',            when: () => enemies.some(e => e.state === 'windup' && near(e, 3)),   done: () => tut.rolls > 0 },
@@ -3108,6 +3287,7 @@ const HINTS = [   // earlier hints win when several apply at once
     when: () => { const b = buddy(); return !!b && b.kind === 'attack' && enemies.some(e => near(e, 4)); }, done: () => tut.pal > 0 },
   { id: 'swap',   text: 'Swap dog friends at the doghouse', when: () => saved.size >= 2 && distC(player.x, player.y) < 6, done: () => tut.swaps > 0, limit: 8 },
   { id: 'levelrest', text: 'Level bar full! Rest at the doghouse to level up', when: () => readyToLevel() && distC(player.x, player.y) > SAFE_R, done: () => player.level > 1, limit: 6 },
+  { id: 'gold', text: 'A golden pine! Hold P next to it', touch: 'A golden pine! Hold PEE next to it', when: () => GOLD_TREES.some(t => !gotCones.has(t.gid) && near(t, 3)), done: () => tut.cones > 0, limit: 8 },
   { id: 'trinket', text: 'A shiny trinket! Save them up: Fred trades his best stuff for these', when: () => trinkets > 0 && tut.fred === 0, done: () => tut.fred > 0, limit: 8 },
   { id: 'fred',   text: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred', touch: 'Fred the cat sells gear, tricks and outfits. Walk up to Fred',
     when: () => trinkets >= 1 && distC(player.x, player.y) < 5 && !nearFred(), done: () => tut.fred > 0, limit: 12 },
@@ -3252,6 +3432,7 @@ function saveGame(slot = activeSlot) {
          buddy: p.buddy, maxFlasks: p.maxFlasks, bladder: p.bladder },
     saved: [...saved], bondKills, found: [...found], built: [...built], gone: OBSTACLES.filter(o => o.gone).map(o => o.hides),
     turf: packTurf(), bloodstain, tut, hints: [...hintDone], homeXp, trinkets, gotTrinket: [...gotTrinket], drops, bosses: [...bossesBeaten],
+    cones, gotCones: [...gotCones], chests: [...chestsOpen],
     stragglers: (noteStragglers(), stragglers) };
   try { localStorage.setItem(slotKey(slot), JSON.stringify(data)); } catch (e) {}
 }
@@ -3270,6 +3451,7 @@ function loadGame() {
   dirtyChunks();
   bloodstain = d.bloodstain; Object.assign(tut, d.tut); d.hints.forEach(h => hintDone.add(h));
   trinkets = d.trinkets || 0; drops = d.drops || []; (d.bosses || []).forEach(id => bossesBeaten.add(id)); enemies = []; stragglers = d.stragglers || []; (d.gotTrinket || []).forEach(id => gotTrinket.add(id));
+  cones = d.cones || 0; (d.gotCones || []).forEach(id => gotCones.add(id)); (d.chests || []).forEach(id => chestsOpen.add(id));
   homeXp = Math.max(d.homeXp || 0, Math.round(Math.max(0, turfCount - 25) / (G * G)));   // a running total of land claimed (older saves spent it)
   Object.assign(p, { hp: maxHp(), sta: maxSta(), flasks: p.maxFlasks,
     bladder: peeRefills() || d.p.bladder === undefined ? maxPee() : Math.min(maxPee(), d.p.bladder) });
