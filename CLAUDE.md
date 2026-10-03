@@ -54,6 +54,11 @@ in `game/`.
   brambles (burned only by Ember's Fire Fetch). Fred's stock starts tiny; items tagged
   `shop: 'stall' | 'fire' | 'shop'` appear once those are built. The doghouse and Fred's stand
   visibly change with upgrades. Owner wants to grow this slowly.
+- **Smog nests** (`NESTS`, 3 per big island, 1 per islet, seeded positions): purple bubbling mounds.
+  A nest inside turf turns into a flowering bush. When every nest on an island is in turf the island is
+  clean (`islandClean`): its remaining plants are purified and no plants spawn there again, including
+  after a knock-out (`okSpot` checks `cleanAt`). Derived from turf, so nothing extra is saved. Minimap
+  shows nests (purple / green).
 - **Outposts** (`OUTPOSTS`): dry water bowls on the other islands; once inside Watson's turf (and after
   the Fred bowl trade) they refill his pee.
 - Running costs no stamina; rolling costs stamina and makes Watson untouchable for the whole roll.
